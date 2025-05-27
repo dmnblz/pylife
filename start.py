@@ -89,6 +89,12 @@ class CellWallApp:
                     mouse_pos = pygame.Vector2(pygame.mouse.get_pos())
                     p = Particle(mouse_pos, mass=0.1, color=(0, 255, 0), radius=5)
                     self.particles.append(p)
+                elif e.type == pygame.KEYDOWN and e.key == pygame.K_p:
+                    # spawn a new loose particle at the mouse position
+                    mouse_pos = pygame.Vector2(pygame.mouse.get_pos())
+                    for _ in range(10):
+                        p = Particle(mouse_pos, mass=0.1, color=(0, 255, 0), radius=5)
+                        self.particles.append(p)
 
             # drag selected
             if self.selected:
