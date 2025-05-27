@@ -38,8 +38,9 @@ class CellWallApp:
             p1 = self.particles[i]
             p2 = self.particles[(i + 1) % segments]
             rest = (p2.pos - p1.pos).length()
-            stiffness = 100
-            self.springs.append(Spring(p1, p2, rest, stiffness=stiffness))
+            stiffness = 200
+            self.springs.append(Spring(p1, p2, rest, stiffness=stiffness, max_force=None))
+            # self.springs.append(Spring(p1, p2, rest, stiffness=stiffness, max_force=10000))
 
         # an optional spring
         # p1 = self.particles[0]
