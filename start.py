@@ -25,6 +25,9 @@ class CellWallApp:
                                      repulsion_radius=100, repulsion_strength=100,
                                      temperature=500, damping_coeff=1)
         self.renderer = Renderer(self.screen)
+        self.clamp_to_window = True
+        self.bouncy_clamp = False
+        self.periodic_boundary = False
 
     def _create_wall(self):
         center = pygame.Vector2(SCREEN_SIZE) / 2
@@ -94,6 +97,38 @@ class CellWallApp:
                 self.selected.prev_pos = self.selected.pos.copy()
 
             self.physics.update(dt)
+            # handle window boundaries
+            W, H = SCREEN_SIZE
+            if self.periodic_boundary:
+                # wrap-around
+                for p in self.particles:
+                    p.pos.x %= W
+                    p.pos.y %= H
+                    p.prev_pos.x %= W
+                    p.prev_pos.y %= H
+            elif self.clamp_to_window:
+                if self.bouncy_clamp:
+                    # existing reflective code...
+                    for p in self.particles:
+                        v = p.pos - p.prev_pos
+                        if p.pos.x < 0 or p.pos.x > W:
+                            p.pos.x = max(0, min(p.pos.x, W))
+                            p.prev_pos.x = p.pos.x + (-v.x)
+                        if p.pos.y < 0 or p.pos.y > H:
+                            p.pos.y = max(0, min(p.pos.y, H))
+                            p.prev_pos.y = p.pos.y + (-v.y)
+                else:
+                    # existing simple clamp
+                    for p in self.particles:
+                        if p.pos.x < 0:
+                            p.pos.x = 0; p.prev_pos.x = p.pos.x
+                        elif p.pos.x > W:
+                            p.pos.x = W; p.prev_pos.x = p.pos.x
+                        if p.pos.y < 0:
+                            p.pos.y = 0; p.prev_pos.y = p.pos.y
+                        elif p.pos.y > H:
+                            p.pos.y = H; p.prev_pos.y = p.pos.y
+
             self.screen.fill((30, 30, 30))
             self.renderer.draw(self.particles, self.springs)
             pygame.display.flip()
