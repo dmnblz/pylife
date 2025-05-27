@@ -1,0 +1,38 @@
+# physics.py
+import pygame
+from particle import Particle
+from spring import Spring
+
+
+class PhysicsEngine:
+    def __init__(self, particles: list[Particle], springs: list[Spring], gravity=(0, 0), repulsion_radius=20, repulsion_strength=100):
+        self.particles = particles
+        self.springs = springs
+        self.gravity = pygame.Vector2(gravity)
+        self.repulsion_radius = repulsion_radius
+        self.repulsion_strength = repulsion_strength
+
+    def update(self, dt):
+        # apply gravity
+        for p in self.particles:
+            p.apply_force(self.gravity * p.mass)
+
+        # apply spring forces
+        for s in self.springs:
+            s.apply()
+
+        # apply repulsion forces between particles to prevent overlap
+        for i, p1 in enumerate(self.particles):
+            for p2 in self.particles[i+1:]:
+                delta = p2.pos - p1.pos
+                dist = delta.length()
+                if dist > 0 and dist < self.repulsion_radius:
+                    direction = delta / dist
+                    force_magnitude = self.repulsion_strength * (self.repulsion_radius - dist) / self.repulsion_radius
+                    force = direction * force_magnitude
+                    p1.apply_force(-force)
+                    p2.apply_force(force)
+
+        # integrate motion
+        for p in self.particles:
+            p.integrate(dt)
