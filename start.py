@@ -20,7 +20,7 @@ class CellWallApp:
         self.selected = None
 
         self._create_wall()
-        self._loose_particles(count=40)
+        # self._loose_particles(count=40)
         self.physics = PhysicsEngine(self.particles, self.springs, gravity=(0, 0),
                                      repulsion_radius=100, repulsion_strength=100)
         self.renderer = Renderer(self.screen)
@@ -32,7 +32,7 @@ class CellWallApp:
         for i in range(segments):
             theta = (i / segments) * 2 * math.pi
             pos = center + pygame.Vector2(math.cos(theta), math.sin(theta)) * radius
-            p = Particle(pos)
+            p = Particle(pos, color=(i * 2, 0, 255 - i * 2))
             self.particles.append(p)
         # connect adjacent with springs
         for i in range(segments):
