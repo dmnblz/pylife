@@ -19,3 +19,6 @@ class Spring:
         force = delta * (self.stiffness * diff * 0.5)
         self.p1.apply_force(force)
         self.p2.apply_force(-force)
+
+    def potential_energy(self):
+        return 0.5 * self.stiffness * ((self.p2.pos - self.p1.pos).length() - self.rest_length) ** 2

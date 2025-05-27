@@ -17,9 +17,13 @@ class PhysicsEngine:
         for p in self.particles:
             p.apply_force(self.gravity * p.mass)
 
+        spring_energy = 0
         # apply spring forces
         for s in self.springs:
             s.apply()
+            spring_energy += s.potential_energy()
+
+        # print(f"{spring_energy:.2E}")
 
         # apply repulsion forces between particles to prevent overlap
         for i, p1 in enumerate(self.particles):

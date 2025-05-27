@@ -21,13 +21,13 @@ class CellWallApp:
 
         self._create_wall()
         self.physics = PhysicsEngine(self.particles, self.springs, gravity=(0, 0),
-                                     repulsion_radius=100, repulsion_strength=100)
+                                     repulsion_radius=100, repulsion_strength=500)
         self.renderer = Renderer(self.screen)
 
     def _create_wall(self):
         center = pygame.Vector2(SCREEN_SIZE) / 2
         radius = 100
-        segments = 100
+        segments = 40
         for i in range(segments):
             theta = (i / segments) * 2 * math.pi
             pos = center + pygame.Vector2(math.cos(theta), math.sin(theta)) * radius
