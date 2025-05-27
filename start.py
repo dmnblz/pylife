@@ -20,7 +20,7 @@ class CellWallApp:
         self.selected = None
 
         self._create_wall()
-        self._loose_particles(count=40)
+        # self._loose_particles(count=40)
         self.physics = PhysicsEngine(self.particles, self.springs, gravity=(0, 0),
                                      repulsion_radius=100, repulsion_strength=100,
                                      temperature=500, damping_coeff=1)
@@ -81,6 +81,11 @@ class CellWallApp:
                     if self.selected:
                         self.selected.fixed = False
                     self.selected = None
+                elif e.type == pygame.KEYDOWN and e.key == pygame.K_o:
+                    # spawn a new loose particle at the mouse position
+                    mouse_pos = pygame.Vector2(pygame.mouse.get_pos())
+                    p = Particle(mouse_pos, mass=0.1, color=(0, 255, 0), radius=5)
+                    self.particles.append(p)
 
             # drag selected
             if self.selected:
