@@ -2,12 +2,13 @@
 import pygame
 
 class Particle:
-    def __init__(self, position, mass=1.0):
+    def __init__(self, position, mass=1.0, color=None):
         self.pos = pygame.Vector2(position)
         self.prev_pos = self.pos.copy()
         self.acc = pygame.Vector2(0, 0)
         self.mass = mass
         self.fixed = False
+        self.color = color
 
     def apply_force(self, force):
         if not self.fixed:

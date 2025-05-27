@@ -1,6 +1,6 @@
 # main.py
 import pygame
-import math
+import math, random
 from particle import Particle
 from spring import Spring
 from physics import PhysicsEngine
@@ -20,6 +20,7 @@ class CellWallApp:
         self.selected = None
 
         self._create_wall()
+        self._loose_particles(count=40)
         self.physics = PhysicsEngine(self.particles, self.springs, gravity=(0, 0),
                                      repulsion_radius=100, repulsion_strength=100)
         self.renderer = Renderer(self.screen)
@@ -45,10 +46,22 @@ class CellWallApp:
         # an optional spring
         # p1 = self.particles[0]
         # p2 = self.particles[segments//2]
-        # # rest = (p2.pos - p1.pos).length()
+        # rest = (p2.pos - p1.pos).length()
         # rest = 100
         # stiffness = 100
         # self.springs.append(Spring(p1, p2, rest, stiffness=stiffness))
+
+    def _loose_particles(self, count=20):
+        """Add `count` free-floating particles randomly inside the cell wall."""
+        # center and radius must match the wall
+        center = pygame.Vector2(SCREEN_SIZE) / 2
+        radius = 100 * 0.9  # slightly inside the wall
+        for _ in range(count):
+            theta = random.uniform(0, 2 * math.pi)
+            r = random.uniform(0, radius)
+            pos = center + pygame.Vector2(math.cos(theta), math.sin(theta)) * r
+            p = Particle(pos, mass=1, color=(255, 0, 0))
+            self.particles.append(p)
 
     def run(self):
         running = True
