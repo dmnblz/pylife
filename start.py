@@ -20,9 +20,10 @@ class CellWallApp:
         self.selected = None
 
         self._create_wall()
-        # self._loose_particles(count=40)
+        self._loose_particles(count=40)
         self.physics = PhysicsEngine(self.particles, self.springs, gravity=(0, 0),
-                                     repulsion_radius=100, repulsion_strength=100)
+                                     repulsion_radius=100, repulsion_strength=100,
+                                     temperature=500, damping_coeff=1)
         self.renderer = Renderer(self.screen)
 
     def _create_wall(self):
@@ -56,11 +57,12 @@ class CellWallApp:
         # center and radius must match the wall
         center = pygame.Vector2(SCREEN_SIZE) / 2
         radius = 100 * 0.9  # slightly inside the wall
-        for _ in range(count):
+        for i in range(count):
             theta = random.uniform(0, 2 * math.pi)
             r = random.uniform(0, radius)
             pos = center + pygame.Vector2(math.cos(theta), math.sin(theta)) * r
-            p = Particle(pos, mass=1, color=(255, 0, 0))
+            # p = Particle(pos, mass=0.1, color=(255 - i * 5, i * 5, 0), radius=5)
+            p = Particle(pos, mass=0.1, color=(0, 255, 0), radius=5)
             self.particles.append(p)
 
     def run(self):

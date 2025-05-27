@@ -2,15 +2,19 @@
 import pygame
 from particle import Particle
 from spring import Spring
-
+import random
+import math
 
 class PhysicsEngine:
-    def __init__(self, particles: list[Particle], springs: list[Spring], gravity=(0, 0), repulsion_radius=20, repulsion_strength=100):
+    def __init__(self, particles: list[Particle], springs: list[Spring], gravity=(0, 0), repulsion_radius=20,
+                 repulsion_strength=100, temperature=1.0, damping_coeff=1.0):
         self.particles = particles
         self.springs = springs
         self.gravity = pygame.Vector2(gravity)
         self.repulsion_radius = repulsion_radius
         self.repulsion_strength = repulsion_strength
+        self.temperature = temperature
+        self.damping_coeff = damping_coeff
 
     def update(self, dt):
         # apply gravity
@@ -37,6 +41,21 @@ class PhysicsEngine:
                     p1.apply_force(-force)
                     p2.apply_force(force)
 
+        # apply viscous damping and Brownian random forces
+        for p in self.particles:
+            if p.fixed:
+                continue
+            # estimate velocity from Verlet history
+            vel = (p.pos - p.prev_pos) / dt
+            # viscous drag: F_drag = -γ·m·v
+            drag = -self.damping_coeff * p.mass * vel
+            p.apply_force(drag)
+            # Brownian force: Gaussian noise, variance 2·γ·T·m / dt (with k_B = 1)
+            sigma = math.sqrt(2 * self.damping_coeff * self.temperature * p.mass / dt)
+            rand_fx = random.gauss(0, sigma)
+            rand_fy = random.gauss(0, sigma)
+            p.apply_force(pygame.Vector2(rand_fx, rand_fy))
+
         # integrate motion
         for p in self.particles:
-            p.integrate(dt)
+            p.integrate(dt, damping=0.98)

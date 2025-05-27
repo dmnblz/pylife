@@ -15,4 +15,5 @@ class Renderer:
         for p in particles:
             # color = (255, 0, 0) if p.fixed else (0, 0, 255)
             color = p.color if p.color else (0, 0, 255)
-            pygame.draw.circle(self.screen, color, (int(p.pos.x), int(p.pos.y)), 10)
+            radius = p.radius if p.radius else 10
+            pygame.draw.circle(self.screen, color, (int(p.pos.x), int(p.pos.y)), radius=radius)
