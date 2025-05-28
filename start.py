@@ -8,6 +8,7 @@ from particle import Particle
 from physics import PhysicsEngine
 from renderer import Renderer
 from spring import Spring
+from structures import create_wall
 
 SCREEN_SIZE = (800, 600)
 FPS = 60
@@ -22,9 +23,14 @@ class CellWallApp:
         self.springs = []
         self.selected = None
 
-        self._create_wall()
-        # self._create_wall(radius=10, segments=10)
+        center = pygame.Vector2(SCREEN_SIZE) / 2
+        wall0_particles, wall0_springs = create_wall(center, radius=50, segments=50, tag="spring0")
+        wall1_particles, wall1_springs = create_wall(center, radius=100, segments=100, tag="spring1")
+        wall2_particles, wall2_springs = create_wall(center, radius=200, segments=200, tag="spring2")
+        self.particles.extend(wall0_particles + wall1_particles + wall2_particles)
+        self.springs.extend(wall0_springs + wall1_springs + wall2_springs)
         # self._loose_particles(count=40)
+
         self.physics = PhysicsEngine(self.particles, self.springs, gravity=(0, 0),
                                      repulsion_radius=100, repulsion_strength=100,
                                      # repulsion_radius=150, repulsion_strength=100,
@@ -34,35 +40,6 @@ class CellWallApp:
         self.clamp_to_window = True
         self.bouncy_clamp = False
         self.periodic_boundary = False
-
-    def _create_wall(self, radius=100, segments=100):
-        particle_counter = len(self.particles)
-        center = pygame.Vector2(SCREEN_SIZE) / 2
-        for i in range(segments):
-            theta = (i / segments) * 2 * math.pi
-            pos = center + pygame.Vector2(math.cos(theta), math.sin(theta)) * radius
-            p = Particle(pos, color=(round(i / segments * 255), 0, 255 - round(i / segments * 255)))
-            self.particles.append(p)
-        # connect adjacent with springs
-        for i in range(segments):
-            p1 = self.particles[particle_counter + i]
-            p2 = self.particles[(particle_counter + i + 1) % (segments + particle_counter)]
-            rest = (p2.pos - p1.pos).length()
-            stiffness = 200
-            # if i % 10 == 0:
-            #     stiffness = 50
-            # else:
-            #     stiffness = 200
-            self.springs.append(Spring(p1, p2, rest, stiffness=stiffness, max_force=None))
-            # self.springs.append(Spring(p1, p2, rest, stiffness=stiffness, max_force=10000))
-
-        # an optional spring
-        # p1 = self.particles[0]
-        # p2 = self.particles[segments//2]
-        # rest = (p2.pos - p1.pos).length()
-        # rest = 100
-        # stiffness = 100
-        # self.springs.append(Spring(p1, p2, rest, stiffness=stiffness))
 
     def _loose_particles(self, count=20):
         """Add `count` free-floating particles randomly inside the cell wall."""

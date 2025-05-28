@@ -2,7 +2,7 @@
 import pygame
 
 class Particle:
-    def __init__(self, position, mass=1.0, color=None, radius=None):
+    def __init__(self, position, mass=1.0, color=None, radius=None, tag=None):
         self.pos = pygame.Vector2(position)
         self.prev_pos = self.pos.copy()
         self.acc = pygame.Vector2(0, 0)
@@ -10,7 +10,7 @@ class Particle:
         self.fixed = False
         self.color = color
         self.radius = radius
-        self.tag = None
+        self.tag = tag
 
     def apply_force(self, force):
         if not self.fixed:
