@@ -10,6 +10,7 @@ class Particle:
         self.fixed = False
         self.color = color
         self.radius = radius
+        self.tag = None
 
     def apply_force(self, force):
         if not self.fixed:

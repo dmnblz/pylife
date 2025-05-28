@@ -1,10 +1,13 @@
 # main.py
+import math
+import random
+
 import pygame
-import math, random
+
 from particle import Particle
-from spring import Spring
 from physics import PhysicsEngine
 from renderer import Renderer
+from spring import Spring
 
 SCREEN_SIZE = (800, 600)
 FPS = 60
@@ -20,30 +23,36 @@ class CellWallApp:
         self.selected = None
 
         self._create_wall()
+        # self._create_wall(radius=10, segments=10)
         # self._loose_particles(count=40)
         self.physics = PhysicsEngine(self.particles, self.springs, gravity=(0, 0),
                                      repulsion_radius=100, repulsion_strength=100,
+                                     # repulsion_radius=150, repulsion_strength=100,
+                                     # repulsion_radius=30, repulsion_strength=1000,
                                      temperature=500, damping_coeff=1)
         self.renderer = Renderer(self.screen)
         self.clamp_to_window = True
         self.bouncy_clamp = False
         self.periodic_boundary = False
 
-    def _create_wall(self):
+    def _create_wall(self, radius=100, segments=100):
+        particle_counter = len(self.particles)
         center = pygame.Vector2(SCREEN_SIZE) / 2
-        radius = 100
-        segments = 100
         for i in range(segments):
             theta = (i / segments) * 2 * math.pi
             pos = center + pygame.Vector2(math.cos(theta), math.sin(theta)) * radius
-            p = Particle(pos, color=(i * 2, 0, 255 - i * 2))
+            p = Particle(pos, color=(round(i / segments * 255), 0, 255 - round(i / segments * 255)))
             self.particles.append(p)
         # connect adjacent with springs
         for i in range(segments):
-            p1 = self.particles[i]
-            p2 = self.particles[(i + 1) % segments]
+            p1 = self.particles[particle_counter + i]
+            p2 = self.particles[(particle_counter + i + 1) % (segments + particle_counter)]
             rest = (p2.pos - p1.pos).length()
             stiffness = 200
+            # if i % 10 == 0:
+            #     stiffness = 50
+            # else:
+            #     stiffness = 200
             self.springs.append(Spring(p1, p2, rest, stiffness=stiffness, max_force=None))
             # self.springs.append(Spring(p1, p2, rest, stiffness=stiffness, max_force=10000))
 
@@ -66,6 +75,7 @@ class CellWallApp:
             pos = center + pygame.Vector2(math.cos(theta), math.sin(theta)) * r
             # p = Particle(pos, mass=0.1, color=(255 - i * 5, i * 5, 0), radius=5)
             p = Particle(pos, mass=0.1, color=(0, 255, 0), radius=5)
+            p.tag = "loose"
             self.particles.append(p)
 
     def run(self):
@@ -88,13 +98,42 @@ class CellWallApp:
                     # spawn a new loose particle at the mouse position
                     mouse_pos = pygame.Vector2(pygame.mouse.get_pos())
                     p = Particle(mouse_pos, mass=0.1, color=(0, 255, 0), radius=5)
+                    p.tag = "loose"
                     self.particles.append(p)
                 elif e.type == pygame.KEYDOWN and e.key == pygame.K_p:
                     # spawn a new loose particle at the mouse position
                     mouse_pos = pygame.Vector2(pygame.mouse.get_pos())
                     for _ in range(10):
                         p = Particle(mouse_pos, mass=0.1, color=(0, 255, 0), radius=5)
+                        # p = Particle(mouse_pos, mass=0.1, color=(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)), radius=5)
+                        p.tag = "loose"
                         self.particles.append(p)
+                elif e.type == pygame.KEYDOWN and e.key == pygame.K_k:
+                    for spring in self.springs:
+                        spring.stiffness = max(spring.stiffness - 50, 0)
+                    print(f"Spring Stiffnes: {spring.stiffness}")
+                elif e.type == pygame.KEYDOWN and e.key == pygame.K_l:
+                    for spring in self.springs:
+                        spring.stiffness = spring.stiffness + 50
+                    print(f"Spring Stiffnes: {spring.stiffness}")
+
+                elif e.type == pygame.KEYDOWN and e.key == pygame.K_n:
+                    self.physics.temperature = max(self.physics.temperature - 50, 0)
+                    print(f"Temperature: {self.physics.temperature}")
+                elif e.type == pygame.KEYDOWN and e.key == pygame.K_m:
+                    self.physics.temperature += 50
+                    print(f"Temperature: {self.physics.temperature}")
+
+                elif e.type == pygame.KEYDOWN and e.key == pygame.K_q:
+                    # delete all loose particles
+                    for p in self.particles:
+                        if p.tag == "loose":
+                            p.fixed = True
+                elif e.type == pygame.KEYDOWN and e.key == pygame.K_w:
+                    # delete all loose particles
+                    for p in self.particles:
+                        if p.tag == "loose":
+                            p.fixed = False
 
             # drag selected
             if self.selected:
@@ -127,13 +166,17 @@ class CellWallApp:
                     # existing simple clamp
                     for p in self.particles:
                         if p.pos.x < 0:
-                            p.pos.x = 0; p.prev_pos.x = p.pos.x
+                            p.pos.x = 0;
+                            p.prev_pos.x = p.pos.x
                         elif p.pos.x > W:
-                            p.pos.x = W; p.prev_pos.x = p.pos.x
+                            p.pos.x = W;
+                            p.prev_pos.x = p.pos.x
                         if p.pos.y < 0:
-                            p.pos.y = 0; p.prev_pos.y = p.pos.y
+                            p.pos.y = 0;
+                            p.prev_pos.y = p.pos.y
                         elif p.pos.y > H:
-                            p.pos.y = H; p.prev_pos.y = p.pos.y
+                            p.pos.y = H;
+                            p.prev_pos.y = p.pos.y
 
             self.screen.fill((30, 30, 30))
             self.renderer.draw(self.particles, self.springs)
