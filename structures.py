@@ -6,7 +6,7 @@ from spring import Spring
 
 
 def create_wall(center: pygame.Vector2, radius: float = 100, segments: int = 20,
-                tag: str = "wall", stiffness: float = 200, max_force: float = None):
+                tag: str = "wall", stiffness: float = 200, max_force: float = None, color=(255, 0, 0)):
     """
     Create a circular wall of particles and connecting springs.
     Returns two lists: [Particle, ...], [Spring, ...].
@@ -17,7 +17,11 @@ def create_wall(center: pygame.Vector2, radius: float = 100, segments: int = 20,
     for i in range(segments):
         theta = (i / segments) * 2 * math.pi
         pos = center + pygame.Vector2(math.cos(theta), math.sin(theta)) * radius
-        p = Particle(position=pos, tag=tag, color=(round(i / segments * 255), 0, 255 - round(i / segments * 255)))
+        a = round(math.sin(i / segments * math.pi) * 255)
+
+        # p = Particle(position=pos, tag=tag, color=(round(i / segments * 255), 0, 255 - round(i / segments * 255)))
+        p = Particle(position=pos, tag=tag, color=(a, 0, 255 - a))
+        # p = Particle(position=pos, tag=tag, color=color)
         particles.append(p)
     # connect adjacent with springs (wrap within this wall only)
     for i in range(segments):
