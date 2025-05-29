@@ -34,8 +34,9 @@ class CellWallApp:
         #                                                  stiffness=2000, max_force=None)
         # wall2_particles, wall2_springs = create_wall_rod(loc2, radius=100, segments=100, tag="spring1",
         #                                                  stiffness=2000, max_force=None)
-        wall2_particles, wall2_springs = create_rod(center, radius=100, length=500, segments=50, tag="spring1",
-                                                         stiffness=200, max_force=None)
+        wall2_particles, wall2_springs = create_rod(center, radius=100, length=300, segments=50, tag="spring1",
+                                                    stiffness=200, max_force=None,
+                                                    include_cytoskeleton=True, cyto_stiffness=200)
         self.particles.extend(wall2_particles)
         self.springs.extend(wall2_springs)
         # self._loose_particles(count=40)
@@ -44,9 +45,9 @@ class CellWallApp:
                                      # repulsion_radius=100, repulsion_strength=100,
                                      # repulsion_radius=100, repulsion_strength=1000,
                                      # repulsion_radius=150, repulsion_strength=100,
-                                     # repulsion_radius=30, repulsion_strength=1000,
+                                     repulsion_radius=30, repulsion_strength=1000,
                                      # repulsion_radius=30, repulsion_strength=10000,
-                                     repulsion_radius=0, repulsion_strength=10000,
+                                     # repulsion_radius=0, repulsion_strength=10000,
                                      temperature=0, damping_coeff=1)
                                      # temperature=0, damping_coeff=1)
                                      # temperature=0, damping_coeff=0)

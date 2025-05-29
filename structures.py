@@ -155,7 +155,8 @@ def coccus(center: pygame.Vector2, radius: float = 100, segments: int = 20,
 # Capsule/rod shape: rectangle with semicircular ends
 def create_rod(center: pygame.Vector2, radius: float = 100, length: float = 200,
                segments: int = 100, tag: str = "rod", stiffness: float = 200,
-               max_force: float = None, color=(255, 0, 0)):
+               max_force: float = None, color=(255, 0, 0),
+               include_cytoskeleton: bool = False, cyto_stiffness: float = None):
     """
     Create a capsule (rod) with uniform spacing: a rectangle length `length` and width 2*radius,
     capped by semicircles at ends. Returns (particles, springs).
@@ -165,6 +166,11 @@ def create_rod(center: pygame.Vector2, radius: float = 100, length: float = 200,
     # precompute
     total_length = 2 * length + 2 * math.pi * radius
     step = total_length / segments
+    # compute number of points on each semicircle and straight sides
+    n_arc = int(round((math.pi * radius) / step))
+    n_side = segments - 2 * n_arc
+    left_arc_start = 0
+    # right_arc_start will be set later based on actual bottom side count if cytoskeleton is included
     center_left = center + pygame.Vector2(-length / 2, 0)
     center_right = center + pygame.Vector2(length / 2, 0)
 
@@ -197,5 +203,47 @@ def create_rod(center: pygame.Vector2, radius: float = 100, length: float = 200,
         p2 = particles[(idx + 1) % count]
         rest = (p2.pos - p1.pos).length()
         springs.append(Spring(p1, p2, rest, stiffness=stiffness, max_force=max_force))
+
+    # optional cytoskeleton: radial connectors between top/bottom boundary
+    if include_cytoskeleton:
+        cs = cyto_stiffness if cyto_stiffness is not None else stiffness
+        # find straight-side boundary nodes
+        bottom_y = center.y - radius
+        top_y = center.y + radius
+        # only straight-side points (exclude arc endpoints) by x-range
+        bottom_nodes = [
+            p for p in particles
+            if abs(p.pos.y - bottom_y) < 1e-6
+               and center_left.x < p.pos.x < center_right.x
+        ]
+        top_nodes = [
+            p for p in particles
+            if abs(p.pos.y - top_y) < 1e-6
+               and center_left.x < p.pos.x < center_right.x
+        ]
+        # sort by x to pair left-to-left, right-to-right
+        bottom_nodes.sort(key=lambda p: p.pos.x)
+        top_nodes.sort(key=lambda p: p.pos.x)
+        # connect each bottom node to its corresponding top node
+        for pb, pt in zip(bottom_nodes, top_nodes):
+            rest = (pt.pos - pb.pos).length()
+            springs.append(Spring(pb, pt, rest, stiffness=cs, max_force=max_force))
+        # adjust right_arc_start based on actual bottom side count
+        bottom_count = len(bottom_nodes)
+        right_arc_start = n_arc + bottom_count
+        # connect left semicircle points radially (pair top to bottom)
+        for i in range(n_arc // 2):
+            p1 = particles[left_arc_start + i]
+            p2 = particles[left_arc_start + (n_arc - 1 - i)]
+            rest = (p2.pos - p1.pos).length()
+            springs.append(Spring(p1, p2, rest, stiffness=cs, max_force=max_force))
+        # connect right semicircle points radially
+        for i in range(n_arc // 2):
+            idx1 = right_arc_start + i
+            idx2 = right_arc_start + (n_arc - 1 - i)
+            p1 = particles[idx1]
+            p2 = particles[idx2]
+            rest = (p2.pos - p1.pos).length()
+            springs.append(Spring(p1, p2, rest, stiffness=cs, max_force=max_force))
 
     return particles, springs
