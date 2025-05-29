@@ -58,3 +58,95 @@ def create_bending_wall(center: pygame.Vector2, radius: float = 100, segments: i
                           stiffness=bending_stiffness)
         )
     return particles, springs, bending_springs
+
+
+def create_wall_rod(center: pygame.Vector2, radius: float = 100, segments: int = 20,
+                    tag: str = "wall", stiffness: float = 200, max_force: float = None, color=(255, 0, 0)):
+    """
+    Create a circular wall of particles and connecting springs.
+    Returns two lists: [Particle, ...], [Spring, ...].
+    """
+    particles = []
+    springs = []
+    # create particles in a circle
+    for i in range(segments):
+        theta = (i / segments) * 2 * math.pi
+        pos = center + pygame.Vector2(math.cos(theta), math.sin(theta)) * radius
+        a = round(math.sin(i / segments * math.pi) * 255)
+        p = Particle(position=pos, tag=tag, color=(a, 0, 255 - a))
+        particles.append(p)
+    # connect adjacent with springs (wrap within this wall only)
+    for i in range(segments):
+        p1 = particles[i]
+        p2 = particles[(i + 1) % segments]
+        rest_length = (p2.pos - p1.pos).length()
+        springs.append(Spring(p1, p2, rest_length, stiffness=stiffness, max_force=max_force))
+
+        # if i % 20 == 0:
+        # if 40 < i < 60:
+        #     p1 = particles[i]
+        #     p2 = particles[segments//2 - i]
+        #     rest_length = radius * 2
+        #     springs.append(Spring(p1, p2, rest_length, stiffness=stiffness/100, max_force=max_force))
+        #
+
+        if i <= segments // 2 and i % 2 == 0:
+            p1 = particles[i]
+            p2 = particles[-i]
+
+            rest_length = abs(math.sin(i / segments * math.pi * 4)) * 2 * radius
+            if segments // 8 <= i <= (segments // 2 - segments // 8):
+                rest_length = 2 * radius
+
+            springs.append(Spring(p1, p2, rest_length, stiffness=stiffness // 100, max_force=max_force))
+
+        # if i <= segments//2 and i % 2 == 0:
+        #     p1 = particles[i]
+        #     p2 = particles[-i+5]
+        #
+        #     rest_length = abs(math.sin(i/segments*math.pi*4)) * 2 * radius
+        #     if segments//8 <= i <= (segments//2 - segments//8):
+        #         rest_length = 2 * radius
+        #
+        #         springs.append(Spring(p1, p2, rest_length, stiffness=stiffness//100, max_force=max_force))
+
+        # if i == 0:
+        #     p1 = particles[i]
+        #     p2 = particles[segments//2]
+        #     rest_length = 5.5 * radius
+        #     springs.append(Spring(p1, p2, rest_length, stiffness=stiffness//10, max_force=max_force))
+
+    return particles, springs
+
+
+def create_wall_super(center: pygame.Vector2, radius: float = 100, segments: int = 20,
+                      tag: str = "wall", stiffness: float = 200, max_force: float = None, color=(255, 0, 0)):
+    """
+    Create a circular wall of particles and connecting springs.
+    Returns two lists: [Particle, ...], [Spring, ...].
+    """
+    particles = []
+    springs = []
+    # create particles in a circle
+    for i in range(segments):
+        theta = (i / segments) * 2 * math.pi
+        pos = center + pygame.Vector2(math.cos(theta), math.sin(theta)) * radius
+        a = round(math.sin(i / segments * math.pi) * 255)
+        p = Particle(position=pos, tag=tag, color=(a, 0, 255 - a))
+        particles.append(p)
+    # connect adjacent with springs (wrap within this wall only)
+    for i in range(segments):
+        p1 = particles[i]
+        p2 = particles[(i + 1) % segments]
+        rest_length = (p2.pos - p1.pos).length()
+        springs.append(Spring(p1, p2, rest_length, stiffness=stiffness, max_force=max_force))
+
+        if i <= segments // 2 - 1 and i % 2 == 0:
+            p1 = particles[i]
+            p2 = particles[i + segments//2]
+
+            rest_length = 3 * radius
+
+            springs.append(Spring(p1, p2, rest_length, stiffness=stiffness/200, max_force=max_force, invisible=True))
+
+    return particles, springs

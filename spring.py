@@ -4,13 +4,15 @@ from particle import Particle
 
 
 class Spring:
-    def __init__(self, p1: Particle, p2: Particle, rest_length: float, stiffness: float, max_force: float = None):
+    def __init__(self, p1: Particle, p2: Particle, rest_length: float, stiffness: float, max_force: float = None,
+                 invisible: bool = False):
         self.p1 = p1
         self.p2 = p2
         self.rest_length = rest_length
         self.stiffness = stiffness
         self.max_force = max_force
         self.broken = False
+        self.invisible = invisible
 
     def apply(self):
         if self.broken:
