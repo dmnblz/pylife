@@ -2,14 +2,16 @@
 import pygame
 from particle import Particle
 from spring import Spring
+from bending_spring import BendingSpring
 import random
 import math
 
 class PhysicsEngine:
-    def __init__(self, particles: list[Particle], springs: list[Spring], gravity=(0, 0), repulsion_radius=20,
+    def __init__(self, particles: list[Particle], springs: list[Spring], bending_springs: list[BendingSpring], gravity=(0, 0), repulsion_radius=20,
                  repulsion_strength=100, temperature=1.0, damping_coeff=1.0):
         self.particles = particles
         self.springs = springs
+        self.bending_springs = bending_springs
         self.gravity = pygame.Vector2(gravity)
         self.repulsion_radius = repulsion_radius
         self.repulsion_strength = repulsion_strength
@@ -21,13 +23,12 @@ class PhysicsEngine:
         for p in self.particles:
             p.apply_force(self.gravity * p.mass)
 
-        spring_energy = 0
         # apply spring forces
         for s in self.springs:
             s.apply()
-            spring_energy += s.potential_energy()
 
-        # print(f"{spring_energy:.2E}")
+        for bs in self.bending_springs:
+            bs.apply()
 
         # apply repulsion forces between particles to prevent overlap
         for i, p1 in enumerate(self.particles):

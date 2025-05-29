@@ -8,14 +8,15 @@ from particle import Particle
 from physics import PhysicsEngine
 from renderer import Renderer
 from spring import Spring
-from structures import create_wall
+from bending_spring import BendingSpring
+from structures import create_wall, create_bending_wall
 
 # SCREEN_SIZE = (800, 600)
 # SCREEN_SIZE = (800 * 2, 600 * 2)
 # SCREEN_SIZE = (1500, 900)
 SCREEN_SIZE = (1300, 900)
-FPS = 60
-# FPS = 120
+# FPS = 60
+FPS = 120
 
 
 class CellWallApp:
@@ -25,25 +26,28 @@ class CellWallApp:
         self.clock = pygame.time.Clock()
         self.particles = []
         self.springs = []
+        self.bending_springs = []
         self.selected = None
 
         center = pygame.Vector2(SCREEN_SIZE) / 2
         loc1 = center - pygame.Vector2((400, 0))
         loc2 = center + pygame.Vector2((400, 0))
-        wall1_particles, wall1_springs = create_wall(center, radius=100, segments=100, tag="spring1", color=(255, 0, 0), stiffness=2000)
-        wall0_particles, wall0_springs = create_wall(loc1, radius=100, segments=100, tag="spring0", color=(0, 255, 0), stiffness=2000)
-        wall2_particles, wall2_springs = create_wall(loc2, radius=100, segments=100, tag="spring2", color=(0, 0, 255), stiffness=2000)
-        self.particles.extend(wall0_particles + wall1_particles + wall2_particles)
-        self.springs.extend(wall0_springs + wall1_springs + wall2_springs)
+        wall1_particles, wall1_springs, wall1_bending_springs = create_bending_wall(center, radius=100, segments=3,
+                                                                                    tag="spring1", color=(255, 0, 0),
+                                                                                    stiffness=2000, bending_stiffness=500)
+        self.particles.extend(wall1_particles)
+        self.springs.extend(wall1_springs)
+        self.bending_springs.extend(wall1_bending_springs)
         # self._loose_particles(count=40)
 
-        self.physics = PhysicsEngine(self.particles, self.springs, gravity=(0, 0),
+        self.physics = PhysicsEngine(self.particles, self.springs, self.bending_springs, gravity=(0, 0),
                                      # repulsion_radius=100, repulsion_strength=100,
                                      # repulsion_radius=100, repulsion_strength=1000,
                                      # repulsion_radius=150, repulsion_strength=100,
                                      # repulsion_radius=30, repulsion_strength=1000,
                                      repulsion_radius=30, repulsion_strength=10000,
-                                     temperature=500, damping_coeff=1)
+                                     # repulsion_radius=30, repulsion_strength=0,
+                                     temperature=0, damping_coeff=1)
                                      # temperature=0, damping_coeff=1)
                                      # temperature=0, damping_coeff=0)
         self.renderer = Renderer(self.screen)
