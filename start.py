@@ -11,8 +11,10 @@ from spring import Spring
 from structures import create_wall
 
 # SCREEN_SIZE = (800, 600)
-SCREEN_SIZE = (800 * 2, 600 * 2)
+# SCREEN_SIZE = (800 * 2, 600 * 2)
+SCREEN_SIZE = (1500, 900)
 FPS = 60
+# FPS = 120
 
 
 class CellWallApp:
@@ -25,8 +27,8 @@ class CellWallApp:
         self.selected = None
 
         center = pygame.Vector2(SCREEN_SIZE) / 2
-        loc1 = center - pygame.Vector2((200, 0))
-        loc2 = center + pygame.Vector2((200, 0))
+        loc1 = center - pygame.Vector2((400, 0))
+        loc2 = center + pygame.Vector2((400, 0))
         wall1_particles, wall1_springs = create_wall(center, radius=100, segments=100, tag="spring1", color=(255, 0, 0), stiffness=2000)
         wall0_particles, wall0_springs = create_wall(loc1, radius=100, segments=100, tag="spring0", color=(0, 255, 0), stiffness=2000)
         wall2_particles, wall2_springs = create_wall(loc2, radius=100, segments=100, tag="spring2", color=(0, 0, 255), stiffness=2000)
@@ -36,10 +38,13 @@ class CellWallApp:
 
         self.physics = PhysicsEngine(self.particles, self.springs, gravity=(0, 0),
                                      # repulsion_radius=100, repulsion_strength=100,
+                                     # repulsion_radius=100, repulsion_strength=1000,
                                      # repulsion_radius=150, repulsion_strength=100,
-                                     repulsion_radius=30, repulsion_strength=1000,
-                                     # temperature=500, damping_coeff=1)
-                                     temperature=0, damping_coeff=1)
+                                     # repulsion_radius=30, repulsion_strength=1000,
+                                     repulsion_radius=30, repulsion_strength=10000,
+                                     temperature=500, damping_coeff=1)
+                                     # temperature=0, damping_coeff=1)
+                                     # temperature=0, damping_coeff=0)
         self.renderer = Renderer(self.screen)
         self.clamp_to_window = True
         self.bouncy_clamp = False

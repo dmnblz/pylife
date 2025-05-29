@@ -59,3 +59,4 @@ class PhysicsEngine:
         # integrate motion
         for p in self.particles:
             p.integrate(dt, damping=0.98)
+            # p.integrate(dt, damping=1)
