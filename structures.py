@@ -119,8 +119,8 @@ def create_wall_rod(center: pygame.Vector2, radius: float = 100, segments: int =
     return particles, springs
 
 
-def create_wall_super(center: pygame.Vector2, radius: float = 100, segments: int = 20,
-                      tag: str = "wall", stiffness: float = 200, max_force: float = None, color=(255, 0, 0)):
+def coccus(center: pygame.Vector2, radius: float = 100, segments: int = 20,
+           tag: str = "wall", stiffness: float = 200, max_force: float = None, color=(255, 0, 0)):
     """
     Create a circular wall of particles and connecting springs.
     Returns two lists: [Particle, ...], [Spring, ...].
@@ -147,6 +147,55 @@ def create_wall_super(center: pygame.Vector2, radius: float = 100, segments: int
 
             rest_length = 3 * radius
 
-            springs.append(Spring(p1, p2, rest_length, stiffness=stiffness/200, max_force=max_force, invisible=True))
+            springs.append(Spring(p1, p2, rest_length, stiffness=stiffness/200, max_force=max_force, invisible=False))
+
+    return particles, springs
+
+
+# Capsule/rod shape: rectangle with semicircular ends
+def create_rod(center: pygame.Vector2, radius: float = 100, length: float = 200,
+               segments: int = 100, tag: str = "rod", stiffness: float = 200,
+               max_force: float = None, color=(255, 0, 0)):
+    """
+    Create a capsule (rod) with uniform spacing: a rectangle length `length` and width 2*radius,
+    capped by semicircles at ends. Returns (particles, springs).
+    """
+    particles = []
+    springs = []
+    # precompute
+    total_length = 2 * length + 2 * math.pi * radius
+    step = total_length / segments
+    center_left = center + pygame.Vector2(-length / 2, 0)
+    center_right = center + pygame.Vector2(length / 2, 0)
+
+    for i in range(segments):
+        s = i * step
+        # left semicircle (top->bottom)
+        if s < math.pi * radius:
+            theta = math.pi/2 + (s / (math.pi * radius)) * math.pi
+            pos = center_left + pygame.Vector2(math.cos(theta), math.sin(theta)) * radius
+        # bottom side
+        elif s < math.pi * radius + length:
+            s2 = s - math.pi * radius
+            pos = pygame.Vector2(center_left.x + s2, center.y - radius)
+        # right semicircle (bottom->top)
+        elif s < math.pi * radius + length + math.pi * radius:
+            s3 = s - (math.pi * radius + length)
+            theta = 3*math.pi/2 + (s3 / (math.pi * radius)) * math.pi
+            pos = center_right + pygame.Vector2(math.cos(theta), math.sin(theta)) * radius
+        # top side
+        else:
+            s4 = s - (2 * math.pi * radius + length)
+            pos = pygame.Vector2(center_right.x - s4, center.y + radius)
+        p = Particle(position=pos, tag=tag, color=color)
+        particles.append(p)
+
+    # connect springs between adjacent particles
+    count = len(particles)
+    for idx in range(count):
+        p1 = particles[idx]
+        p2 = particles[(idx + 1) % count]
+        rest = (p2.pos - p1.pos).length()
+        springs.append(Spring(p1, p2, rest, stiffness=stiffness, max_force=max_force))
 
     return particles, springs

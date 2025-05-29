@@ -8,7 +8,7 @@ from particle import Particle
 from physics import PhysicsEngine
 from renderer import Renderer
 from spring import Spring
-from structures import create_wall, create_wall_rod, create_wall_super
+from structures import create_wall, create_wall_rod, coccus
 
 # SCREEN_SIZE = (800, 600)
 # SCREEN_SIZE = (800 * 2, 600 * 2)
@@ -30,7 +30,7 @@ class CellWallApp:
         center = pygame.Vector2(SCREEN_SIZE) / 2
         loc1 = center - pygame.Vector2((400, 0))
         loc2 = center + pygame.Vector2((400, 0))
-        wall1_particles, wall1_springs = create_wall_super(center, radius=150, segments=150, tag="spring1", color=(255, 0, 0), stiffness=2000)
+        wall1_particles, wall1_springs = coccus(center, radius=150, segments=150, tag="spring1", color=(255, 0, 0), stiffness=2000)
         wall0_particles, wall0_springs = create_wall(center, radius=100, segments=100, tag="spring0", color=(0, 255, 0), stiffness=2000)
         wall2_particles, wall2_springs = create_wall(center, radius=50, segments=50, tag="spring2", color=(0, 0, 255), stiffness=2000)
         self.particles.extend(wall0_particles + wall1_particles + wall2_particles)

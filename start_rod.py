@@ -8,7 +8,7 @@ from particle import Particle
 from physics import PhysicsEngine
 from renderer import Renderer
 from spring import Spring
-from structures import create_wall, create_wall_rod
+from structures import create_wall, create_wall_rod, create_rod
 
 # SCREEN_SIZE = (800, 600)
 # SCREEN_SIZE = (800 * 2, 600 * 2)
@@ -30,12 +30,14 @@ class CellWallApp:
         center = pygame.Vector2(SCREEN_SIZE) / 2
         loc1 = center - pygame.Vector2((0, -300))
         loc2 = center - pygame.Vector2((0, 300))
-        wall1_particles, wall1_springs = create_wall_rod(loc1, radius=100, segments=200, tag="spring1",
-                                                         stiffness=2000, max_force=None)
-        wall2_particles, wall2_springs = create_wall_rod(loc2, radius=100, segments=100, tag="spring1",
-                                                         stiffness=2000, max_force=None)
-        self.particles.extend(wall1_particles + wall2_particles)
-        self.springs.extend(wall1_springs + wall2_springs)
+        # wall1_particles, wall1_springs = create_wall_rod(loc1, radius=100, segments=200, tag="spring1",
+        #                                                  stiffness=2000, max_force=None)
+        # wall2_particles, wall2_springs = create_wall_rod(loc2, radius=100, segments=100, tag="spring1",
+        #                                                  stiffness=2000, max_force=None)
+        wall2_particles, wall2_springs = create_rod(center, radius=100, length=500, segments=50, tag="spring1",
+                                                         stiffness=200, max_force=None)
+        self.particles.extend(wall2_particles)
+        self.springs.extend(wall2_springs)
         # self._loose_particles(count=40)
 
         self.physics = PhysicsEngine(self.particles, self.springs, gravity=(0, 0),
@@ -43,7 +45,8 @@ class CellWallApp:
                                      # repulsion_radius=100, repulsion_strength=1000,
                                      # repulsion_radius=150, repulsion_strength=100,
                                      # repulsion_radius=30, repulsion_strength=1000,
-                                     repulsion_radius=30, repulsion_strength=10000,
+                                     # repulsion_radius=30, repulsion_strength=10000,
+                                     repulsion_radius=0, repulsion_strength=10000,
                                      temperature=0, damping_coeff=1)
                                      # temperature=0, damping_coeff=1)
                                      # temperature=0, damping_coeff=0)
