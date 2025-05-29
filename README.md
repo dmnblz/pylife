@@ -1,6 +1,8 @@
 ### Simulation of 2D cells
 (or at least I hope so)
 
+all particles can be grabbed with left mouse click
+
 - o = add a single loose particle
 - p = add 10 loose particles
 
@@ -11,3 +13,7 @@
  
 - n = decrease temperature by 50
 - m = increase temperature by 50
+
+
+- q = freeze loose particles 
+- w = unfreeze loose particles
