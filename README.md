@@ -17,3 +17,5 @@ all particles can be grabbed with left mouse click
 
 - q = freeze loose particles 
 - w = unfreeze loose particles
+
+These are slight changes to check if github works
