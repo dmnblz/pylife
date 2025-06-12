@@ -11,9 +11,9 @@ from spring import Spring
 from structures import create_wall, create_wall_rod, create_rod
 
 # SCREEN_SIZE = (800, 600)
-SCREEN_SIZE = (800 * 2, 600 * 2)
+# SCREEN_SIZE = (800 * 2, 600 * 2)
 # SCREEN_SIZE = (1500, 900)
-# SCREEN_SIZE = (1300, 900)
+SCREEN_SIZE = (1300, 900)
 # FPS = 60
 FPS = 120
 
@@ -43,7 +43,7 @@ class CellWallApp:
         wall1_particles, wall1_springs = create_rod(loc2, radius=100, length=500, segments=100, tag="spring1",
                                                     stiffness=2000, max_force=None,
                                                     include_cytoskeleton=False, cyto_stiffness=200,
-                                                    include_skeleton=True, skeleton_count=10, skeleton_stiffness=1000)
+                                                    include_skeleton=True, skeleton_count=10, skeleton_stiffness=2000)
         self.particles.extend(wall2_particles + wall1_particles)
         self.springs.extend(wall2_springs + wall1_springs)
         # self._loose_particles(count=40)
