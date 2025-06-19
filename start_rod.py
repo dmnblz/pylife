@@ -35,7 +35,7 @@ class CellWallApp:
         # wall2_particles, wall2_springs = create_wall_rod(loc2, radius=100, segments=100, tag="spring1",
         #                                                  stiffness=2000, max_force=None)
         wall2_particles, wall2_springs = create_rod(loc1, radius=80, length=200, segments=50, tag="spring1",
-                                                    stiffness=3000, max_force=None,
+                                                    stiffness=3000, max_force=50000,
                                                     include_cytoskeleton=False, cyto_stiffness=200,
                                                     include_skeleton=True, skeleton_count=5, skeleton_stiffness=1000,
                                                     )

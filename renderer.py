@@ -10,9 +10,16 @@ class Renderer:
         for s in springs:
             if getattr(s, "broken", False):
                 continue
-            # if s.invisible:
-            #     continue
-            pygame.draw.line(self.screen, (200, 200, 200), s.p1.pos, s.p2.pos, 5)
+            if getattr(s, "invisible", False):
+                continue
+                
+            # Use the spring's color based on stretch/compression if available
+            if hasattr(s, "get_color"):
+                color = s.get_color()
+            else:
+                color = (200, 200, 200)  # Default gray for backward compatibility
+                
+            pygame.draw.line(self.screen, color, s.p1.pos, s.p2.pos, 5)
 
         # draw particles
         for p in particles:
