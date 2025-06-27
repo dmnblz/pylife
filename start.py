@@ -4,10 +4,11 @@ import random
 
 import pygame
 
-from parts.particle import Particle
-from parts.physics import PhysicsEngine
-from parts.renderer import Renderer
-from parts.structures import create_wall, coccus
+from particle import Particle
+from physics import PhysicsEngine
+from renderer import Renderer
+from spring import Spring
+from structures import create_wall, create_wall_rod, coccus
 
 # SCREEN_SIZE = (800, 600)
 # SCREEN_SIZE = (800 * 2, 600 * 2)
