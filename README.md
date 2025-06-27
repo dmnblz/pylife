@@ -19,3 +19,5 @@ all particles can be grabbed with left mouse click
 - w = unfreeze loose particles
 
 These are slight changes to check if github works
+
+![Repo Size](https://img.shields.io/github/repo-size/USERNAME/REPOSITORY)
