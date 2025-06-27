@@ -1,10 +1,10 @@
 # main.py
 import pygame
 import math
-from particle import Particle
-from spring import Spring
-from physics import PhysicsEngine
-from renderer import Renderer
+from parts.particle import Particle
+from parts.spring import Spring
+from parts.physics import PhysicsEngine
+from parts.renderer import Renderer
 
 SCREEN_SIZE = (800, 600)
 FPS = 60

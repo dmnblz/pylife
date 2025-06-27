@@ -1,16 +1,19 @@
-# start_four_rods.py
+# main.py
 import math
 import random
 
 import pygame
 
-from particle import Particle
-from physics import PhysicsEngine
-from renderer import Renderer
-from spring import Spring
-from structures import create_wall, create_wall_rod, create_rod
+from parts.particle import Particle
+from parts.physics import PhysicsEngine
+from parts.renderer import Renderer
+from parts.structures import create_bending_wall
 
+# SCREEN_SIZE = (800, 600)
+# SCREEN_SIZE = (800 * 2, 600 * 2)
+# SCREEN_SIZE = (1500, 900)
 SCREEN_SIZE = (1300, 900)
+# FPS = 60
 FPS = 120
 
 
@@ -21,69 +24,30 @@ class CellWallApp:
         self.clock = pygame.time.Clock()
         self.particles = []
         self.springs = []
+        self.bending_springs = []
         self.selected = None
 
-        # Calculate center of the screen
         center = pygame.Vector2(SCREEN_SIZE) / 2
-        
-        # Define rod parameters
-        rod_radius = 60
-        rod_length = 200
-        rod_segments = 50
-        rod_distance = 300  # Distance from center to rod center
-        
-        # Create 4 rods evenly spaced around the center (at 90-degree intervals)
-        # North rod (top)
-        loc_north = center - pygame.Vector2((0, rod_distance))
-        north_particles, north_springs = create_rod(
-            loc_north, radius=rod_radius, length=rod_length, segments=rod_segments, 
-            tag="rod_north", stiffness=2500, max_force=50000,
-            include_cytoskeleton=False, include_skeleton=True, 
-            skeleton_count=5, skeleton_stiffness=1000,
-            color=(255, 100, 100)  # Reddish
-        )
-        
-        # East rod (right)
-        loc_east = center + pygame.Vector2((rod_distance, 0))
-        east_particles, east_springs = create_rod(
-            loc_east, radius=rod_radius, length=rod_length, segments=rod_segments, 
-            tag="rod_east", stiffness=2500, max_force=50000,
-            include_cytoskeleton=False, include_skeleton=True, 
-            skeleton_count=5, skeleton_stiffness=1000,
-            color=(100, 255, 100)  # Greenish
-        )
-        
-        # South rod (bottom)
-        loc_south = center + pygame.Vector2((0, rod_distance))
-        south_particles, south_springs = create_rod(
-            loc_south, radius=rod_radius, length=rod_length, segments=rod_segments, 
-            tag="rod_south", stiffness=2500, max_force=50000,
-            include_cytoskeleton=False, include_skeleton=True, 
-            skeleton_count=5, skeleton_stiffness=1000,
-            color=(100, 100, 255)  # Blueish
-        )
-        
-        # West rod (left)
-        loc_west = center - pygame.Vector2((rod_distance, 0))
-        west_particles, west_springs = create_rod(
-            loc_west, radius=rod_radius, length=rod_length, segments=rod_segments, 
-            tag="rod_west", stiffness=2500, max_force=50000,
-            include_cytoskeleton=False, include_skeleton=True, 
-            skeleton_count=5, skeleton_stiffness=1000,
-            color=(255, 255, 100)  # Yellowish
-        )
-        
-        # Add all particles and springs to the simulation
-        self.particles.extend(north_particles + east_particles + south_particles + west_particles)
-        self.springs.extend(north_springs + east_springs + south_springs + west_springs)
+        loc1 = center - pygame.Vector2((400, 0))
+        loc2 = center + pygame.Vector2((400, 0))
+        wall1_particles, wall1_springs, wall1_bending_springs = create_bending_wall(center, radius=100, segments=3,
+                                                                                    tag="spring1", color=(255, 0, 0),
+                                                                                    stiffness=2000, bending_stiffness=500)
+        self.particles.extend(wall1_particles)
+        self.springs.extend(wall1_springs)
+        self.bending_springs.extend(wall1_bending_springs)
+        # self._loose_particles(count=40)
 
-        # Physics engine setup
-        self.physics = PhysicsEngine(
-            self.particles, self.springs, gravity=(0, 0),
-            repulsion_radius=30, repulsion_strength=10000,
-            temperature=500, damping_coeff=1
-        )
-        
+        self.physics = PhysicsEngine(self.particles, self.springs, self.bending_springs, gravity=(0, 0),
+                                     # repulsion_radius=100, repulsion_strength=100,
+                                     # repulsion_radius=100, repulsion_strength=1000,
+                                     # repulsion_radius=150, repulsion_strength=100,
+                                     # repulsion_radius=30, repulsion_strength=1000,
+                                     repulsion_radius=30, repulsion_strength=10000,
+                                     # repulsion_radius=30, repulsion_strength=0,
+                                     temperature=0, damping_coeff=1)
+                                     # temperature=0, damping_coeff=1)
+                                     # temperature=0, damping_coeff=0)
         self.renderer = Renderer(self.screen)
         self.clamp_to_window = True
         self.bouncy_clamp = False
@@ -98,6 +62,7 @@ class CellWallApp:
             theta = random.uniform(0, 2 * math.pi)
             r = random.uniform(0, radius)
             pos = center + pygame.Vector2(math.cos(theta), math.sin(theta)) * r
+            # p = Particle(pos, mass=0.1, color=(255 - i * 5, i * 5, 0), radius=5)
             p = Particle(pos, mass=0.1, color=(0, 255, 0), radius=5)
             p.tag = "loose"
             self.particles.append(p)
@@ -129,29 +94,32 @@ class CellWallApp:
                     mouse_pos = pygame.Vector2(pygame.mouse.get_pos())
                     for _ in range(10):
                         p = Particle(mouse_pos, mass=0.1, color=(0, 255, 0), radius=5)
+                        # p = Particle(mouse_pos, mass=0.1, color=(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)), radius=5)
                         p.tag = "loose"
                         self.particles.append(p)
                 elif e.type == pygame.KEYDOWN and e.key == pygame.K_k:
                     for spring in self.springs:
                         spring.stiffness = max(spring.stiffness - 50, 0)
-                    print(f"Spring Stiffness: {spring.stiffness}")
+                    print(f"Spring Stiffnes: {spring.stiffness}")
                 elif e.type == pygame.KEYDOWN and e.key == pygame.K_l:
                     for spring in self.springs:
                         spring.stiffness = spring.stiffness + 50
-                    print(f"Spring Stiffness: {spring.stiffness}")
+                    print(f"Spring Stiffnes: {spring.stiffness}")
+
                 elif e.type == pygame.KEYDOWN and e.key == pygame.K_n:
                     self.physics.temperature = max(self.physics.temperature - 50, 0)
                     print(f"Temperature: {self.physics.temperature}")
                 elif e.type == pygame.KEYDOWN and e.key == pygame.K_m:
                     self.physics.temperature += 50
                     print(f"Temperature: {self.physics.temperature}")
+
                 elif e.type == pygame.KEYDOWN and e.key == pygame.K_q:
-                    # freeze all loose particles
+                    # delete all loose particles
                     for p in self.particles:
                         if p.tag == "loose":
                             p.fixed = True
                 elif e.type == pygame.KEYDOWN and e.key == pygame.K_w:
-                    # unfreeze all loose particles
+                    # delete all loose particles
                     for p in self.particles:
                         if p.tag == "loose":
                             p.fixed = False
@@ -163,7 +131,6 @@ class CellWallApp:
                 self.selected.prev_pos = self.selected.pos.copy()
 
             self.physics.update(dt)
-            
             # handle window boundaries
             W, H = SCREEN_SIZE
             if self.periodic_boundary:
@@ -175,7 +142,7 @@ class CellWallApp:
                     p.prev_pos.y %= H
             elif self.clamp_to_window:
                 if self.bouncy_clamp:
-                    # reflective code
+                    # existing reflective code...
                     for p in self.particles:
                         v = p.pos - p.prev_pos
                         if p.pos.x < 0 or p.pos.x > W:
@@ -185,19 +152,19 @@ class CellWallApp:
                             p.pos.y = max(0, min(p.pos.y, H))
                             p.prev_pos.y = p.pos.y + (-v.y)
                 else:
-                    # simple clamp
+                    # existing simple clamp
                     for p in self.particles:
                         if p.pos.x < 0:
-                            p.pos.x = 0
+                            p.pos.x = 0;
                             p.prev_pos.x = p.pos.x
                         elif p.pos.x > W:
-                            p.pos.x = W
+                            p.pos.x = W;
                             p.prev_pos.x = p.pos.x
                         if p.pos.y < 0:
-                            p.pos.y = 0
+                            p.pos.y = 0;
                             p.prev_pos.y = p.pos.y
                         elif p.pos.y > H:
-                            p.pos.y = H
+                            p.pos.y = H;
                             p.prev_pos.y = p.pos.y
 
             self.screen.fill((30, 30, 30))
