@@ -54,6 +54,7 @@ class CellWallApp:
         rod_distance = 300
         skeleton_count = 5
         max_force = None
+        max_force = 30000
 
         rods = []
         # North

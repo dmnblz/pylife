@@ -43,14 +43,31 @@ class PhysicsEngine:
                     p1.apply_force(-force)
                     p2.apply_force(force)
 
+        # tag particles near the simulation wall
+        wall_threshold = 5  # distance from the screen edge
+        screen_width, screen_height = 1300, 900  # should match SCREEN_SIZE
+        for q in self.particles:
+            q.near_boundary = False
+            if (
+                q.pos.x <= wall_threshold or
+                q.pos.x >= screen_width - wall_threshold or
+                q.pos.y <= wall_threshold or
+                q.pos.y >= screen_height - wall_threshold
+            ):
+                q.near_boundary = True
+
         # apply viscous damping and Brownian random forces
         for p in self.particles:
             if p.fixed:
                 continue
+            if getattr(p, "tag", "") == "high_drag":
+                drag_multiplier = 30.0  # or any large factor to simulate strong adhesion
+            else:
+                drag_multiplier = 1.0
             # estimate velocity from Verlet history
             vel = (p.pos - p.prev_pos) / dt
             # viscous drag: F_drag = -γ·m·v
-            drag = -self.damping_coeff * p.mass * vel
+            drag = -drag_multiplier * self.damping_coeff * p.mass * vel
             p.apply_force(drag)
             # Brownian force: Gaussian noise, variance 2·γ·T·m / dt (with k_B = 1)
             sigma = math.sqrt(2 * self.damping_coeff * self.temperature * p.mass / dt)
@@ -61,4 +78,10 @@ class PhysicsEngine:
         # integrate motion
         for p in self.particles:
             p.integrate(dt, damping=0.98)
-            # p.integrate(dt, damping=1)
+        # apply wall friction
+        for p in self.particles:
+            if getattr(p, "near_boundary", False):
+                v = p.pos - p.prev_pos
+                friction_coeff = 0.7  # adjust as needed
+                v *= friction_coeff
+                p.prev_pos = p.pos - v
