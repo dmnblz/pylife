@@ -23,8 +23,14 @@ class BendingSpring:
         # vectors from center p2
         v1 = self.p1.pos - self.p2.pos
         v2 = self.p3.pos - self.p2.pos
+
+        # avoid division by zero if any arm is degenerate
+        L1, L2 = v1.length(), v2.length()
+        if L1 == 0 or L2 == 0:
+            return
+
         # current angle between v1 and v2
-        dot = max(-1.0, min(1.0, v1.dot(v2) / (v1.length() * v2.length())))
+        dot = max(-1.0, min(1.0, v1.dot(v2) / (L1 * L2)))
         theta = math.acos(dot)
         # angle deviation
         d_theta = theta - self.rest_angle
@@ -36,8 +42,8 @@ class BendingSpring:
 
         # normals for v1 and v2
         # get unit vectors
-        u1 = v1.normalize()
-        u2 = v2.normalize()
+        u1 = v1 / L1
+        u2 = v2 / L2
         # perpendicular directions
         n1 = pygame.Vector2(-u1.y, u1.x)
         n2 = pygame.Vector2(u2.y, -u2.x)
