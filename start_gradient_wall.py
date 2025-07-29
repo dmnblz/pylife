@@ -1,3 +1,9 @@
+"""Four rods coloured with an HSV gradient along their length.
+
+All keyboard controls are the same as in ``start.py`` for spawning and tweaking
+the simulation.
+"""
+
 import math
 import random
 import pygame
@@ -32,6 +38,8 @@ def get_gradient_color(t):
     return (int(r * 255), int(g * 255), int(b * 255))
 
 class CellWallApp:
+    """Drag particles and use keyboard shortcuts as in start.py."""
+
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode(SCREEN_SIZE)

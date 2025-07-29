@@ -49,13 +49,25 @@ Particles can be grabbed with the left mouse button.  When in spring mode, click
 
 ## Example demos
 
-Other start files demonstrate specific setups:
+Other start files demonstrate specific setups and each window supports simple
+keyboard shortcuts:
 
-* `start.py` – concentric circular walls representing a simple cell.
-* `start_basic.py` – minimal ring of particles.
-* `start_rod.py` – a capsule‑shaped structure.
-* `start_bending_wall.py` – uses bending springs to keep angles between segments.
-* `start_four_rods.py`, `start_gradient_wall.py` – various experiments with rods and walls.
+* **`start.py`** – three nested circular walls that behave like a soft cell.
+  Press **O**/**P** to spawn loose particles, **K/L** to tweak spring
+  stiffness, **N/M** to change the temperature and **Q/W** to freeze or unfreeze
+  loose particles.
+* **`start_basic.py`** – a minimal ring of particles.  Only dragging with the
+  left mouse button is implemented.
+* **`start_rod.py`** – shows a capsule‑shaped rod; controls are the same as in
+  `start.py`.
+* **`start_bending_wall.py`** – demonstrates bending springs.  Keys **D**, **F**
+  and **G** temporarily shorten individual springs while **B**, **N** and **M**
+  toggle high drag on selected particles.  All other controls from `start.py`
+  are also available.
+* **`start_four_rods.py`** – four rods positioned around the centre with the
+  same controls as `start.py`.
+* **`start_gradient_wall.py`** – similar to `start_four_rods.py` but colours each
+  rod with a gradient.
 
 Feel free to modify any of these scripts or build new configurations using the interactive builder.
 

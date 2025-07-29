@@ -1,4 +1,8 @@
-# main.py
+"""Minimal demo showing a single ring of particles connected by springs.
+
+The scene only supports dragging particles with the left mouse button.
+"""
+
 import pygame
 import math
 from particle import Particle
@@ -11,6 +15,8 @@ FPS = 60
 
 
 class CellWallApp:
+    """Simple app where particles can be dragged with the mouse."""
+
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode(SCREEN_SIZE)
