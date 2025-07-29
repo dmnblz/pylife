@@ -13,6 +13,7 @@ FPS = 120
 
 
 class BuilderApp:
+    """Main application class for the particle builder demo."""
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode(SCREEN_SIZE)
@@ -28,16 +29,7 @@ class BuilderApp:
         self.mode = "drag"  # drag, particle, spring, rod
         self.mass = 1.0
         self.radius = 10
-        self.color_cycle = [
-            (255, 0, 0),
-            (0, 255, 0),
-            (0, 0, 255),
-            (255, 255, 255),
-            (255, 255, 0),
-            (0, 255, 255),
-        ]
-        self.color_index = 0
-        self.color = self.color_cycle[self.color_index]
+        self.color = (255, 0, 0)
         self.stiffness = 200.0
 
         self.font = pygame.font.SysFont(None, 24)
@@ -71,9 +63,38 @@ class BuilderApp:
             self.selected.fixed = False
             self.selected = None
 
-    def cycle_color(self):
-        self.color_index = (self.color_index + 1) % len(self.color_cycle)
-        self.color = self.color_cycle[self.color_index]
+    def choose_color(self):
+        """Open a color chooser dialog and update the current color."""
+        try:
+            from tkinter import Tk, colorchooser
+            root = Tk()
+            root.withdraw()
+            rgb, _ = colorchooser.askcolor(color=self.get_color_hex(), parent=root)
+            root.destroy()
+            if rgb:
+                r, g, b = map(int, rgb)
+                self.color = (r, g, b)
+        except Exception:
+            pass
+
+    def set_color(self, color):
+        self.color = color
+
+    def get_color_hex(self) -> str:
+        r, g, b = self.color
+        return f"#{r:02X}{g:02X}{b:02X}"
+
+    def set_color_hex(self, value: str):
+        value = value.lstrip("#")
+        if len(value) != 6:
+            return
+        try:
+            r = int(value[0:2], 16)
+            g = int(value[2:4], 16)
+            b = int(value[4:6], 16)
+            self.color = (r, g, b)
+        except ValueError:
+            pass
 
     def adjust_mass(self, delta: float):
         self.mass = max(0.1, self.mass + delta)
@@ -175,7 +196,7 @@ class BuilderApp:
                     elif e.key == pygame.K_5:
                         self.set_mode("rod")
                     elif e.key == pygame.K_c:
-                        self.cycle_color()
+                        self.choose_color()
                     elif e.key == pygame.K_z:
                         self.adjust_mass(-0.1)
                     elif e.key == pygame.K_x:

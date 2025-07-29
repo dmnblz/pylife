@@ -1,5 +1,6 @@
 import pygame
 import math
+from tkinter import Tk, colorchooser
 
 
 class SliderField:
@@ -86,6 +87,90 @@ class SliderField:
         ratio = (mouse_x - self.slider_rect.x) / self.slider_rect.width
         ratio = max(0, min(1, ratio))
         self.set_value(self._ratio_to_value(ratio))
+
+
+class ColorField:
+    """Field allowing the user to pick a color or enter a hex value."""
+
+    BOX_WIDTH = 70
+    COLOR_SIZE = 24
+
+    def __init__(self, label, get_color, set_color, x, y, width):
+        self.label = label
+        self.get_color = get_color
+        self.set_color = set_color
+        self.font = pygame.font.SysFont(None, 22)
+
+        self.color_rect = pygame.Rect(x, y + 14, self.COLOR_SIZE, self.COLOR_SIZE)
+        self.box_rect = pygame.Rect(
+            self.color_rect.right + 5, y + 10, self.BOX_WIDTH, 22
+        )
+
+        self.editing = False
+        self.text = ""
+
+    def draw(self, screen):
+        color = self.get_color()
+        lbl = self.font.render(self.label, True, (255, 255, 255))
+        screen.blit(lbl, (self.color_rect.x, self.color_rect.y - 18))
+
+        pygame.draw.rect(screen, color, self.color_rect)
+        pygame.draw.rect(screen, (255, 255, 255), self.color_rect, 1)
+
+        pygame.draw.rect(screen, (255, 255, 255), self.box_rect, 1)
+        txt = self.text if self.editing else "#%02X%02X%02X" % color
+        img = self.font.render(txt, True, (255, 255, 255))
+        rect = img.get_rect(center=self.box_rect.center)
+        screen.blit(img, rect)
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.color_rect.collidepoint(event.pos):
+                self._choose_color()
+                return True
+            if self.box_rect.collidepoint(event.pos):
+                self.editing = True
+                self.text = ""
+                return True
+        elif event.type == pygame.KEYDOWN and self.editing:
+            if event.key == pygame.K_RETURN:
+                self._set_color_hex(self.text)
+                self.editing = False
+                return True
+            elif event.key == pygame.K_BACKSPACE:
+                self.text = self.text[:-1]
+                return True
+            else:
+                ch = event.unicode.upper()
+                if ch in "0123456789ABCDEF#":
+                    self.text += ch
+                    return True
+        return False
+
+    def _choose_color(self):
+        try:
+            root = Tk()
+            root.withdraw()
+            initial = "#%02x%02x%02x" % self.get_color()
+            rgb, _ = colorchooser.askcolor(color=initial, parent=root)
+            root.destroy()
+            if rgb:
+                r, g, b = map(int, rgb)
+                self.set_color((r, g, b))
+        except Exception:
+            pass
+
+    def _set_color_hex(self, value: str):
+        value = value.lstrip("#")
+        if len(value) != 6:
+            return
+        try:
+            r = int(value[0:2], 16)
+            g = int(value[2:4], 16)
+            b = int(value[4:6], 16)
+            self.set_color((r, g, b))
+        except ValueError:
+            pass
 
 
 class CircleTool:
@@ -462,13 +547,17 @@ class SidebarUI:
         add_button("Circle", lambda: self.app.set_mode("circle"))
         add_button("Rod", lambda: self.app.set_mode("rod"))
         add_button("Delete", lambda: self.app.set_mode("delete"))
-        add_button("Cycle Color", self.app.cycle_color)
         add_button(lambda: "Resume" if self.app.paused else "Pause", self.app.toggle_pause)
 
         # sliders
         slider_x = sw - self.WIDTH + 10
         slider_width = self.WIDTH - 20
         y += 10
+        color_field = ColorField(
+            "Color", lambda: self.app.color, self.app.set_color, slider_x, y, slider_width
+        )
+        self.fields.append(color_field)
+        y += 40
         self.fields.append(
             SliderField("Mass", 0.1, 10.0, lambda: self.app.mass, self.app.set_mass, slider_x, y, slider_width)
         )

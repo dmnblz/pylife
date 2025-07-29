@@ -1,7 +1,9 @@
 ### Simulation of 2D cells
 (or at least I hope so)
 
-all particles can be grabbed with left mouse click
+This project provides a basic 2D cell builder using Pygame. Run
+`start_create.py` to experiment with particles, springs and rods. All
+particles can be grabbed with the left mouse button.
 
 - o = add a single loose particle
 - p = add 10 loose particles
@@ -18,6 +20,8 @@ all particles can be grabbed with left mouse click
 - q = freeze loose particles 
 - w = unfreeze loose particles
 
-These are slight changes to check if github works
+Press **c** or use the **Color** field in the sidebar to open a color
+picker. The picker allows choosing any color or entering a hex value
+like `#FF00FF`.
 
 ![Repo Size](https://img.shields.io/github/repo-size/USERNAME/REPOSITORY)
