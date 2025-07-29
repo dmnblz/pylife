@@ -1,4 +1,13 @@
 # physics.py
+"""Core physics simulation for the particle system.
+
+This module defines :class:`PhysicsEngine` which integrates a set of
+particles connected by springs.  The engine applies spring forces, viscous
+damping and random Brownian motion to each particle while also handling basic
+repulsion so particles do not overlap.  A simple Verlet integrator advances the
+system forward in time.
+"""
+
 import pygame
 from particle import Particle
 from spring import Spring
@@ -7,6 +16,28 @@ import random
 import math
 
 class PhysicsEngine:
+    """Orchestrates physics updates for a set of particles and springs.
+
+    Parameters
+    ----------
+    particles:
+        List of :class:`Particle` objects that will be integrated.
+    springs:
+        Linear springs connecting pairs of particles.
+    bending_springs:
+        Optional list of :class:`BendingSpring` instances providing angular
+        constraints.
+    gravity:
+        Constant acceleration applied to each particle (x, y).
+    repulsion_radius:
+        Distance within which particles repel each other to avoid overlap.
+    repulsion_strength:
+        Magnitude of the short range repulsive force.
+    temperature:
+        Scales the Brownian noise applied to particles.
+    damping_coeff:
+        Coefficient for viscous drag and the Brownian noise variance.
+    """
     def __init__(self, particles: list[Particle], springs: list[Spring], bending_springs: list[BendingSpring]=None, gravity=(0, 0), repulsion_radius=20,
                  repulsion_strength=100, temperature=1.0, damping_coeff=1.0):
         self.particles = particles
@@ -19,6 +50,16 @@ class PhysicsEngine:
         self.damping_coeff = damping_coeff
 
     def update(self, dt):
+        """Advance the simulation by ``dt`` seconds.
+
+        The update applies global gravity, spring and bending forces,
+        short-range repulsion, and viscous drag.  Particles tagged
+        ``"high_drag"`` experience additional drag to simulate sticking to
+        boundaries.  Brownian noise scaled by ``temperature`` is added to each
+        movable particle before the positions are integrated using a Verlet
+        step.
+        """
+
         # apply gravity
         for p in self.particles:
             p.apply_force(self.gravity * p.mass)
