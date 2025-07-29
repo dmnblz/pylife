@@ -1,4 +1,5 @@
 import pygame
+import math
 
 
 class SliderField:
@@ -87,6 +88,106 @@ class SliderField:
         self.set_value(self._ratio_to_value(ratio))
 
 
+class CircleTool:
+    """Handle circle preview creation with sliders and dragging."""
+
+    def __init__(self, sidebar: 'SidebarUI'):
+        self.sidebar = sidebar
+        self.app = sidebar.app
+        self.active = False
+        self.center = None
+        self.radius = 50.0
+        self.segments = 8
+        self.dragging = False
+
+        x = sidebar.screen.get_width() - sidebar.WIDTH + 10
+        width = sidebar.WIDTH - 20
+        y = sidebar.extra_start_y
+
+        self.radius_field = SliderField(
+            "C Radius", 5, 400, lambda: self.radius, self._set_radius, x, y, width
+        )
+        y += 40
+        self.segments_field = SliderField(
+            "Segments", 3, 60, lambda: self.segments, self._set_segments, x, y, width
+        )
+        y += 40
+        self.create_rect = pygame.Rect(x, y, width, SidebarUI.BUTTON_HEIGHT)
+
+    # ---------------- value setters
+    def _set_radius(self, value: float):
+        self.radius = max(1, value)
+
+    def _set_segments(self, value: float):
+        self.segments = max(3, int(value))
+
+    # ---------------- control
+    def start(self):
+        self.active = True
+        self.center = None
+
+    def cancel(self):
+        self.active = False
+        self.dragging = False
+
+    def draw_ui(self):
+        if not self.active or not self.sidebar.visible:
+            return
+        self.radius_field.draw(self.sidebar.screen)
+        self.segments_field.draw(self.sidebar.screen)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.create_rect)
+        txt = self.sidebar.font.render("Create", True, (255, 255, 255))
+        rect = txt.get_rect(center=self.create_rect.center)
+        self.sidebar.screen.blit(txt, rect)
+
+    def draw_preview(self):
+        if not self.active or self.center is None:
+            return
+        screen = self.sidebar.screen
+        color = (150, 150, 150)
+        center = (int(self.center.x), int(self.center.y))
+        pygame.draw.circle(screen, color, center, int(self.radius), 1)
+        for i in range(self.segments):
+            theta1 = (i / self.segments) * 2 * math.pi
+            theta2 = ((i + 1) % self.segments) / self.segments * 2 * math.pi
+            p1 = self.center + pygame.Vector2(math.cos(theta1), math.sin(theta1)) * self.radius
+            p2 = self.center + pygame.Vector2(math.cos(theta2), math.sin(theta2)) * self.radius
+            pygame.draw.line(screen, color, p1, p2, 1)
+            pygame.draw.circle(screen, color, (int(p1.x), int(p1.y)), self.app.radius, 1)
+
+    # ---------------- event handling
+    def handle_event(self, event):
+        if not self.active:
+            return False
+
+        if self.sidebar.visible:
+            if self.radius_field.handle_event(event):
+                return True
+            if self.segments_field.handle_event(event):
+                return True
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if self.create_rect.collidepoint(event.pos) and self.center:
+                    self.app.create_circle(self.center, self.radius, self.segments)
+                    self.cancel()
+                    self.sidebar.app.set_mode("drag")
+                    return True
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            # click in world area to set center
+            if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
+                self.center = pygame.Vector2(event.pos)
+                self.dragging = True
+                return True
+        elif event.type == pygame.MOUSEMOTION and self.dragging:
+            self.radius = (pygame.Vector2(event.pos) - self.center).length()
+            return True
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.dragging:
+            self.dragging = False
+            return True
+
+        return False
+
+
 class SidebarUI:
     BUTTON_HEIGHT = 28
     BUTTON_MARGIN = 4
@@ -100,7 +201,10 @@ class SidebarUI:
         self.buttons = []
         self.fields = []
         self.visible = True
+        self.circle_tool = None
         self._setup_ui()
+        # setup circle tool after computing layout
+        self.circle_tool = CircleTool(self)
 
     # ----------------------------------------------------------- setup
     def _setup_ui(self):
@@ -117,6 +221,7 @@ class SidebarUI:
         add_button("Drag", lambda: self.app.set_mode("drag"))
         add_button("Particle", lambda: self.app.set_mode("particle"))
         add_button("Spring", lambda: self.app.set_mode("spring"))
+        add_button("Circle", lambda: self.app.set_mode("circle"))
         add_button("Delete", lambda: self.app.set_mode("delete"))
         add_button("Cycle Color", self.app.cycle_color)
         add_button(lambda: "Resume" if self.app.paused else "Pause", self.app.toggle_pause)
@@ -144,6 +249,8 @@ class SidebarUI:
                 "Temp", 0, 1000, lambda: self.app.physics.temperature, self.app.set_temperature, slider_x, y, slider_width
             )
         )
+        y += 40
+        self.extra_start_y = y
 
     def visible_width(self):
         return self.WIDTH if self.visible else 0
@@ -168,6 +275,12 @@ class SidebarUI:
 
             for field in self.fields:
                 field.draw(self.screen)
+
+            # extra UI from tools
+            self.circle_tool.draw_ui()
+
+        # preview from tools (visible or not)
+        self.circle_tool.draw_preview()
 
         # toggle button (always visible)
         pygame.draw.rect(self.screen, (100, 100, 100), self.toggle_rect)
@@ -194,5 +307,8 @@ class SidebarUI:
             for field in self.fields:
                 if field.handle_event(event):
                     return True
+
+        if self.circle_tool.handle_event(event):
+            return True
 
         return False
