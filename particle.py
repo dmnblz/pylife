@@ -2,6 +2,8 @@
 import pygame
 
 class Particle:
+    """Point mass used in the Verlet based physics simulation."""
+
     def __init__(self, position, mass=1.0, color=None, radius=None, tag=None):
         self.pos = pygame.Vector2(position)
         self.prev_pos = self.pos.copy()
