@@ -1,4 +1,5 @@
 import pygame
+import math
 
 from particle import Particle
 from spring import Spring
@@ -53,7 +54,12 @@ class BuilderApp:
 
     # ------------------------------------------------------------------ parameter helpers
     def set_mode(self, mode: str):
+        if self.mode == "circle" and mode != "circle":
+            self.ui.circle_tool.cancel()
+
         self.mode = mode
+        if mode == "circle":
+            self.ui.circle_tool.start()
         if mode != "spring":
             self.spring_first = None
         if self.selected and mode != "drag":
@@ -90,6 +96,23 @@ class BuilderApp:
 
     def toggle_pause(self):
         self.paused = not self.paused
+
+    # ------------------------------------------------------------------ circle creation
+    def create_circle(self, center: pygame.Vector2, radius: float, segments: int):
+        particles = []
+        springs = []
+        for i in range(segments):
+            theta = (i / segments) * 2 * math.pi
+            pos = center + pygame.Vector2(math.cos(theta), math.sin(theta)) * radius
+            p = Particle(pos, mass=self.mass, color=self.color, radius=self.radius)
+            particles.append(p)
+        for i in range(segments):
+            p1 = particles[i]
+            p2 = particles[(i + 1) % segments]
+            rest = (p2.pos - p1.pos).length()
+            springs.append(Spring(p1, p2, rest_length=rest, stiffness=self.stiffness))
+        self.particles.extend(particles)
+        self.springs.extend(springs)
 
     # ------------------------------------------------------------------ main
     def run(self):
