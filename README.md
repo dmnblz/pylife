@@ -92,3 +92,11 @@ Feel free to modify any of these scripts or build new configurations using the i
 ---
 
 This repository is intended for learning and experimentation.  The code is small and easy to extend, so you can try out new physical behaviours or rendering ideas.
+
+## Contributing
+
+When modifying or adding code, keep the documentation aligned with the repository:
+
+* Update `README.md` to describe new behaviour, scripts or changes in usage.
+* Update `AGENTS.md` with a short description of any new files so future agents understand the project layout.
+* Provide docstrings for new modules, classes and functions.
