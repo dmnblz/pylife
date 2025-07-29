@@ -17,6 +17,18 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
   * `renderer.py` – draws particles and springs to the pygame window.
   * `structures.py` – helper functions to build shapes like circular walls or rods.
   * `builder_ui.py` and `color_picker.py` – the sidebar widgets and the cross‑platform colour selection utility.
+  * **High-drag adhesion** – set a particle's ``tag`` to ``"high_drag"`` and the
+    physics engine multiplies its viscous drag, causing it to stick in place.
+  * **Adjustable springs** – spring rest lengths can be changed on the fly to
+    mimic contracting or extending structures.
+
+### Using high-drag particles
+
+Setting the ``tag`` attribute of a ``Particle`` to ``"high_drag"`` increases
+the drag force in ``PhysicsEngine.update``.  Demo scripts use this to simulate
+particles adhering to their surroundings—press **B/N/M** in
+``start_bending_wall.py`` or **H** in ``start_hook_arm.py`` to toggle the
+behaviour.
 
 ## Requirements
 
@@ -67,6 +79,9 @@ keyboard shortcuts:
   and **G** temporarily shorten individual springs while **B**, **N** and **M**
   toggle high drag on selected particles.  All other controls from `start.py`
   are also available.
+* **`start_hook_arm.py`** – showcases a small flexible arm attached to a cell.
+  Hold **E** to extend the arm, **Q** to retract it and press **H** to toggle
+  adhesion (high drag) on the tip.
 * **`start_four_rods.py`** – four rods positioned around the centre with the
   same controls as `start.py`.
 * **`start_gradient_wall.py`** – similar to `start_four_rods.py` but colours each
