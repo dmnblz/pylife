@@ -1,4 +1,9 @@
-# main.py
+"""Capsule-like rod demo with controls matching ``start.py``.
+
+Particles can be spawned and simulation parameters tweaked using the keyboard
+shortcuts defined in the README.
+"""
+
 import math
 import random
 
@@ -19,6 +24,8 @@ FPS = 120
 
 
 class CellWallApp:
+    """Drag with the mouse and use O/P, K/L, N/M and Q/W keys like start.py."""
+
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode(SCREEN_SIZE)

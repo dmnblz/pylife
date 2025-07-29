@@ -1,3 +1,9 @@
+"""Demo of a triangular wall using springs and bending constraints.
+
+Keys D/F/G shorten selected springs while B/N/M toggle drag on
+corresponding particles. Other controls match those in ``start.py``.
+"""
+
 import pygame
 import math
 import random
@@ -15,6 +21,8 @@ FPS = 120
 
 
 class CellWallApp:
+    """Drag with the mouse and use D/F/G or B/N/M for spring and drag tweaks."""
+
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode(SCREEN_SIZE)

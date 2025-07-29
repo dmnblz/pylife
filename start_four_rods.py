@@ -1,4 +1,9 @@
-# start_four_rods.py
+"""Four rod structures positioned around the centre of the screen.
+
+Use the same keyboard shortcuts as ``start.py`` to spawn particles and adjust
+simulation parameters.
+"""
+
 import math
 import random
 
@@ -15,6 +20,8 @@ FPS = 120
 
 
 class CellWallApp:
+    """Drag with the mouse; keyboard controls mirror those in start.py."""
+
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode(SCREEN_SIZE)

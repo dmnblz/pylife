@@ -1,4 +1,10 @@
-# main.py
+"""Demo with three concentric walls behaving like a soft cell.
+
+Loose particles can be spawned with **O**/**P**, spring stiffness adjusted with
+**K/L** and the temperature changed with **N/M**. Press **Q/W** to freeze or
+unfreeze loose particles.
+"""
+
 import math
 import random
 
@@ -19,6 +25,8 @@ FPS = 120
 
 
 class CellWallApp:
+    """Left click to drag particles, use keys to spawn and modify the scene."""
+
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode(SCREEN_SIZE)
