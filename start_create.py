@@ -6,7 +6,6 @@ from spring import Spring
 from physics import PhysicsEngine
 from renderer import Renderer
 from builder_ui import SidebarUI
-from structures import create_rod as structure_create_rod
 
 SCREEN_SIZE = (1300, 900)
 FPS = 120
@@ -25,7 +24,7 @@ class BuilderApp:
         self.paused = False
 
         # parameters for creation
-        self.mode = "drag"  # drag, particle, spring, rod
+        self.mode = "drag"  # drag, particle, spring
         self.mass = 1.0
         self.radius = 10
         self.color_cycle = [
@@ -57,14 +56,10 @@ class BuilderApp:
     def set_mode(self, mode: str):
         if self.mode == "circle" and mode != "circle":
             self.ui.circle_tool.cancel()
-        if self.mode == "rod" and mode != "rod":
-            self.ui.rod_tool.cancel()
 
         self.mode = mode
         if mode == "circle":
             self.ui.circle_tool.start()
-        if mode == "rod":
-            self.ui.rod_tool.start()
         if mode != "spring":
             self.spring_first = None
         if self.selected and mode != "drag":
@@ -119,37 +114,6 @@ class BuilderApp:
         self.particles.extend(particles)
         self.springs.extend(springs)
 
-    def create_rod(
-        self,
-        center: pygame.Vector2,
-        radius: float,
-        length: float,
-        segments: int,
-        include_cytoskeleton: bool,
-        include_skeleton: bool,
-        skeleton_count: int,
-    ):
-        particles, springs = structure_create_rod(
-            center,
-            radius=radius,
-            length=length,
-            segments=segments,
-            stiffness=self.stiffness,
-            max_force=None,
-            color=self.color,
-            include_cytoskeleton=include_cytoskeleton,
-            cyto_stiffness=self.stiffness,
-            include_skeleton=include_skeleton,
-            skeleton_count=skeleton_count,
-            skeleton_stiffness=self.stiffness,
-        )
-        for p in particles:
-            p.mass = self.mass
-            p.radius = self.radius
-            p.color = self.color
-        self.particles.extend(particles)
-        self.springs.extend(springs)
-
     # ------------------------------------------------------------------ main
     def run(self):
         running = True
@@ -172,8 +136,6 @@ class BuilderApp:
                         self.set_mode("spring")
                     elif e.key == pygame.K_4:
                         self.set_mode("delete")
-                    elif e.key == pygame.K_5:
-                        self.set_mode("rod")
                     elif e.key == pygame.K_c:
                         self.cycle_color()
                     elif e.key == pygame.K_z:
@@ -245,8 +207,6 @@ class BuilderApp:
                             self.springs = [s for s in self.springs if s.p1 != target_p and s.p2 != target_p]
                         elif dist_s < 30 and target_s:
                             self.springs.remove(target_s)
-                    elif self.mode == "rod":
-                        pass  # handled by rod tool
 
                 elif e.type == pygame.MOUSEBUTTONUP and e.button == 1:
                     if self.selected:
