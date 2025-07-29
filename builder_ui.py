@@ -1,6 +1,6 @@
 import pygame
 import math
-from tkinter import Tk, colorchooser
+from color_picker import choose_color
 
 
 class SliderField:
@@ -148,17 +148,10 @@ class ColorField:
         return False
 
     def _choose_color(self):
-        try:
-            root = Tk()
-            root.withdraw()
-            initial = "#%02x%02x%02x" % self.get_color()
-            rgb, _ = colorchooser.askcolor(color=initial, parent=root)
-            root.destroy()
-            if rgb:
-                r, g, b = map(int, rgb)
-                self.set_color((r, g, b))
-        except Exception:
-            pass
+        """Launch the color picker in a separate process."""
+        rgb = choose_color(self.get_color())
+        if rgb:
+            self.set_color(rgb)
 
     def _set_color_hex(self, value: str):
         value = value.lstrip("#")

@@ -64,18 +64,12 @@ class BuilderApp:
             self.selected = None
 
     def choose_color(self):
-        """Open a color chooser dialog and update the current color."""
-        try:
-            from tkinter import Tk, colorchooser
-            root = Tk()
-            root.withdraw()
-            rgb, _ = colorchooser.askcolor(color=self.get_color_hex(), parent=root)
-            root.destroy()
-            if rgb:
-                r, g, b = map(int, rgb)
-                self.color = (r, g, b)
-        except Exception:
-            pass
+        """Open the color chooser in a separate process and update the color."""
+        from color_picker import choose_color
+
+        rgb = choose_color(self.color)
+        if rgb:
+            self.color = rgb
 
     def set_color(self, color):
         self.color = color
