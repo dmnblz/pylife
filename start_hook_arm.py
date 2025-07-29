@@ -1,33 +1,35 @@
-"""Demo of a cell with a flexible hook arm.
+"""Demo of four flexible hook arms around a circular cell.
 
-Press **E** to extend the hook springs, **Q** to contract them and **H**
-to toggle high drag on the tip particle. Drag particles with the left
-mouse button.
+Hold **W**, **A**, **S** or **D** to cycle the matching arm through an
+extend/adhere/contract loop.  Releasing the key returns the arm to its
+rest state with adhesion disabled.  Keys **E**, **Q** and **H** still
+extend, contract or toggle adhesion on all arms simultaneously.
+
+High-drag particles draw with a red outline so adhesion is visible.
+Drag particles with the left mouse button.
 """
 
 import pygame
-import math
 
 from particle import Particle
 from physics import PhysicsEngine
 from renderer import Renderer
-from spring import Spring
 from structures import create_wall
+from hook_arm import HookArm
 
 SCREEN_SIZE = (1300, 900)
 FPS = 120
 
 
 class HookArmApp:
-    """Interactive demo of a single hook arm attached to a circular cell."""
+    """Interactive demo of multiple hook arms attached to a cell wall."""
 
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode(SCREEN_SIZE)
         self.clock = pygame.time.Clock()
         self.particles: list[Particle] = []
-        self.springs: list[Spring] = []
-        self.arm_springs: list[Spring] = []
+        self.springs = []
         self.selected = None
 
         center = pygame.Vector2(SCREEN_SIZE) / 2
@@ -36,23 +38,16 @@ class HookArmApp:
         self.particles.extend(wall_particles)
         self.springs.extend(wall_springs)
 
-        # build a small chain as the hook arm
-        base = wall_particles[0]
-        arm_segments = 1
-        spacing = 50
-        prev = base
-        for i in range(1, arm_segments + 1):
-            pos = base.pos + pygame.Vector2(spacing * i, 0)
-            p = Particle(pos, mass=0.5, radius=8, color=(0, 150, 255), tag="arm")
-            self.particles.append(p)
-            s = Spring(prev, p, rest_length=spacing, stiffness=500)
-            self.springs.append(s)
-            self.arm_springs.append(s)
-            prev = p
-        self.arm_tip = prev
-
-        self.arm_rest_lengths = [s.rest_length for s in self.arm_springs]
-        self.arm_max = [rest * 4 for rest in self.arm_rest_lengths]
+        # Create four arms around the cell at 90-degree intervals
+        idx = [0, 10, 20, 30]
+        self.arms: list[HookArm] = []
+        for i in idx:
+            base = wall_particles[i]
+            direction = (base.pos - center).normalize()
+            arm = HookArm(base, direction)
+            self.arms.append(arm)
+            self.particles.extend(arm.particles)
+            self.springs.extend(arm.springs)
 
         self.physics = PhysicsEngine(
             self.particles,
@@ -66,8 +61,14 @@ class HookArmApp:
         self.renderer = Renderer(self.screen)
 
         self.clamp_to_window = True
-        self.extend_held = False
-        self.contract_held = False
+
+        # map keys to individual arms for cycling
+        self.cycle_keys = {
+            pygame.K_w: self.arms[0],
+            pygame.K_a: self.arms[1],
+            pygame.K_s: self.arms[2],
+            pygame.K_d: self.arms[3],
+        }
 
     def run(self):
         running = True
@@ -86,29 +87,34 @@ class HookArmApp:
                     self.selected = None
                 elif e.type == pygame.KEYDOWN:
                     if e.key == pygame.K_e:
-                        self.extend_held = True
+                        for arm in self.arms:
+                            arm.extend_held = True
                     elif e.key == pygame.K_q:
-                        self.contract_held = True
+                        for arm in self.arms:
+                            arm.contract_held = True
                     elif e.key == pygame.K_h:
-                        if getattr(self.arm_tip, "tag", "") == "high_drag":
-                            self.arm_tip.tag = "arm"
-                        else:
-                            self.arm_tip.tag = "high_drag"
+                        for arm in self.arms:
+                            arm._set_high_drag(getattr(arm.tip, "tag", "") != "high_drag")
+                    elif e.key in self.cycle_keys:
+                        self.cycle_keys[e.key].cycle_held = True
                 elif e.type == pygame.KEYUP:
                     if e.key == pygame.K_e:
-                        self.extend_held = False
+                        for arm in self.arms:
+                            arm.extend_held = False
                     elif e.key == pygame.K_q:
-                        self.contract_held = False
+                        for arm in self.arms:
+                            arm.contract_held = False
+                    elif e.key in self.cycle_keys:
+                        arm = self.cycle_keys[e.key]
+                        arm.cycle_held = False
+                        arm.reset_inert()
 
             if self.selected:
                 self.selected.pos = pygame.Vector2(pygame.mouse.get_pos())
                 self.selected.prev_pos = self.selected.pos.copy()
 
-            for i, s in enumerate(self.arm_springs):
-                if self.extend_held and s.rest_length < self.arm_max[i]:
-                    s.rest_length += 120 * dt
-                if self.contract_held and s.rest_length > self.arm_rest_lengths[i]:
-                    s.rest_length -= 120 * dt
+            for arm in self.arms:
+                arm.update(dt)
 
             self.physics.update(dt)
 

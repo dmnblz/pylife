@@ -29,3 +29,10 @@ This repository contains small pygame demos for 2D particle-based physics simula
 - Keep the README up to date with instructions on running the demos and any changed controls or dependencies.
 
 There are no automated tests; run the demo scripts manually to verify behaviour.
+
+## Recent updates
+
+- High-drag particles render with a red outline to indicate adhesion.
+- `hook_arm.py` defines a reusable `HookArm` helper class.
+- `start_hook_arm.py` now features four arms; hold **W**, **A**, **S** or **D** to
+  run a continuous extend/adhere/contract cycle on the corresponding arm.
