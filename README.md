@@ -21,7 +21,8 @@ particles can be grabbed with the left mouse button.
 - w = unfreeze loose particles
 
 Press **c** or use the **Color** field in the sidebar to open a color
-picker. The picker allows choosing any color or entering a hex value
-like `#FF00FF`.
+picker. The picker is launched in a small helper process so it works on
+all platforms. You can choose any color or enter a hex value like
+`#FF00FF`.
 
 ![Repo Size](https://img.shields.io/github/repo-size/USERNAME/REPOSITORY)
