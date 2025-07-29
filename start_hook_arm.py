@@ -38,8 +38,8 @@ class HookArmApp:
 
         # build a small chain as the hook arm
         base = wall_particles[0]
-        arm_segments = 5
-        spacing = 30
+        arm_segments = 1
+        spacing = 50
         prev = base
         for i in range(1, arm_segments + 1):
             pos = base.pos + pygame.Vector2(spacing * i, 0)
@@ -52,7 +52,7 @@ class HookArmApp:
         self.arm_tip = prev
 
         self.arm_rest_lengths = [s.rest_length for s in self.arm_springs]
-        self.arm_max = [rest * 2 for rest in self.arm_rest_lengths]
+        self.arm_max = [rest * 4 for rest in self.arm_rest_lengths]
 
         self.physics = PhysicsEngine(
             self.particles,
@@ -106,9 +106,9 @@ class HookArmApp:
 
             for i, s in enumerate(self.arm_springs):
                 if self.extend_held and s.rest_length < self.arm_max[i]:
-                    s.rest_length += 40 * dt
+                    s.rest_length += 120 * dt
                 if self.contract_held and s.rest_length > self.arm_rest_lengths[i]:
-                    s.rest_length -= 40 * dt
+                    s.rest_length -= 120 * dt
 
             self.physics.update(dt)
 

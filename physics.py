@@ -102,7 +102,7 @@ class PhysicsEngine:
             if p.fixed:
                 continue
             if getattr(p, "tag", "") == "high_drag":
-                drag_multiplier = 30.0  # or any large factor to simulate strong adhesion
+                drag_multiplier = 100.0  # or any large factor to simulate strong adhesion
             else:
                 drag_multiplier = 1.0
             # estimate velocity from Verlet history
