@@ -10,7 +10,10 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
   * `particle.py` – a point mass implemented with Verlet integration.
   * `spring.py` – linear springs that apply Hooke's law and change colour depending on stretch/compression.
   * `bending_spring.py` – maintains an angle between three particles.
-  * `physics.py` – applies forces (gravity, damping, random motion and repulsion) and updates all particles each frame.
+  * `physics.py` – contains ``PhysicsEngine`` which integrates particles each
+    frame.  The engine applies gravity, spring forces, short range repulsion,
+    viscous drag (with extra drag for particles tagged ``"high_drag"``) and
+    Brownian noise.
   * `renderer.py` – draws particles and springs to the pygame window.
   * `structures.py` – helper functions to build shapes like circular walls or rods.
   * `builder_ui.py` and `color_picker.py` – the sidebar widgets and the cross‑platform colour selection utility.
