@@ -61,7 +61,7 @@ class HookArmApp:
         self._set_high_drag(False)
 
         self.arm_rest_lengths = [s.rest_length for s in self.arm_springs]
-        self.arm_max = [rest * 4 for rest in self.arm_rest_lengths]
+        self.arm_max = [rest * 3 for rest in self.arm_rest_lengths]
 
         self.physics = PhysicsEngine(
             self.particles,
@@ -129,16 +129,16 @@ class HookArmApp:
 
             for i, s in enumerate(self.arm_springs):
                 if self.extend_held and s.rest_length < self.arm_max[i]:
-                    s.rest_length += 120 * dt
+                    s.rest_length += 240 * dt
                 if self.contract_held and s.rest_length > self.arm_rest_lengths[i]:
-                    s.rest_length -= 120 * dt
+                    s.rest_length -= 240 * dt
 
             if self.cycle_active:
                 if self.cycle_phase == 0:
                     done = True
                     for i, s in enumerate(self.arm_springs):
                         if s.rest_length < self.arm_max[i]:
-                            s.rest_length += 120 * dt
+                            s.rest_length += 240 * dt
                             done = False
                     if done:
                         for i, s in enumerate(self.arm_springs):
@@ -149,7 +149,7 @@ class HookArmApp:
                     done = True
                     for i, s in enumerate(self.arm_springs):
                         if s.rest_length > self.arm_rest_lengths[i]:
-                            s.rest_length -= 120 * dt
+                            s.rest_length -= 240 * dt
                             done = False
                     if done:
                         for i, s in enumerate(self.arm_springs):
