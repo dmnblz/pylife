@@ -25,10 +25,11 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
 ### Using high-drag particles
 
 Setting the ``tag`` attribute of a ``Particle`` to ``"high_drag"`` increases
-the drag force in ``PhysicsEngine.update``.  Demo scripts use this to simulate
+the drag force in ``PhysicsEngine.update``.  These particles are drawn with a
+red outline so their state is obvious. Demo scripts use this to simulate
 particles adhering to their surroundings—press **B/N/M** in
-``start_bending_wall.py`` or **H** in ``start_hook_arm.py`` to toggle the
-behaviour.
+``start_bending_wall.py`` or **H** (and now **C** for a full cycle) in
+``start_hook_arm.py`` to toggle the behaviour.
 
 ## Requirements
 
@@ -80,8 +81,9 @@ keyboard shortcuts:
   toggle high drag on selected particles.  All other controls from `start.py`
   are also available.
 * **`start_hook_arm.py`** – showcases a small flexible arm attached to a cell.
-  Hold **E** to extend the arm, **Q** to retract it and press **H** to toggle
-  adhesion (high drag) on the tip.
+  Hold **E** to extend the arm, **Q** to retract it, press **H** to toggle
+  adhesion on the tip or hit **C** to automatically extend, stick and
+  contract in one cycle. High‑drag particles are highlighted in red.
 * **`start_four_rods.py`** – four rods positioned around the centre with the
   same controls as `start.py`.
 * **`start_gradient_wall.py`** – similar to `start_four_rods.py` but colours each
