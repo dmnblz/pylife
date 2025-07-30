@@ -23,7 +23,7 @@ class BuilderApp:
         self.particles: list[Particle] = []
         self.springs: list[Spring] = []
         self.arms: list[HookArm] = []
-        self.cycle_keys: dict[int, HookArm] = {}
+        self.cycle_keys: dict[int, list[HookArm]] = {}
         self.selected = None
         self.spring_first = None
         self.paused = False
@@ -56,6 +56,8 @@ class BuilderApp:
             self.ui.rod_tool.cancel()
         if self.mode == "arm" and mode != "arm":
             self.ui.arm_tool.cancel()
+        if self.mode == "inspect" and mode != "inspect":
+            self.ui.inspect_tool.cancel()
 
         self.mode = mode
         if mode == "circle":
@@ -64,6 +66,8 @@ class BuilderApp:
             self.ui.rod_tool.start()
         if mode == "arm":
             self.ui.arm_tool.start()
+        if mode == "inspect":
+            self.ui.inspect_tool.start()
         if mode != "spring":
             self.spring_first = None
         if self.selected and mode != "drag":
@@ -160,7 +164,7 @@ class BuilderApp:
         )
         arm.cycle_key = cycle_key
         if cycle_key is not None:
-            self.cycle_keys[cycle_key] = arm
+            self.cycle_keys.setdefault(cycle_key, []).append(arm)
         self.arms.append(arm)
         self.particles.extend(arm.particles)
         self.springs.extend(arm.springs)
@@ -222,6 +226,8 @@ class BuilderApp:
                         self.set_mode("rod")
                     elif e.key == pygame.K_6:
                         self.set_mode("arm")
+                    elif e.key == pygame.K_7:
+                        self.set_mode("inspect")
                     elif e.key == pygame.K_c:
                         self.choose_color()
                     elif e.key == pygame.K_z:
@@ -245,13 +251,13 @@ class BuilderApp:
                     elif e.key == pygame.K_ESCAPE:
                         self.spring_first = None
                     else:
-                        arm = self.cycle_keys.get(e.key)
-                        if arm:
+                        arms = self.cycle_keys.get(e.key, [])
+                        for arm in arms:
                             arm.cycle_held = True
 
                 elif e.type == pygame.KEYUP:
-                    arm = self.cycle_keys.get(e.key)
-                    if arm:
+                    arms = self.cycle_keys.get(e.key, [])
+                    for arm in arms:
                         arm.cycle_held = False
                         arm.reset_inert()
 

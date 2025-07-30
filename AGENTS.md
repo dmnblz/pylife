@@ -39,3 +39,6 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - The hook arm's tip becomes heavier while ``"high_drag"`` is active.
 - `start_create.py` and `builder_ui.py` now let you attach hook arms and assign a
   key for cycling them.
+- Multiple hook arms can listen to the same cycle key.
+- A new **Inspect** mode lets you click a particle and modify its mass, radius
+  and colour through the sidebar.

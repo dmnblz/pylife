@@ -676,6 +676,106 @@ class HookArmTool:
         return False
 
 
+class InspectTool:
+    """Select a particle and edit its properties from the sidebar."""
+
+    def __init__(self, sidebar: 'SidebarUI'):
+        self.sidebar = sidebar
+        self.app = sidebar.app
+        self.active = False
+        self.particle = None
+
+        x = sidebar.screen.get_width() - sidebar.WIDTH + 10
+        width = sidebar.WIDTH - 20
+        y = sidebar.extra_start_y
+
+        self.color_field = ColorField(
+            "P Color", lambda: self._get_color(), self._set_color, x, y, width
+        )
+        y += 40
+        self.mass_field = SliderField(
+            "P Mass", 0.1, 10.0, lambda: self._get_mass(), self._set_mass, x, y, width
+        )
+        y += 40
+        self.radius_field = SliderField(
+            "P Radius", 1, 50, lambda: self._get_radius(), self._set_radius, x, y, width
+        )
+
+    # ---------------- helpers
+    def _get_color(self):
+        return self.particle.color if self.particle else (255, 255, 255)
+
+    def _set_color(self, color):
+        if self.particle:
+            self.particle.color = color
+
+    def _get_mass(self):
+        return self.particle.mass if self.particle else 0
+
+    def _set_mass(self, value: float):
+        if self.particle:
+            self.particle.mass = max(0.1, value)
+
+    def _get_radius(self):
+        return self.particle.radius if self.particle else 0
+
+    def _set_radius(self, value: float):
+        if self.particle:
+            self.particle.radius = max(1, int(value))
+
+    # ---------------- control
+    def start(self):
+        self.active = True
+        self.particle = None
+
+    def cancel(self):
+        self.active = False
+        self.particle = None
+
+    # ---------------- drawing
+    def draw_ui(self):
+        if not self.active or not self.sidebar.visible or not self.particle:
+            return
+        self.color_field.draw(self.sidebar.screen)
+        self.mass_field.draw(self.sidebar.screen)
+        self.radius_field.draw(self.sidebar.screen)
+
+    def draw_preview(self):
+        if not self.active or not self.particle:
+            return
+        pygame.draw.circle(
+            self.sidebar.screen,
+            (255, 255, 0),
+            (int(self.particle.pos.x), int(self.particle.pos.y)),
+            int(self.particle.radius) + 4,
+            2,
+        )
+
+    # ---------------- event handling
+    def handle_event(self, event):
+        if not self.active:
+            return False
+
+        if self.sidebar.visible and self.particle:
+            if self.color_field.handle_event(event):
+                return True
+            if self.mass_field.handle_event(event):
+                return True
+            if self.radius_field.handle_event(event):
+                return True
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
+                if self.app.particles:
+                    mouse = pygame.Vector2(event.pos)
+                    self.particle = min(
+                        self.app.particles, key=lambda p: (p.pos - mouse).length()
+                    )
+                    return True
+
+        return False
+
+
 class SidebarUI:
     BUTTON_HEIGHT = 28
     BUTTON_MARGIN = 4
@@ -695,6 +795,7 @@ class SidebarUI:
         self.circle_tool = CircleTool(self)
         self.rod_tool = RodTool(self)
         self.arm_tool = HookArmTool(self)
+        self.inspect_tool = InspectTool(self)
 
     # ----------------------------------------------------------- setup
     def _setup_ui(self):
@@ -714,6 +815,7 @@ class SidebarUI:
         add_button("Circle", lambda: self.app.set_mode("circle"))
         add_button("Rod", lambda: self.app.set_mode("rod"))
         add_button("Arm", lambda: self.app.set_mode("arm"))
+        add_button("Inspect", lambda: self.app.set_mode("inspect"))
         add_button("Delete", lambda: self.app.set_mode("delete"))
         add_button(lambda: "Resume" if self.app.paused else "Pause", self.app.toggle_pause)
 
@@ -776,11 +878,13 @@ class SidebarUI:
             self.circle_tool.draw_ui()
             self.rod_tool.draw_ui()
             self.arm_tool.draw_ui()
+            self.inspect_tool.draw_ui()
 
         # preview from tools (visible or not)
         self.circle_tool.draw_preview()
         self.rod_tool.draw_preview()
         self.arm_tool.draw_preview()
+        self.inspect_tool.draw_preview()
 
         # toggle button (always visible)
         pygame.draw.rect(self.screen, (100, 100, 100), self.toggle_rect)
@@ -813,6 +917,8 @@ class SidebarUI:
         if self.rod_tool.handle_event(event):
             return True
         if self.arm_tool.handle_event(event):
+            return True
+        if self.inspect_tool.handle_event(event):
             return True
 
         return False
