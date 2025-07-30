@@ -1,6 +1,7 @@
 import pygame
 import math
 from color_picker import choose_color
+from bending_spring import BendingSpring
 
 
 class SliderField:
@@ -303,6 +304,114 @@ class SpringTool:
         if self.sidebar.visible:
             if self.stiff_field.handle_event(event):
                 return True
+        return False
+
+
+class BendingSpringTool:
+    """Create a bending spring by choosing three particles."""
+
+    def __init__(self, sidebar: 'SidebarUI'):
+        self.sidebar = sidebar
+        self.app = sidebar.app
+        self.active = False
+        self.angle = 90.0
+        self.stiffness = 200.0
+        self.selected: list = []
+
+        x = sidebar.screen.get_width() - sidebar.WIDTH + 10
+        width = sidebar.WIDTH - 20
+        y = sidebar.extra_start_y
+
+        self.angle_field = SliderField(
+            "Angle", 0, 180, lambda: self.angle, self._set_angle, x, y, width
+        )
+        y += 40
+        self.stiff_field = SliderField(
+            "Stiff", 10, 1000, lambda: self.stiffness, self._set_stiff, x, y, width
+        )
+        y += 40
+        self.create_rect = pygame.Rect(x, y, width, SidebarUI.BUTTON_HEIGHT)
+
+    def _set_angle(self, val: float):
+        self.angle = max(0, val)
+
+    def _set_stiff(self, val: float):
+        self.stiffness = max(10, val)
+
+    # ---------------- control
+    def start(self):
+        self.active = True
+        self.selected.clear()
+
+    def cancel(self):
+        self.active = False
+        self.selected.clear()
+
+    # ---------------- drawing
+    def draw_ui(self):
+        if not self.active or not self.sidebar.visible:
+            return
+        self.angle_field.draw(self.sidebar.screen)
+        self.stiff_field.draw(self.sidebar.screen)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.create_rect)
+        txt = self.sidebar.font.render("Create", True, (255, 255, 255))
+        rect = txt.get_rect(center=self.create_rect.center)
+        self.sidebar.screen.blit(txt, rect)
+
+    def draw_preview(self):
+        if not self.active:
+            return
+        screen = self.sidebar.screen
+        color = (150, 150, 150)
+        for p in self.selected:
+            pygame.draw.circle(screen, color, (int(p.pos.x), int(p.pos.y)), int(p.radius) + 4, 1)
+        if len(self.selected) >= 2:
+            pygame.draw.line(screen, color, self.selected[0].pos, self.selected[1].pos, 1)
+        if len(self.selected) == 3:
+            pygame.draw.line(screen, color, self.selected[1].pos, self.selected[2].pos, 1)
+
+    # ---------------- event handling
+    def handle_event(self, event):
+        if not self.active:
+            return False
+
+        if self.sidebar.visible:
+            if self.angle_field.handle_event(event):
+                return True
+            if self.stiff_field.handle_event(event):
+                return True
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if self.create_rect.collidepoint(event.pos) and len(self.selected) == 3:
+                    from math import radians
+                    bs = BendingSpring(
+                        self.selected[0],
+                        self.selected[1],
+                        self.selected[2],
+                        radians(self.angle),
+                        self.stiffness,
+                    )
+                    self.app.bending_springs.append(bs)
+                    self.cancel()
+                    self.sidebar.app.set_mode("drag")
+                    return True
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
+                if self.app.particles:
+                    mouse = pygame.Vector2(event.pos)
+                    particle = min(self.app.particles, key=lambda p: (p.pos - mouse).length())
+                    if particle not in self.selected:
+                        if len(self.selected) < 3:
+                            self.selected.append(particle)
+                        else:
+                            self.selected.pop(0)
+                            self.selected.append(particle)
+                    return True
+
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            self.selected.clear()
+            return True
+
         return False
 
 
@@ -1172,6 +1281,7 @@ class SidebarUI:
         # setup circle tool after computing layout
         self.particle_tool = ParticleTool(self)
         self.spring_tool = SpringTool(self)
+        self.bend_tool = BendingSpringTool(self)
         self.circle_tool = CircleTool(self)
         self.rod_tool = RodTool(self)
         self.arm_tool = HookArmTool(self)
@@ -1193,6 +1303,7 @@ class SidebarUI:
         add_button("Drag", lambda: self.app.set_mode("drag"))
         add_button("Particle", lambda: self.app.set_mode("particle"))
         add_button("Spring", lambda: self.app.set_mode("spring"))
+        add_button("Bend", lambda: self.app.set_mode("bend"))
         add_button("Circle", lambda: self.app.set_mode("circle"))
         add_button("Rod", lambda: self.app.set_mode("rod"))
         add_button("Arm", lambda: self.app.set_mode("arm"))
@@ -1231,6 +1342,7 @@ class SidebarUI:
             # extra UI from tools
             self.particle_tool.draw_ui()
             self.spring_tool.draw_ui()
+            self.bend_tool.draw_ui()
             self.circle_tool.draw_ui()
             self.rod_tool.draw_ui()
             self.arm_tool.draw_ui()
@@ -1240,6 +1352,7 @@ class SidebarUI:
         # preview from tools (visible or not)
         self.particle_tool.draw_preview()
         self.spring_tool.draw_preview()
+        self.bend_tool.draw_preview()
         self.circle_tool.draw_preview()
         self.rod_tool.draw_preview()
         self.arm_tool.draw_preview()
@@ -1275,6 +1388,8 @@ class SidebarUI:
         if self.particle_tool.handle_event(event):
             return True
         if self.spring_tool.handle_event(event):
+            return True
+        if self.bend_tool.handle_event(event):
             return True
         if self.circle_tool.handle_event(event):
             return True
