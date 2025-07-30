@@ -828,7 +828,9 @@ class InspectTool:
             self.spring.stiffness = max(10, value)
 
     def _get_max(self):
-        return self.spring.max_force if self.spring else 0
+        if not self.spring:
+            return 0
+        return self.spring.max_force if self.spring.max_force is not None else 0
 
     def _set_max(self, value: float):
         if self.spring:

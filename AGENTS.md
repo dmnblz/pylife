@@ -46,3 +46,4 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
   max force and visibility.
 - The hook arm builder exposes fields for mass, radius, stiffness, colours and
   adhesion factor per arm.
+- Inspect tool uses ``0`` for spring max force to disable the limit and avoid errors.

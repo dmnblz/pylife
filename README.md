@@ -67,7 +67,7 @@ Mouse and keyboard controls allow you to switch modes and modify properties:
 * **N/M** – decrease/increase simulation temperature
 * **P** – pause or resume the physics update
 
-Particles can be grabbed with the left mouse button.  When in spring mode, click two particles to connect them. Selecting the **Arm** tool lets you click a particle, drag out a direction and then hit *Create* to spawn a hook arm. The sidebar fields let you set the arm's mass, radius, stiffness, colours and adhesion factor before creation, and any number of arms may share the same cycle key. The **Inspect** tool can select a particle or a spring so their properties (colour, mass, radius, rest length, stiffness and visibility) may be edited in place.
+Particles can be grabbed with the left mouse button.  When in spring mode, click two particles to connect them. Selecting the **Arm** tool lets you click a particle, drag out a direction and then hit *Create* to spawn a hook arm. The sidebar fields let you set the arm's mass, radius, stiffness, colours and adhesion factor before creation, and any number of arms may share the same cycle key. The **Inspect** tool can select a particle or a spring so their properties (colour, mass, radius, rest length, stiffness, **max force** and visibility) may be edited in place.  A value of ``0`` for max force disables the limit.
 
 ## Example demos
 
