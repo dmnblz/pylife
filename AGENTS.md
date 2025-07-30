@@ -47,3 +47,5 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - The hook arm builder exposes fields for mass, radius, stiffness, colours and
   adhesion factor per arm.
 - Inspect tool uses ``0`` for spring max force to disable the limit and avoid errors.
+- Particle colour/mass/radius sliders and the spring stiffness slider only appear when their creation modes are active.
+- Hook arm creation now has a cycle speed slider controlling how fast the arm extends and retracts.

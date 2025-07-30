@@ -549,8 +549,8 @@ class HookArmTool:
     """Preview and creation helper for :class:`HookArm` instances.
 
     The tool lets the user configure segment count, spacing, particle
-    mass/radius, spring stiffness, colours, adhesion factor and the key used
-    for cycling the arm.
+    mass/radius, spring stiffness, cycle speed, colours, adhesion factor and
+    the key used for cycling the arm.
     """
 
     def __init__(self, sidebar: 'SidebarUI'):
@@ -564,6 +564,7 @@ class HookArmTool:
         self.mass = 0.5
         self.radius = 8.0
         self.stiffness = 500.0
+        self.cycle_speed = 240.0
         self.color = (0, 150, 255)
         self.high_drag_color = (255, 50, 50)
         self.adhesion_factor = 10.0
@@ -592,6 +593,10 @@ class HookArmTool:
         y += 40
         self.stiff_field = SliderField(
             "Stiff", 10, 1000, lambda: self.stiffness, self._set_stiffness, x, y, width
+        )
+        y += 40
+        self.speed_field = SliderField(
+            "Speed", 50, 1000, lambda: self.cycle_speed, self._set_speed, x, y, width
         )
         y += 40
         self.color_field = ColorField("Color", lambda: self.color, self._set_color, x, y, width)
@@ -623,6 +628,9 @@ class HookArmTool:
 
     def _set_stiffness(self, value: float):
         self.stiffness = max(10, value)
+
+    def _set_speed(self, value: float):
+        self.cycle_speed = max(10, value)
 
     def _set_color(self, color):
         self.color = color
@@ -666,6 +674,7 @@ class HookArmTool:
         self.mass_field.draw(self.sidebar.screen)
         self.radius_field.draw(self.sidebar.screen)
         self.stiff_field.draw(self.sidebar.screen)
+        self.speed_field.draw(self.sidebar.screen)
         self.color_field.draw(self.sidebar.screen)
         self.high_field.draw(self.sidebar.screen)
         self.adh_field.draw(self.sidebar.screen)
@@ -702,6 +711,8 @@ class HookArmTool:
                 return True
             if self.stiff_field.handle_event(event):
                 return True
+            if self.speed_field.handle_event(event):
+                return True
             if self.color_field.handle_event(event):
                 return True
             if self.high_field.handle_event(event):
@@ -724,6 +735,7 @@ class HookArmTool:
                         self.high_drag_color,
                         self.adhesion_factor,
                         self.cycle_key,
+                        self.cycle_speed,
                     )
                     self.cancel()
                     self.sidebar.app.set_mode("drag")
@@ -962,6 +974,8 @@ class SidebarUI:
         self.buttons = []
         self.fields = []
         self.visible = True
+        self.particle_fields = []
+        self.spring_fields = []
         self.circle_tool = None
         self._setup_ui()
         # setup circle tool after computing layout
@@ -1000,20 +1014,25 @@ class SidebarUI:
             "Color", lambda: self.app.color, self.app.set_color, slider_x, y, slider_width
         )
         self.fields.append(color_field)
+        self.particle_fields.append(color_field)
         y += 40
-        self.fields.append(
-            SliderField("Mass", 0.1, 10.0, lambda: self.app.mass, self.app.set_mass, slider_x, y, slider_width)
+        mass_field = SliderField(
+            "Mass", 0.1, 10.0, lambda: self.app.mass, self.app.set_mass, slider_x, y, slider_width
         )
+        self.fields.append(mass_field)
+        self.particle_fields.append(mass_field)
         y += 40
-        self.fields.append(
-            SliderField("Radius", 1, 50, lambda: self.app.radius, self.app.set_radius, slider_x, y, slider_width)
+        radius_field = SliderField(
+            "Radius", 1, 50, lambda: self.app.radius, self.app.set_radius, slider_x, y, slider_width
         )
+        self.fields.append(radius_field)
+        self.particle_fields.append(radius_field)
         y += 40
-        self.fields.append(
-            SliderField(
-                "Stiff", 10, 1000, lambda: self.app.stiffness, self.app.set_stiffness, slider_x, y, slider_width
-            )
+        stiff_field = SliderField(
+            "Stiff", 10, 1000, lambda: self.app.stiffness, self.app.set_stiffness, slider_x, y, slider_width
         )
+        self.fields.append(stiff_field)
+        self.spring_fields.append(stiff_field)
         y += 40
         self.fields.append(
             SliderField(
@@ -1025,6 +1044,13 @@ class SidebarUI:
 
     def visible_width(self):
         return self.WIDTH if self.visible else 0
+
+    def _field_visible(self, field):
+        if field in self.particle_fields:
+            return self.app.mode == "particle"
+        if field in self.spring_fields:
+            return self.app.mode == "spring"
+        return True
 
     # ----------------------------------------------------------- draw
     def draw(self):
@@ -1045,7 +1071,8 @@ class SidebarUI:
                 self.screen.blit(text_img, text_rect)
 
             for field in self.fields:
-                field.draw(self.screen)
+                if self._field_visible(field):
+                    field.draw(self.screen)
 
             # extra UI from tools
             self.circle_tool.draw_ui()
@@ -1082,7 +1109,7 @@ class SidebarUI:
 
         if self.visible:
             for field in self.fields:
-                if field.handle_event(event):
+                if self._field_visible(field) and field.handle_event(event):
                     return True
 
         if self.circle_tool.handle_event(event):

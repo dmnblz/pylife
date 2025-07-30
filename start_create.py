@@ -158,6 +158,7 @@ class BuilderApp:
         high_drag_color,
         adhesion_factor: float,
         cycle_key: int | None,
+        cycle_speed: float,
     ):
         """Attach a new :class:`HookArm` to ``base`` and register its cycle key."""
         arm = HookArm(
@@ -171,6 +172,7 @@ class BuilderApp:
             adhesion_mass_factor=adhesion_factor,
             mass=mass,
             radius=radius,
+            cycle_speed=cycle_speed,
         )
         arm.cycle_key = cycle_key
         if cycle_key is not None:

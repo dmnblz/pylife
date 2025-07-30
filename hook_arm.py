@@ -27,6 +27,7 @@ class HookArm:
         adhesion_mass_factor: float = 10.0,
         mass: float = 0.5,
         radius: float = 8,
+        cycle_speed: float = 240.0,
     ):
         """Create the arm anchored at ``base`` and pointing along ``direction``.
 
@@ -52,12 +53,15 @@ class HookArm:
             Particle mass for each link in the arm.
         radius:
             Particle radius for each link in the arm.
+        cycle_speed:
+            Rate at which the arm extends and contracts when cycling.
         """
         self.particles: list[Particle] = []
         self.springs: list[Spring] = []
         self.color = color
         self.high_drag_color = high_drag_color
         self.adhesion_mass_factor = adhesion_mass_factor
+        self.cycle_speed = cycle_speed
 
         direction = direction.normalize()
         prev = base
@@ -102,9 +106,9 @@ class HookArm:
     def update(self, dt: float):
         for i, s in enumerate(self.springs):
             if self.extend_held and s.rest_length < self.max_lengths[i]:
-                s.rest_length += 240 * dt
+                s.rest_length += self.cycle_speed * dt
             if self.contract_held and s.rest_length > self.rest_lengths[i]:
-                s.rest_length -= 240 * dt
+                s.rest_length -= self.cycle_speed * dt
 
         if self.cycle_held:
             if not self.cycle_active:
@@ -114,7 +118,7 @@ class HookArm:
                 done = True
                 for i, s in enumerate(self.springs):
                     if s.rest_length < self.max_lengths[i]:
-                        s.rest_length += 240 * dt
+                        s.rest_length += self.cycle_speed * dt
                         done = False
                 if done:
                     for i, s in enumerate(self.springs):
@@ -125,7 +129,7 @@ class HookArm:
                 done = True
                 for i, s in enumerate(self.springs):
                     if s.rest_length > self.rest_lengths[i]:
-                        s.rest_length -= 240 * dt
+                        s.rest_length -= self.cycle_speed * dt
                         done = False
                 if done:
                     for i, s in enumerate(self.springs):
