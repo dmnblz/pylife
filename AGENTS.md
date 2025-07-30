@@ -36,3 +36,4 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - `hook_arm.py` defines a reusable `HookArm` helper class.
 - `start_hook_arm.py` now features four arms; hold **W**, **A**, **S** or **D** to
   run a continuous extend/adhere/contract cycle on the corresponding arm.
+- The hook arm's tip becomes heavier while ``"high_drag"`` is active.

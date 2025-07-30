@@ -19,6 +19,8 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
   * `builder_ui.py` and `color_picker.py` – the sidebar widgets and the cross‑platform colour selection utility.
   * **High-drag adhesion** – set a particle's ``tag`` to ``"high_drag"`` and the
     physics engine multiplies its viscous drag, causing it to stick in place.
+  * **Weighted adhesion** – a ``HookArm`` tip also increases in mass when stuck
+    for extra grip.
   * **Adjustable springs** – spring rest lengths can be changed on the fly to
     mimic contracting or extending structures.
 
@@ -26,7 +28,8 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
 
 Setting the ``tag`` attribute of a ``Particle`` to ``"high_drag"`` increases
 the drag force in ``PhysicsEngine.update``.  These particles are drawn with a
-red outline so their state is obvious. Demo scripts use this to simulate
+red outline so their state is obvious. ``HookArm`` also makes its tip heavier
+whenever high drag is enabled. Demo scripts use this to simulate
 particles adhering to their surroundings—press **B/N/M** in
 ``start_bending_wall.py`` or **H** in ``start_hook_arm.py`` to toggle the
 behaviour. Holding **W**, **A**, **S** or **D** in ``start_hook_arm.py`` runs a
