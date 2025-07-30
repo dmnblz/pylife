@@ -27,8 +27,8 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
     mimic contracting or extending structures.
   * **Particle orientation** – particles may optionally track a rotation angle.
     When enabled, an ``OrientationSpring`` can keep the line to another
-    particle aligned with this angle and the renderer draws a small yellow dot
-    for those particles.
+    particle aligned with this angle and the renderer draws a small yellow
+    line indicating the current orientation.
 
 ### Using high-drag particles
 

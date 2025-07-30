@@ -52,6 +52,6 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - Particle, spring and environment controls now live behind separate sidebar buttons.
 - Hook arm creation now has a cycle speed slider controlling how fast the arm extends and retracts.
 - Particles may track an optional orientation angle. ``OrientationSpring`` keeps
-  a particle aligned with a spring and the renderer draws a yellow dot only when
-  orientation is enabled. The builder UI includes a toggle to set this on newly
-  created or selected particles.
+  a particle aligned with a spring and the renderer draws a yellow line only
+  when orientation is enabled. The builder UI includes a toggle to set this on
+  newly created or selected particles.
