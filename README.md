@@ -25,10 +25,10 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
     for extra grip.
   * **Adjustable springs** – spring rest lengths can be changed on the fly to
     mimic contracting or extending structures.
-  * **Particle orientation** – each particle tracks a rotation angle. An
-    ``OrientationSpring`` can keep the line to another particle aligned with
-    this angle and the renderer shows a small yellow dot to indicate the
-    direction.
+  * **Particle orientation** – particles may optionally track a rotation angle.
+    When enabled, an ``OrientationSpring`` can keep the line to another
+    particle aligned with this angle and the renderer draws a small yellow dot
+    for those particles.
 
 ### Using high-drag particles
 
@@ -72,6 +72,7 @@ Mouse and keyboard controls allow you to switch modes and modify properties:
 * **V/B** – decrease/increase particle radius
 * **K/L** – decrease/increase spring stiffness
 * **N/M** – decrease/increase simulation temperature
+* **O** – toggle orientation for newly created particles
 * **P** – pause or resume the physics update
 
 Particles can be grabbed with the left mouse button.  When in spring mode, click two particles to connect them. Selecting the **Arm** tool lets you click a particle, drag out a direction and then hit *Create* to spawn a hook arm. The sidebar fields let you set the arm's mass, radius, stiffness, cycle speed, colours and adhesion factor before creation, and any number of arms may share the same cycle key. The **Inspect** tool can select a particle or a spring so their properties (colour, mass, radius, rest length, stiffness, **max force** and visibility) may be edited in place.  A value of ``0`` for max force disables the limit. Use the Particle, Spring or Env buttons to reveal their respective sliders.

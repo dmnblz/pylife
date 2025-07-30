@@ -76,6 +76,8 @@ class OrientationSpring:
         self.stiffness = stiffness
 
     def apply(self):
+        if not getattr(self.anchor, "orientation_enabled", False):
+            return
         delta = self.particle.pos - self.anchor.pos
         dist = delta.length()
         if dist == 0:

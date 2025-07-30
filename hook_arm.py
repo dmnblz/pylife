@@ -28,6 +28,7 @@ class HookArm:
         mass: float = 0.5,
         radius: float = 8,
         cycle_speed: float = 240.0,
+        orientation_enabled: bool = False,
     ):
         """Create the arm anchored at ``base`` and pointing along ``direction``.
 
@@ -62,12 +63,20 @@ class HookArm:
         self.high_drag_color = high_drag_color
         self.adhesion_mass_factor = adhesion_mass_factor
         self.cycle_speed = cycle_speed
+        self.orientation_enabled = orientation_enabled
 
         direction = direction.normalize()
         prev = base
         for i in range(1, segments + 1):
             pos = base.pos + direction * spacing * i
-            p = Particle(pos, mass=mass, radius=radius, color=color, tag="arm")
+            p = Particle(
+                pos,
+                mass=mass,
+                radius=radius,
+                color=color,
+                tag="arm",
+                orientation_enabled=self.orientation_enabled,
+            )
             self.particles.append(p)
             s = Spring(prev, p, rest_length=spacing, stiffness=stiffness)
             self.springs.append(s)

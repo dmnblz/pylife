@@ -34,6 +34,7 @@ class BuilderApp:
         self.radius = 10
         self.color = (255, 0, 0)
         self.stiffness = 200.0
+        self.orientation_enabled = False
 
         self.font = pygame.font.SysFont(None, 24)
         self.physics = PhysicsEngine(
@@ -131,6 +132,10 @@ class BuilderApp:
     def set_stiffness(self, value: float):
         self.stiffness = max(10, value)
 
+    def toggle_orientation(self):
+        """Enable or disable orientation for newly created particles."""
+        self.orientation_enabled = not self.orientation_enabled
+
     def adjust_temperature(self, delta: float):
         self.physics.temperature = max(0, self.physics.temperature + delta)
 
@@ -147,7 +152,13 @@ class BuilderApp:
         for i in range(segments):
             theta = (i / segments) * 2 * math.pi
             pos = center + pygame.Vector2(math.cos(theta), math.sin(theta)) * radius
-            p = Particle(pos, mass=self.mass, color=self.color, radius=self.radius)
+            p = Particle(
+                pos,
+                mass=self.mass,
+                color=self.color,
+                radius=self.radius,
+                orientation_enabled=self.orientation_enabled,
+            )
             particles.append(p)
         for i in range(segments):
             p1 = particles[i]
@@ -185,6 +196,7 @@ class BuilderApp:
             mass=mass,
             radius=radius,
             cycle_speed=cycle_speed,
+            orientation_enabled=self.orientation_enabled,
         )
         arm.cycle_key = cycle_key
         if cycle_key is not None:
@@ -221,6 +233,7 @@ class BuilderApp:
             p.mass = self.mass
             p.radius = self.radius
             p.color = self.color
+            p.orientation_enabled = self.orientation_enabled
         self.particles.extend(particles)
         self.springs.extend(springs)
 
@@ -272,6 +285,8 @@ class BuilderApp:
                         self.adjust_temperature(-10)
                     elif e.key == pygame.K_m:
                         self.adjust_temperature(10)
+                    elif e.key == pygame.K_o:
+                        self.toggle_orientation()
                     elif e.key == pygame.K_p:
                         self.toggle_pause()
                     elif e.key == pygame.K_ESCAPE:
@@ -296,7 +311,13 @@ class BuilderApp:
                             )
                             self.selected.fixed = True
                     elif self.mode == "particle":
-                        p = Particle(mouse, mass=self.mass, color=self.color, radius=self.radius)
+                        p = Particle(
+                            mouse,
+                            mass=self.mass,
+                            color=self.color,
+                            radius=self.radius,
+                            orientation_enabled=self.orientation_enabled,
+                        )
                         self.particles.append(p)
                     elif self.mode == "spring":
                         if self.particles:

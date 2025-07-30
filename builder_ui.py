@@ -231,7 +231,8 @@ class ParticleTool:
         self.radius_field = SliderField(
             "Radius", 1, 50, lambda: self.app.radius, self.app.set_radius, x, y, width
         )
-
+        y += 40
+        self.orient_rect = pygame.Rect(x, y, width, SidebarUI.BUTTON_HEIGHT)
     # ---------------- control
     def start(self):
         self.active = True
@@ -246,6 +247,11 @@ class ParticleTool:
         self.color_field.draw(self.sidebar.screen)
         self.mass_field.draw(self.sidebar.screen)
         self.radius_field.draw(self.sidebar.screen)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.orient_rect)
+        txt = "Orient: On" if self.app.orientation_enabled else "Orient: Off"
+        img = self.sidebar.font.render(txt, True, (255, 255, 255))
+        rect = img.get_rect(center=self.orient_rect.center)
+        self.sidebar.screen.blit(img, rect)
 
     def draw_preview(self):
         pass
@@ -260,6 +266,9 @@ class ParticleTool:
             if self.mass_field.handle_event(event):
                 return True
             if self.radius_field.handle_event(event):
+                return True
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.orient_rect.collidepoint(event.pos):
+                self.app.toggle_orientation()
                 return True
         return False
 
@@ -929,6 +938,8 @@ class InspectTool:
             "P Radius", 1, 50, lambda: self._get_radius(), self._set_radius, x, y, width
         )
         y += 40
+        self.orient_rect = pygame.Rect(x, y, width, SidebarUI.BUTTON_HEIGHT)
+        y += 40
         self.rest_field = SliderField(
             "S Rest", 1, 400, lambda: self._get_rest(), self._set_rest, x, y, width
         )
@@ -988,6 +999,10 @@ class InspectTool:
         if self.spring:
             self.spring.max_force = None if value == 0 else value
 
+    def _toggle_orientation(self):
+        if self.particle:
+            self.particle.orientation_enabled = not self.particle.orientation_enabled
+
     def _toggle_invisible(self):
         if self.spring:
             self.spring.invisible = not self.spring.invisible
@@ -1011,6 +1026,11 @@ class InspectTool:
             self.color_field.draw(self.sidebar.screen)
             self.mass_field.draw(self.sidebar.screen)
             self.radius_field.draw(self.sidebar.screen)
+            pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.orient_rect)
+            txt = "Orient: On" if self.particle.orientation_enabled else "Orient: Off"
+            img = self.sidebar.font.render(txt, True, (255, 255, 255))
+            rect = img.get_rect(center=self.orient_rect.center)
+            self.sidebar.screen.blit(img, rect)
         elif self.spring:
             self.rest_field.draw(self.sidebar.screen)
             self.stiff_field.draw(self.sidebar.screen)
@@ -1053,6 +1073,9 @@ class InspectTool:
                 if self.mass_field.handle_event(event):
                     return True
                 if self.radius_field.handle_event(event):
+                    return True
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.orient_rect.collidepoint(event.pos):
+                    self._toggle_orientation()
                     return True
             elif self.spring:
                 if self.rest_field.handle_event(event):

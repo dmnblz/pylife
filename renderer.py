@@ -28,17 +28,18 @@ class Renderer:
             color = p.color if p.color else (0, 0, 255)
             radius = p.radius if p.radius else 10
             pygame.draw.circle(self.screen, color, (int(p.pos.x), int(p.pos.y)), radius=radius)
-            # orientation indicator: a small dot showing the particle's angle
-            end = pygame.Vector2(
-                math.cos(getattr(p, "angle", 0.0)),
-                math.sin(getattr(p, "angle", 0.0)),
-            ) * (radius * 0.5)
-            pygame.draw.circle(
-                self.screen,
-                (255, 255, 0),
-                (int(p.pos.x + end.x), int(p.pos.y + end.y)),
-                3,
-            )
+            if getattr(p, "orientation_enabled", False):
+                # orientation indicator: a small dot showing the particle's angle
+                end = pygame.Vector2(
+                    math.cos(getattr(p, "angle", 0.0)),
+                    math.sin(getattr(p, "angle", 0.0)),
+                ) * (radius * 0.5)
+                pygame.draw.circle(
+                    self.screen,
+                    (255, 255, 0),
+                    (int(p.pos.x + end.x), int(p.pos.y + end.y)),
+                    3,
+                )
             if getattr(p, "tag", "") == "high_drag":
                 pygame.draw.circle(
                     self.screen,
