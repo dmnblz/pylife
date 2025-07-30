@@ -14,11 +14,20 @@ from spring import Spring
 class HookArm:
     """Represent a single flexible arm with simple control flags."""
 
-    def __init__(self, base: Particle, direction: pygame.Vector2,
-                 *, segments: int = 1, spacing: float = 20,
-                 stiffness: float = 500, color=(0, 150, 255),
-                 high_drag_color=(255, 50, 50),
-                 adhesion_mass_factor: float = 10.0):
+    def __init__(
+        self,
+        base: Particle,
+        direction: pygame.Vector2,
+        *,
+        segments: int = 1,
+        spacing: float = 20,
+        stiffness: float = 500,
+        color=(0, 150, 255),
+        high_drag_color=(255, 50, 50),
+        adhesion_mass_factor: float = 10.0,
+        mass: float = 0.5,
+        radius: float = 8,
+    ):
         """Create the arm anchored at ``base`` and pointing along ``direction``.
 
         Parameters
@@ -39,6 +48,10 @@ class HookArm:
             Colour used when the tip enters the high-drag state.
         adhesion_mass_factor:
             Multiplier applied to the tip's mass while adhesion is active.
+        mass:
+            Particle mass for each link in the arm.
+        radius:
+            Particle radius for each link in the arm.
         """
         self.particles: list[Particle] = []
         self.springs: list[Spring] = []
@@ -50,7 +63,7 @@ class HookArm:
         prev = base
         for i in range(1, segments + 1):
             pos = base.pos + direction * spacing * i
-            p = Particle(pos, mass=0.5, radius=8, color=color, tag="arm")
+            p = Particle(pos, mass=mass, radius=radius, color=color, tag="arm")
             self.particles.append(p)
             s = Spring(prev, p, rest_length=spacing, stiffness=stiffness)
             self.springs.append(s)

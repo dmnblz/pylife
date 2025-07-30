@@ -4,7 +4,7 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
 
 ## Features
 
-* **Interactive builder** – `start_create.py` opens a window where you can drag particles, connect them with springs and spawn predefined structures.  A sidebar UI contains sliders to tweak parameters such as mass, radius, spring stiffness and temperature. Tools exist for circles, rods, flexible hook arms and an inspect mode for tweaking existing particles.
+* **Interactive builder** – `start_create.py` opens a window where you can drag particles, connect them with springs and spawn predefined structures.  A sidebar UI contains sliders to tweak parameters such as mass, radius, spring stiffness and temperature. Tools exist for circles, rods, flexible hook arms and an inspect mode for tweaking existing particles and springs.  Arm creation now exposes mass, radius, colour and adhesion settings per arm.
 * **Demo scenes** – other `start_*.py` files showcase different preset configurations (e.g. cell walls, rods or gradient walls).  They are good starting points for custom experiments.
 * **Modular codebase** – the core simulation is split into small modules:
   * `particle.py` – a point mass implemented with Verlet integration.
@@ -59,7 +59,7 @@ Mouse and keyboard controls allow you to switch modes and modify properties:
 * **4** – delete the particle or spring under the cursor
 * **5** – create rod structures
 * **6** – attach a hook arm to a particle
-* **7** – inspect an existing particle
+* **7** – inspect an existing particle or spring
 * **C** – choose a colour for newly created particles
 * **Z/X** – decrease/increase particle mass
 * **V/B** – decrease/increase particle radius
@@ -67,7 +67,7 @@ Mouse and keyboard controls allow you to switch modes and modify properties:
 * **N/M** – decrease/increase simulation temperature
 * **P** – pause or resume the physics update
 
-Particles can be grabbed with the left mouse button.  When in spring mode, click two particles to connect them. Selecting the **Arm** tool lets you click a particle, drag out a direction and then hit *Create* to spawn a hook arm. Use the **Cycle** field to pick a keyboard key that will run the arm's extend/adhere/contract loop when held; the same key can be assigned to multiple arms. The **Inspect** tool highlights a chosen particle so its colour, mass and radius can be modified using the sidebar fields.
+Particles can be grabbed with the left mouse button.  When in spring mode, click two particles to connect them. Selecting the **Arm** tool lets you click a particle, drag out a direction and then hit *Create* to spawn a hook arm. The sidebar fields let you set the arm's mass, radius, stiffness, colours and adhesion factor before creation, and any number of arms may share the same cycle key. The **Inspect** tool can select a particle or a spring so their properties (colour, mass, radius, rest length, stiffness and visibility) may be edited in place.
 
 ## Example demos
 

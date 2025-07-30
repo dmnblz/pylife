@@ -546,7 +546,12 @@ class RodTool:
 
 
 class HookArmTool:
-    """Preview and creation helper for :class:`HookArm` instances."""
+    """Preview and creation helper for :class:`HookArm` instances.
+
+    The tool lets the user configure segment count, spacing, particle
+    mass/radius, spring stiffness, colours, adhesion factor and the key used
+    for cycling the arm.
+    """
 
     def __init__(self, sidebar: 'SidebarUI'):
         self.sidebar = sidebar
@@ -556,6 +561,12 @@ class HookArmTool:
         self.direction = pygame.Vector2(1, 0)
         self.segments = 3
         self.spacing = 20.0
+        self.mass = 0.5
+        self.radius = 8.0
+        self.stiffness = 500.0
+        self.color = (0, 150, 255)
+        self.high_drag_color = (255, 50, 50)
+        self.adhesion_factor = 10.0
         self.cycle_key = pygame.K_h
         self.dragging = False
 
@@ -571,6 +582,28 @@ class HookArmTool:
             "Spacing", 5, 60, lambda: self.spacing, self._set_spacing, x, y, width
         )
         y += 40
+        self.mass_field = SliderField(
+            "Mass", 0.1, 10.0, lambda: self.mass, self._set_mass, x, y, width
+        )
+        y += 40
+        self.radius_field = SliderField(
+            "Radius", 1, 50, lambda: self.radius, self._set_radius, x, y, width
+        )
+        y += 40
+        self.stiff_field = SliderField(
+            "Stiff", 10, 1000, lambda: self.stiffness, self._set_stiffness, x, y, width
+        )
+        y += 40
+        self.color_field = ColorField("Color", lambda: self.color, self._set_color, x, y, width)
+        y += 40
+        self.high_field = ColorField(
+            "HDrag", lambda: self.high_drag_color, self._set_high_color, x, y, width
+        )
+        y += 40
+        self.adh_field = SliderField(
+            "AdhesMF", 1, 20, lambda: self.adhesion_factor, self._set_adhesion, x, y, width
+        )
+        y += 40
         self.key_field = KeyField("Cycle", lambda: self.cycle_key, self._set_key, x, y, width)
         y += 40
         self.create_rect = pygame.Rect(x, y, width, SidebarUI.BUTTON_HEIGHT)
@@ -581,6 +614,24 @@ class HookArmTool:
 
     def _set_spacing(self, value: float):
         self.spacing = max(1, value)
+
+    def _set_mass(self, value: float):
+        self.mass = max(0.1, value)
+
+    def _set_radius(self, value: float):
+        self.radius = max(1, value)
+
+    def _set_stiffness(self, value: float):
+        self.stiffness = max(10, value)
+
+    def _set_color(self, color):
+        self.color = color
+
+    def _set_high_color(self, color):
+        self.high_drag_color = color
+
+    def _set_adhesion(self, value: float):
+        self.adhesion_factor = max(1, value)
 
     def _set_key(self, value: int | None):
         self.cycle_key = value
@@ -612,6 +663,12 @@ class HookArmTool:
             return
         self.seg_field.draw(self.sidebar.screen)
         self.space_field.draw(self.sidebar.screen)
+        self.mass_field.draw(self.sidebar.screen)
+        self.radius_field.draw(self.sidebar.screen)
+        self.stiff_field.draw(self.sidebar.screen)
+        self.color_field.draw(self.sidebar.screen)
+        self.high_field.draw(self.sidebar.screen)
+        self.adh_field.draw(self.sidebar.screen)
         self.key_field.draw(self.sidebar.screen)
         pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.create_rect)
         txt = self.sidebar.font.render("Create", True, (255, 255, 255))
@@ -626,7 +683,7 @@ class HookArmTool:
         last = self.base.pos
         for p in self._preview_points():
             pygame.draw.line(screen, color, last, p, 1)
-            pygame.draw.circle(screen, color, (int(p.x), int(p.y)), self.app.radius, 1)
+            pygame.draw.circle(screen, color, (int(p.x), int(p.y)), int(self.radius), 1)
             last = p
 
     # ---------------- event handling
@@ -639,6 +696,18 @@ class HookArmTool:
                 return True
             if self.space_field.handle_event(event):
                 return True
+            if self.mass_field.handle_event(event):
+                return True
+            if self.radius_field.handle_event(event):
+                return True
+            if self.stiff_field.handle_event(event):
+                return True
+            if self.color_field.handle_event(event):
+                return True
+            if self.high_field.handle_event(event):
+                return True
+            if self.adh_field.handle_event(event):
+                return True
             if self.key_field.handle_event(event):
                 return True
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -648,6 +717,12 @@ class HookArmTool:
                         self.direction,
                         self.segments,
                         self.spacing,
+                        self.mass,
+                        self.radius,
+                        self.stiffness,
+                        self.color,
+                        self.high_drag_color,
+                        self.adhesion_factor,
                         self.cycle_key,
                     )
                     self.cancel()
@@ -677,13 +752,14 @@ class HookArmTool:
 
 
 class InspectTool:
-    """Select a particle and edit its properties from the sidebar."""
+    """Select a particle or spring and edit its properties from the sidebar."""
 
     def __init__(self, sidebar: 'SidebarUI'):
         self.sidebar = sidebar
         self.app = sidebar.app
         self.active = False
         self.particle = None
+        self.spring = None
 
         x = sidebar.screen.get_width() - sidebar.WIDTH + 10
         width = sidebar.WIDTH - 20
@@ -700,6 +776,20 @@ class InspectTool:
         self.radius_field = SliderField(
             "P Radius", 1, 50, lambda: self._get_radius(), self._set_radius, x, y, width
         )
+        y += 40
+        self.rest_field = SliderField(
+            "S Rest", 1, 400, lambda: self._get_rest(), self._set_rest, x, y, width
+        )
+        y += 40
+        self.stiff_field = SliderField(
+            "S Stiff", 10, 1000, lambda: self._get_stiff(), self._set_stiff, x, y, width
+        )
+        y += 40
+        self.max_field = SliderField(
+            "S MaxF", 0, 2000, lambda: self._get_max(), self._set_max, x, y, width
+        )
+        y += 40
+        self.invis_rect = pygame.Rect(x, y, width, SidebarUI.BUTTON_HEIGHT)
 
     # ---------------- helpers
     def _get_color(self):
@@ -723,55 +813,136 @@ class InspectTool:
         if self.particle:
             self.particle.radius = max(1, int(value))
 
+    def _get_rest(self):
+        return self.spring.rest_length if self.spring else 0
+
+    def _set_rest(self, value: float):
+        if self.spring:
+            self.spring.rest_length = max(1, value)
+
+    def _get_stiff(self):
+        return self.spring.stiffness if self.spring else 0
+
+    def _set_stiff(self, value: float):
+        if self.spring:
+            self.spring.stiffness = max(10, value)
+
+    def _get_max(self):
+        return self.spring.max_force if self.spring else 0
+
+    def _set_max(self, value: float):
+        if self.spring:
+            self.spring.max_force = None if value == 0 else value
+
+    def _toggle_invisible(self):
+        if self.spring:
+            self.spring.invisible = not self.spring.invisible
+
     # ---------------- control
     def start(self):
         self.active = True
         self.particle = None
+        self.spring = None
 
     def cancel(self):
         self.active = False
         self.particle = None
+        self.spring = None
 
     # ---------------- drawing
     def draw_ui(self):
-        if not self.active or not self.sidebar.visible or not self.particle:
+        if not self.active or not self.sidebar.visible:
             return
-        self.color_field.draw(self.sidebar.screen)
-        self.mass_field.draw(self.sidebar.screen)
-        self.radius_field.draw(self.sidebar.screen)
+        if self.particle:
+            self.color_field.draw(self.sidebar.screen)
+            self.mass_field.draw(self.sidebar.screen)
+            self.radius_field.draw(self.sidebar.screen)
+        elif self.spring:
+            self.rest_field.draw(self.sidebar.screen)
+            self.stiff_field.draw(self.sidebar.screen)
+            self.max_field.draw(self.sidebar.screen)
+            pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.invis_rect)
+            txt = "Invisible" if self.spring.invisible else "Visible"
+            img = self.sidebar.font.render(txt, True, (255, 255, 255))
+            rect = img.get_rect(center=self.invis_rect.center)
+            self.sidebar.screen.blit(img, rect)
 
     def draw_preview(self):
-        if not self.active or not self.particle:
+        if not self.active:
             return
-        pygame.draw.circle(
-            self.sidebar.screen,
-            (255, 255, 0),
-            (int(self.particle.pos.x), int(self.particle.pos.y)),
-            int(self.particle.radius) + 4,
-            2,
-        )
+        if self.particle:
+            pygame.draw.circle(
+                self.sidebar.screen,
+                (255, 255, 0),
+                (int(self.particle.pos.x), int(self.particle.pos.y)),
+                int(self.particle.radius) + 4,
+                2,
+            )
+        elif self.spring:
+            pygame.draw.line(
+                self.sidebar.screen,
+                (255, 255, 0),
+                self.spring.p1.pos,
+                self.spring.p2.pos,
+                3,
+            )
 
     # ---------------- event handling
     def handle_event(self, event):
         if not self.active:
             return False
 
-        if self.sidebar.visible and self.particle:
-            if self.color_field.handle_event(event):
-                return True
-            if self.mass_field.handle_event(event):
-                return True
-            if self.radius_field.handle_event(event):
-                return True
+        if self.sidebar.visible:
+            if self.particle:
+                if self.color_field.handle_event(event):
+                    return True
+                if self.mass_field.handle_event(event):
+                    return True
+                if self.radius_field.handle_event(event):
+                    return True
+            elif self.spring:
+                if self.rest_field.handle_event(event):
+                    return True
+                if self.stiff_field.handle_event(event):
+                    return True
+                if self.max_field.handle_event(event):
+                    return True
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.invis_rect.collidepoint(event.pos):
+                    self._toggle_invisible()
+                    return True
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
+                mouse = pygame.Vector2(event.pos)
+                dist_p = float("inf")
+                dist_s = float("inf")
+                nearest_p = None
+                nearest_s = None
                 if self.app.particles:
-                    mouse = pygame.Vector2(event.pos)
-                    self.particle = min(
-                        self.app.particles, key=lambda p: (p.pos - mouse).length()
-                    )
-                    return True
+                    nearest_p = min(self.app.particles, key=lambda p: (p.pos - mouse).length())
+                    dist_p = (nearest_p.pos - mouse).length()
+                if self.app.springs:
+                    def seg_dist(s):
+                        a = s.p1.pos
+                        b = s.p2.pos
+                        d = b - a
+                        if d.length_squared() == 0:
+                            return (mouse - a).length()
+                        t = max(0, min(1, (mouse - a).dot(d) / d.length_squared()))
+                        proj = a + d * t
+                        return (mouse - proj).length()
+                    nearest_s = min(self.app.springs, key=seg_dist)
+                    dist_s = seg_dist(nearest_s)
+                if dist_p <= dist_s:
+                    if nearest_p is not None:
+                        self.particle = nearest_p
+                        self.spring = None
+                        return True
+                else:
+                    if nearest_s is not None:
+                        self.spring = nearest_s
+                        self.particle = None
+                        return True
 
         return False
 

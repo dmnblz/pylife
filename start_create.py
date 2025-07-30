@@ -151,6 +151,12 @@ class BuilderApp:
         direction: pygame.Vector2,
         segments: int,
         spacing: float,
+        mass: float,
+        radius: float,
+        stiffness: float,
+        color,
+        high_drag_color,
+        adhesion_factor: float,
         cycle_key: int | None,
     ):
         """Attach a new :class:`HookArm` to ``base`` and register its cycle key."""
@@ -159,8 +165,12 @@ class BuilderApp:
             direction if direction.length() > 0 else pygame.Vector2(1, 0),
             segments=segments,
             spacing=spacing,
-            stiffness=self.stiffness,
-            color=self.color,
+            stiffness=stiffness,
+            color=color,
+            high_drag_color=high_drag_color,
+            adhesion_mass_factor=adhesion_factor,
+            mass=mass,
+            radius=radius,
         )
         arm.cycle_key = cycle_key
         if cycle_key is not None:

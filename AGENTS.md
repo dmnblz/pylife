@@ -42,3 +42,7 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - Multiple hook arms can listen to the same cycle key.
 - A new **Inspect** mode lets you click a particle and modify its mass, radius
   and colour through the sidebar.
+- Inspect mode can now select springs to edit rest length, stiffness,
+  max force and visibility.
+- The hook arm builder exposes fields for mass, radius, stiffness, colours and
+  adhesion factor per arm.
