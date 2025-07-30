@@ -37,3 +37,16 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - `start_hook_arm.py` now features four arms; hold **W**, **A**, **S** or **D** to
   run a continuous extend/adhere/contract cycle on the corresponding arm.
 - The hook arm's tip becomes heavier while ``"high_drag"`` is active.
+- `start_create.py` and `builder_ui.py` now let you attach hook arms and assign a
+  key for cycling them.
+- Multiple hook arms can listen to the same cycle key.
+- A new **Inspect** mode lets you click a particle and modify its mass, radius
+  and colour through the sidebar.
+- Inspect mode can now select springs to edit rest length, stiffness,
+  max force and visibility.
+- The hook arm builder exposes fields for mass, radius, stiffness, colours and
+  adhesion factor per arm.
+- Inspect tool uses ``0`` for spring max force to disable the limit and avoid errors.
+- Particle colour/mass/radius sliders and the spring stiffness slider only appear when their creation modes are active.
+- Particle, spring and environment controls now live behind separate sidebar buttons.
+- Hook arm creation now has a cycle speed slider controlling how fast the arm extends and retracts.
