@@ -316,6 +316,7 @@ class BendingSpringTool:
         self.active = False
         self.angle = 90.0
         self.stiffness = 200.0
+        self.auto_angle = False
         self.selected: list = []
 
         x = sidebar.screen.get_width() - sidebar.WIDTH + 10
@@ -330,6 +331,8 @@ class BendingSpringTool:
             "Stiff", 10, 1000, lambda: self.stiffness, self._set_stiff, x, y, width
         )
         y += 40
+        self.auto_rect = pygame.Rect(x, y, width, SidebarUI.BUTTON_HEIGHT)
+        y += SidebarUI.BUTTON_HEIGHT + 12
         self.create_rect = pygame.Rect(x, y, width, SidebarUI.BUTTON_HEIGHT)
 
     def _set_angle(self, val: float):
@@ -341,6 +344,7 @@ class BendingSpringTool:
     # ---------------- control
     def start(self):
         self.active = True
+        self.auto_angle = False
         self.selected.clear()
 
     def cancel(self):
@@ -351,8 +355,14 @@ class BendingSpringTool:
     def draw_ui(self):
         if not self.active or not self.sidebar.visible:
             return
-        self.angle_field.draw(self.sidebar.screen)
+        if not self.auto_angle:
+            self.angle_field.draw(self.sidebar.screen)
         self.stiff_field.draw(self.sidebar.screen)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.auto_rect)
+        label = "Auto" if not self.auto_angle else "Manual"
+        txt = self.sidebar.font.render(label, True, (255, 255, 255))
+        rect = txt.get_rect(center=self.auto_rect.center)
+        self.sidebar.screen.blit(txt, rect)
         pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.create_rect)
         txt = self.sidebar.font.render("Create", True, (255, 255, 255))
         rect = txt.get_rect(center=self.create_rect.center)
@@ -376,18 +386,33 @@ class BendingSpringTool:
             return False
 
         if self.sidebar.visible:
-            if self.angle_field.handle_event(event):
-                return True
+            if not self.auto_angle:
+                if self.angle_field.handle_event(event):
+                    return True
             if self.stiff_field.handle_event(event):
                 return True
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if self.auto_rect.collidepoint(event.pos):
+                    self.auto_angle = not self.auto_angle
+                    return True
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self.create_rect.collidepoint(event.pos) and len(self.selected) == 3:
                     from math import radians
+                    if self.auto_angle:
+                        v1 = self.selected[0].pos - self.selected[1].pos
+                        v2 = self.selected[2].pos - self.selected[1].pos
+                        if v1.length() == 0 or v2.length() == 0:
+                            angle = 0
+                        else:
+                            dot = max(-1.0, min(1.0, v1.dot(v2) / (v1.length()*v2.length())))
+                            angle = math.acos(dot)
+                    else:
+                        angle = radians(self.angle)
                     bs = BendingSpring(
                         self.selected[0],
                         self.selected[1],
                         self.selected[2],
-                        radians(self.angle),
+                        angle,
                         self.stiffness,
                     )
                     self.app.bending_springs.append(bs)
@@ -1074,6 +1099,7 @@ class InspectTool:
         self.active = False
         self.particle = None
         self.spring = None
+        self.bend = None
 
         x = sidebar.screen.get_width() - sidebar.WIDTH + 10
         width = sidebar.WIDTH - 20
@@ -1101,6 +1127,14 @@ class InspectTool:
         y += 40
         self.max_field = SliderField(
             "S MaxF", 0, 2000, lambda: self._get_max(), self._set_max, x, y, width
+        )
+        y += 40
+        self.bangle_field = SliderField(
+            "B Ang", 0, 180, lambda: self._get_bangle(), self._set_bangle, x, y, width
+        )
+        y += 40
+        self.bstiff_field = SliderField(
+            "B Stiff", 10, 1000, lambda: self._get_bstiff(), self._set_bstiff, x, y, width
         )
         y += 40
         self.invis_rect = pygame.Rect(x, y, width, SidebarUI.BUTTON_HEIGHT)
@@ -1141,6 +1175,20 @@ class InspectTool:
         if self.spring:
             self.spring.stiffness = max(10, value)
 
+    def _get_bangle(self):
+        return math.degrees(self.bend.rest_angle) if self.bend else 0
+
+    def _set_bangle(self, value: float):
+        if self.bend:
+            self.bend.rest_angle = math.radians(max(0, value))
+
+    def _get_bstiff(self):
+        return self.bend.stiffness if self.bend else 0
+
+    def _set_bstiff(self, value: float):
+        if self.bend:
+            self.bend.stiffness = max(10, value)
+
     def _get_max(self):
         if not self.spring:
             return 0
@@ -1159,11 +1207,13 @@ class InspectTool:
         self.active = True
         self.particle = None
         self.spring = None
+        self.bend = None
 
     def cancel(self):
         self.active = False
         self.particle = None
         self.spring = None
+        self.bend = None
 
     # ---------------- drawing
     def draw_ui(self):
@@ -1182,6 +1232,9 @@ class InspectTool:
             img = self.sidebar.font.render(txt, True, (255, 255, 255))
             rect = img.get_rect(center=self.invis_rect.center)
             self.sidebar.screen.blit(img, rect)
+        elif self.bend:
+            self.bangle_field.draw(self.sidebar.screen)
+            self.bstiff_field.draw(self.sidebar.screen)
 
     def draw_preview(self):
         if not self.active:
@@ -1200,6 +1253,21 @@ class InspectTool:
                 (255, 255, 0),
                 self.spring.p1.pos,
                 self.spring.p2.pos,
+                3,
+            )
+        elif self.bend:
+            pygame.draw.line(
+                self.sidebar.screen,
+                (255, 255, 0),
+                self.bend.p1.pos,
+                self.bend.p2.pos,
+                3,
+            )
+            pygame.draw.line(
+                self.sidebar.screen,
+                (255, 255, 0),
+                self.bend.p2.pos,
+                self.bend.p3.pos,
                 3,
             )
 
@@ -1226,14 +1294,21 @@ class InspectTool:
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.invis_rect.collidepoint(event.pos):
                     self._toggle_invisible()
                     return True
+            elif self.bend:
+                if self.bangle_field.handle_event(event):
+                    return True
+                if self.bstiff_field.handle_event(event):
+                    return True
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
                 mouse = pygame.Vector2(event.pos)
                 dist_p = float("inf")
                 dist_s = float("inf")
+                dist_b = float("inf")
                 nearest_p = None
                 nearest_s = None
+                nearest_b = None
                 if self.app.particles:
                     nearest_p = min(self.app.particles, key=lambda p: (p.pos - mouse).length())
                     dist_p = (nearest_p.pos - mouse).length()
@@ -1249,15 +1324,35 @@ class InspectTool:
                         return (mouse - proj).length()
                     nearest_s = min(self.app.springs, key=seg_dist)
                     dist_s = seg_dist(nearest_s)
-                if dist_p <= dist_s:
+                if self.app.bending_springs:
+                    def seg_dist_b(bs):
+                        def seg(a, b):
+                            d = b - a
+                            if d.length_squared() == 0:
+                                return (mouse - a).length()
+                            t = max(0, min(1, (mouse - a).dot(d) / d.length_squared()))
+                            proj = a + d * t
+                            return (mouse - proj).length()
+                        return min(seg(bs.p1.pos, bs.p2.pos), seg(bs.p2.pos, bs.p3.pos))
+                    nearest_b = min(self.app.bending_springs, key=seg_dist_b)
+                    dist_b = seg_dist_b(nearest_b)
+                if dist_p <= dist_s and dist_p <= dist_b:
                     if nearest_p is not None:
                         self.particle = nearest_p
                         self.spring = None
+                        self.bend = None
                         return True
-                else:
+                elif dist_s <= dist_b:
                     if nearest_s is not None:
                         self.spring = nearest_s
                         self.particle = None
+                        self.bend = None
+                        return True
+                else:
+                    if nearest_b is not None:
+                        self.bend = nearest_b
+                        self.particle = None
+                        self.spring = None
                         return True
 
         return False

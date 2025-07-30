@@ -7,6 +7,19 @@ class Renderer:
     def __init__(self, screen: pygame.Surface):
         self.screen = screen
 
+    def _draw_dashed_line(self, start, end, color, width=1, dash=6):
+        start = pygame.Vector2(start)
+        end = pygame.Vector2(end)
+        vec = end - start
+        length = vec.length()
+        if length == 0:
+            return
+        direction = vec.normalize()
+        for i in range(0, int(length), dash * 2):
+            s = start + direction * i
+            e = start + direction * min(i + dash, length)
+            pygame.draw.line(self.screen, color, s, e, width)
+
     def draw(self, particles: list, springs: list, bending_springs: list | None = None):
         """Render the simulation objects to the screen.
 
@@ -39,8 +52,8 @@ class Renderer:
         if bending_springs:
             for bs in bending_springs:
                 color = (200, 200, 0)
-                pygame.draw.line(self.screen, color, bs.p1.pos, bs.p2.pos, 3)
-                pygame.draw.line(self.screen, color, bs.p2.pos, bs.p3.pos, 3)
+                self._draw_dashed_line(bs.p1.pos, bs.p2.pos, color, 3)
+                self._draw_dashed_line(bs.p2.pos, bs.p3.pos, color, 3)
 
         # draw particles
         for p in particles:
