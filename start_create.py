@@ -137,6 +137,26 @@ class BuilderApp:
     def set_temperature(self, value: float):
         self.physics.temperature = max(0, value)
 
+    def set_gravity_x(self, value: float):
+        """Update the X component of global gravity."""
+        self.physics.gravity.x = value
+
+    def set_gravity_y(self, value: float):
+        """Update the Y component of global gravity."""
+        self.physics.gravity.y = value
+
+    def set_repulsion_radius(self, value: float):
+        """Set the particle repulsion radius."""
+        self.physics.repulsion_radius = max(0, value)
+
+    def set_repulsion_strength(self, value: float):
+        """Set the magnitude of the short range repulsive force."""
+        self.physics.repulsion_strength = max(0, value)
+
+    def set_damping(self, value: float):
+        """Adjust the damping coefficient used for drag forces."""
+        self.physics.damping_coeff = max(0, value)
+
     def toggle_pause(self):
         self.paused = not self.paused
 
