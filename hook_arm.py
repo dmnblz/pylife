@@ -15,10 +15,10 @@ class HookArm:
     """Represent a single flexible arm with simple control flags."""
 
     def __init__(self, base: Particle, direction: pygame.Vector2,
-                 *, segments: int = 1, spacing: float = 50,
+                 *, segments: int = 1, spacing: float = 20,
                  stiffness: float = 500, color=(0, 150, 255),
                  high_drag_color=(255, 50, 50),
-                 adhesion_mass_factor: float = 5.0):
+                 adhesion_mass_factor: float = 10.0):
         """Create the arm anchored at ``base`` and pointing along ``direction``.
 
         Parameters
@@ -89,9 +89,9 @@ class HookArm:
     def update(self, dt: float):
         for i, s in enumerate(self.springs):
             if self.extend_held and s.rest_length < self.max_lengths[i]:
-                s.rest_length += 120 * dt
+                s.rest_length += 240 * dt
             if self.contract_held and s.rest_length > self.rest_lengths[i]:
-                s.rest_length -= 120 * dt
+                s.rest_length -= 240 * dt
 
         if self.cycle_held:
             if not self.cycle_active:
@@ -101,7 +101,7 @@ class HookArm:
                 done = True
                 for i, s in enumerate(self.springs):
                     if s.rest_length < self.max_lengths[i]:
-                        s.rest_length += 120 * dt
+                        s.rest_length += 240 * dt
                         done = False
                 if done:
                     for i, s in enumerate(self.springs):
@@ -112,7 +112,7 @@ class HookArm:
                 done = True
                 for i, s in enumerate(self.springs):
                     if s.rest_length > self.rest_lengths[i]:
-                        s.rest_length -= 120 * dt
+                        s.rest_length -= 240 * dt
                         done = False
                 if done:
                     for i, s in enumerate(self.springs):
