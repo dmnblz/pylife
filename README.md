@@ -23,6 +23,11 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
     for extra grip.
   * **Adjustable springs** – spring rest lengths can be changed on the fly to
     mimic contracting or extending structures.
+  * **Hinge springs** – particles may define an orientation and springs can be
+    constrained to maintain a fixed angle relative to it. Particles with an
+    orientation are drawn with a small arrow showing the direction.
+    Pass an ``orientation`` angle when creating a ``Particle`` and add
+    ``HingeSpring`` instances to the physics engine to activate the behaviour.
 
 ### Using high-drag particles
 
@@ -96,6 +101,9 @@ keyboard shortcuts:
   same controls as `start.py`.
 * **`start_gradient_wall.py`** – similar to `start_four_rods.py` but colours each
   rod with a gradient.
+* **`start_hinge_demo.py`** – shows a simple hinge. The base particle's
+  orientation rotates and a hinge constraint keeps the attached particle
+  aligned with the arrow.
 
 Feel free to modify any of these scripts or build new configurations using the interactive builder.
 

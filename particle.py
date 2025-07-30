@@ -2,9 +2,26 @@
 import pygame
 
 class Particle:
-    """Point mass used in the Verlet based physics simulation."""
+    """Point mass used in the Verlet based physics simulation.
 
-    def __init__(self, position, mass=1.0, color=None, radius=None, tag=None):
+    Parameters
+    ----------
+    position:
+        Initial ``(x, y)`` coordinates.
+    mass:
+        Scalar mass value.
+    color:
+        Optional RGB tuple used when rendering.
+    radius:
+        Particle radius in pixels for drawing.
+    tag:
+        Arbitrary string label.
+    orientation:
+        Optional angle in radians for hinge particles.  ``None`` means the
+        particle has no preferred orientation.
+    """
+
+    def __init__(self, position, mass=1.0, color=None, radius=None, tag=None, orientation=None):
         self.pos = pygame.Vector2(position)
         self.prev_pos = self.pos.copy()
         self.acc = pygame.Vector2(0, 0)
@@ -13,6 +30,7 @@ class Particle:
         self.color = color
         self.radius = radius
         self.tag = tag
+        self.orientation = orientation
 
     def apply_force(self, force):
         if not self.fixed:

@@ -1,5 +1,6 @@
 # renderer.py
 import pygame
+import math
 
 class Renderer:
     def __init__(self, screen: pygame.Surface):
@@ -34,4 +35,30 @@ class Renderer:
                     (int(p.pos.x), int(p.pos.y)),
                     radius + 4,
                     width=2,
+                )
+
+            if getattr(p, "orientation", None) is not None:
+                angle = p.orientation
+                arrow_len = radius + 15
+                end = pygame.Vector2(
+                    p.pos.x + arrow_len * math.cos(angle),
+                    p.pos.y + arrow_len * math.sin(angle),
+                )
+                pygame.draw.line(
+                    self.screen, (255, 255, 255), p.pos, end, width=2
+                )
+                head_len = 6
+                head_angle = math.radians(20)
+                left = end + pygame.Vector2(
+                    -head_len * math.cos(angle - head_angle),
+                    -head_len * math.sin(angle - head_angle),
+                )
+                right = end + pygame.Vector2(
+                    -head_len * math.cos(angle + head_angle),
+                    -head_len * math.sin(angle + head_angle),
+                )
+                pygame.draw.polygon(
+                    self.screen,
+                    (255, 255, 255),
+                    [end, left, right]
                 )
