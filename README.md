@@ -4,7 +4,7 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
 
 ## Features
 
-* **Interactive builder** – `start_create.py` opens a window where you can drag particles, connect them with springs and spawn predefined structures.  A sidebar UI contains sliders to tweak parameters such as mass, radius, spring stiffness and temperature.
+* **Interactive builder** – `start_create.py` opens a window where you can drag particles, connect them with springs and spawn predefined structures.  A sidebar UI contains sliders to tweak parameters such as mass, radius, spring stiffness and temperature. Tools exist for circles, rods and flexible hook arms.
 * **Demo scenes** – other `start_*.py` files showcase different preset configurations (e.g. cell walls, rods or gradient walls).  They are good starting points for custom experiments.
 * **Modular codebase** – the core simulation is split into small modules:
   * `particle.py` – a point mass implemented with Verlet integration.
@@ -58,6 +58,7 @@ Mouse and keyboard controls allow you to switch modes and modify properties:
 * **3** – connect two particles with a spring
 * **4** – delete the particle or spring under the cursor
 * **5** – create rod structures
+* **6** – attach a hook arm to a particle
 * **C** – choose a colour for newly created particles
 * **Z/X** – decrease/increase particle mass
 * **V/B** – decrease/increase particle radius
@@ -65,7 +66,7 @@ Mouse and keyboard controls allow you to switch modes and modify properties:
 * **N/M** – decrease/increase simulation temperature
 * **P** – pause or resume the physics update
 
-Particles can be grabbed with the left mouse button.  When in spring mode, click two particles to connect them.
+Particles can be grabbed with the left mouse button.  When in spring mode, click two particles to connect them. Selecting the **Arm** tool lets you click a particle, drag out a direction and then hit *Create* to spawn a hook arm. Use the **Cycle** field to pick a keyboard key that will run the arm's extend/adhere/contract loop when held.
 
 ## Example demos
 

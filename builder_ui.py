@@ -166,6 +166,48 @@ class ColorField:
             pass
 
 
+class KeyField:
+    """Editable single-key input used for controlling hook arms."""
+
+    BOX_WIDTH = 60
+
+    def __init__(self, label, get_key, set_key, x, y, width):
+        self.label = label
+        self.get_key = get_key
+        self.set_key = set_key
+        self.font = pygame.font.SysFont(None, 22)
+
+        self.box_rect = pygame.Rect(x, y + 10, self.BOX_WIDTH, 22)
+        self.editing = False
+
+    def draw(self, screen):
+        key = self.get_key()
+        text = pygame.key.name(key) if key is not None else "None"
+        if self.editing:
+            text = f"[{text}]"
+
+        lbl = self.font.render(self.label, True, (255, 255, 255))
+        screen.blit(lbl, (self.box_rect.x, self.box_rect.y - 18))
+        pygame.draw.rect(screen, (255, 255, 255), self.box_rect, 1)
+        img = self.font.render(text, True, (255, 255, 255))
+        rect = img.get_rect(center=self.box_rect.center)
+        screen.blit(img, rect)
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.box_rect.collidepoint(event.pos):
+                self.editing = True
+                return True
+        elif event.type == pygame.KEYDOWN and self.editing:
+            if event.key == pygame.K_ESCAPE:
+                self.set_key(None)
+            else:
+                self.set_key(event.key)
+            self.editing = False
+            return True
+        return False
+
+
 class CircleTool:
     """Handle circle preview creation with sliders and dragging."""
 
@@ -503,6 +545,137 @@ class RodTool:
         return False
 
 
+class HookArmTool:
+    """Preview and creation helper for :class:`HookArm` instances."""
+
+    def __init__(self, sidebar: 'SidebarUI'):
+        self.sidebar = sidebar
+        self.app = sidebar.app
+        self.active = False
+        self.base = None
+        self.direction = pygame.Vector2(1, 0)
+        self.segments = 3
+        self.spacing = 20.0
+        self.cycle_key = pygame.K_h
+        self.dragging = False
+
+        x = sidebar.screen.get_width() - sidebar.WIDTH + 10
+        width = sidebar.WIDTH - 20
+        y = sidebar.extra_start_y
+
+        self.seg_field = SliderField(
+            "Segments", 1, 10, lambda: self.segments, self._set_segments, x, y, width
+        )
+        y += 40
+        self.space_field = SliderField(
+            "Spacing", 5, 60, lambda: self.spacing, self._set_spacing, x, y, width
+        )
+        y += 40
+        self.key_field = KeyField("Cycle", lambda: self.cycle_key, self._set_key, x, y, width)
+        y += 40
+        self.create_rect = pygame.Rect(x, y, width, SidebarUI.BUTTON_HEIGHT)
+
+    # ---------------- value setters
+    def _set_segments(self, value: float):
+        self.segments = max(1, int(value))
+
+    def _set_spacing(self, value: float):
+        self.spacing = max(1, value)
+
+    def _set_key(self, value: int | None):
+        self.cycle_key = value
+
+    # ---------------- control
+    def start(self):
+        self.active = True
+        self.base = None
+
+    def cancel(self):
+        self.active = False
+        self.dragging = False
+
+    # ---------------- drawing helpers
+    def _preview_points(self):
+        if not self.base:
+            return []
+        if self.direction.length() == 0:
+            return []
+        dir_norm = self.direction.normalize()
+        pts = []
+        for i in range(1, self.segments + 1):
+            pos = self.base.pos + dir_norm * self.spacing * i
+            pts.append(pos)
+        return pts
+
+    def draw_ui(self):
+        if not self.active or not self.sidebar.visible:
+            return
+        self.seg_field.draw(self.sidebar.screen)
+        self.space_field.draw(self.sidebar.screen)
+        self.key_field.draw(self.sidebar.screen)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.create_rect)
+        txt = self.sidebar.font.render("Create", True, (255, 255, 255))
+        rect = txt.get_rect(center=self.create_rect.center)
+        self.sidebar.screen.blit(txt, rect)
+
+    def draw_preview(self):
+        if not self.active or not self.base:
+            return
+        screen = self.sidebar.screen
+        color = (150, 150, 150)
+        last = self.base.pos
+        for p in self._preview_points():
+            pygame.draw.line(screen, color, last, p, 1)
+            pygame.draw.circle(screen, color, (int(p.x), int(p.y)), self.app.radius, 1)
+            last = p
+
+    # ---------------- event handling
+    def handle_event(self, event):
+        if not self.active:
+            return False
+
+        if self.sidebar.visible:
+            if self.seg_field.handle_event(event):
+                return True
+            if self.space_field.handle_event(event):
+                return True
+            if self.key_field.handle_event(event):
+                return True
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if self.create_rect.collidepoint(event.pos) and self.base:
+                    self.app.create_hook_arm(
+                        self.base,
+                        self.direction,
+                        self.segments,
+                        self.spacing,
+                        self.cycle_key,
+                    )
+                    self.cancel()
+                    self.sidebar.app.set_mode("drag")
+                    return True
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
+                mouse = pygame.Vector2(event.pos)
+                if not self.base:
+                    if self.app.particles:
+                        self.base = min(self.app.particles, key=lambda p: (p.pos - mouse).length())
+                        self.dragging = True
+                        self.direction = pygame.Vector2(1, 0)
+                        return True
+                else:
+                    self.dragging = True
+                    return True
+        elif event.type == pygame.MOUSEMOTION and self.dragging:
+            self.direction = pygame.Vector2(event.pos) - self.base.pos
+            return True
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.dragging:
+            self.dragging = False
+            return True
+
+        return False
+
+
 class SidebarUI:
     BUTTON_HEIGHT = 28
     BUTTON_MARGIN = 4
@@ -521,6 +694,7 @@ class SidebarUI:
         # setup circle tool after computing layout
         self.circle_tool = CircleTool(self)
         self.rod_tool = RodTool(self)
+        self.arm_tool = HookArmTool(self)
 
     # ----------------------------------------------------------- setup
     def _setup_ui(self):
@@ -539,6 +713,7 @@ class SidebarUI:
         add_button("Spring", lambda: self.app.set_mode("spring"))
         add_button("Circle", lambda: self.app.set_mode("circle"))
         add_button("Rod", lambda: self.app.set_mode("rod"))
+        add_button("Arm", lambda: self.app.set_mode("arm"))
         add_button("Delete", lambda: self.app.set_mode("delete"))
         add_button(lambda: "Resume" if self.app.paused else "Pause", self.app.toggle_pause)
 
@@ -600,10 +775,12 @@ class SidebarUI:
             # extra UI from tools
             self.circle_tool.draw_ui()
             self.rod_tool.draw_ui()
+            self.arm_tool.draw_ui()
 
         # preview from tools (visible or not)
         self.circle_tool.draw_preview()
         self.rod_tool.draw_preview()
+        self.arm_tool.draw_preview()
 
         # toggle button (always visible)
         pygame.draw.rect(self.screen, (100, 100, 100), self.toggle_rect)
@@ -634,6 +811,8 @@ class SidebarUI:
         if self.circle_tool.handle_event(event):
             return True
         if self.rod_tool.handle_event(event):
+            return True
+        if self.arm_tool.handle_event(event):
             return True
 
         return False

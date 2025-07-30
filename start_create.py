@@ -7,6 +7,7 @@ from physics import PhysicsEngine
 from renderer import Renderer
 from builder_ui import SidebarUI
 from structures import create_rod as structure_create_rod
+from hook_arm import HookArm
 
 SCREEN_SIZE = (1300, 900)
 FPS = 120
@@ -21,6 +22,8 @@ class BuilderApp:
         self.clock = pygame.time.Clock()
         self.particles: list[Particle] = []
         self.springs: list[Spring] = []
+        self.arms: list[HookArm] = []
+        self.cycle_keys: dict[int, HookArm] = {}
         self.selected = None
         self.spring_first = None
         self.paused = False
@@ -51,12 +54,16 @@ class BuilderApp:
             self.ui.circle_tool.cancel()
         if self.mode == "rod" and mode != "rod":
             self.ui.rod_tool.cancel()
+        if self.mode == "arm" and mode != "arm":
+            self.ui.arm_tool.cancel()
 
         self.mode = mode
         if mode == "circle":
             self.ui.circle_tool.start()
         if mode == "rod":
             self.ui.rod_tool.start()
+        if mode == "arm":
+            self.ui.arm_tool.start()
         if mode != "spring":
             self.spring_first = None
         if self.selected and mode != "drag":
@@ -134,6 +141,30 @@ class BuilderApp:
         self.particles.extend(particles)
         self.springs.extend(springs)
 
+    def create_hook_arm(
+        self,
+        base: Particle,
+        direction: pygame.Vector2,
+        segments: int,
+        spacing: float,
+        cycle_key: int | None,
+    ):
+        """Attach a new :class:`HookArm` to ``base`` and register its cycle key."""
+        arm = HookArm(
+            base,
+            direction if direction.length() > 0 else pygame.Vector2(1, 0),
+            segments=segments,
+            spacing=spacing,
+            stiffness=self.stiffness,
+            color=self.color,
+        )
+        arm.cycle_key = cycle_key
+        if cycle_key is not None:
+            self.cycle_keys[cycle_key] = arm
+        self.arms.append(arm)
+        self.particles.extend(arm.particles)
+        self.springs.extend(arm.springs)
+
     def create_rod(
         self,
         center: pygame.Vector2,
@@ -189,6 +220,8 @@ class BuilderApp:
                         self.set_mode("delete")
                     elif e.key == pygame.K_5:
                         self.set_mode("rod")
+                    elif e.key == pygame.K_6:
+                        self.set_mode("arm")
                     elif e.key == pygame.K_c:
                         self.choose_color()
                     elif e.key == pygame.K_z:
@@ -211,6 +244,16 @@ class BuilderApp:
                         self.toggle_pause()
                     elif e.key == pygame.K_ESCAPE:
                         self.spring_first = None
+                    else:
+                        arm = self.cycle_keys.get(e.key)
+                        if arm:
+                            arm.cycle_held = True
+
+                elif e.type == pygame.KEYUP:
+                    arm = self.cycle_keys.get(e.key)
+                    if arm:
+                        arm.cycle_held = False
+                        arm.reset_inert()
 
                 elif e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
                     mouse = pygame.Vector2(e.pos)
@@ -262,6 +305,8 @@ class BuilderApp:
                             self.springs.remove(target_s)
                     elif self.mode == "rod":
                         pass  # handled by rod tool
+                    elif self.mode == "arm":
+                        pass  # handled by arm tool
 
                 elif e.type == pygame.MOUSEBUTTONUP and e.button == 1:
                     if self.selected:
@@ -274,6 +319,8 @@ class BuilderApp:
 
             if not self.paused:
                 self.physics.update(dt)
+                for arm in self.arms:
+                    arm.update(dt)
 
             # keep particles inside the window and out of the sidebar
             max_x = self.screen.get_width() - self.ui.visible_width()
