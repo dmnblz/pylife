@@ -58,6 +58,12 @@ class BuilderApp:
             self.ui.arm_tool.cancel()
         if self.mode == "inspect" and mode != "inspect":
             self.ui.inspect_tool.cancel()
+        if self.mode == "particle" and mode != "particle":
+            self.ui.particle_tool.cancel()
+        if self.mode == "spring" and mode != "spring":
+            self.ui.spring_tool.cancel()
+        if self.mode == "env" and mode != "env":
+            self.ui.env_tool.cancel()
 
         self.mode = mode
         if mode == "circle":
@@ -68,6 +74,12 @@ class BuilderApp:
             self.ui.arm_tool.start()
         if mode == "inspect":
             self.ui.inspect_tool.start()
+        if mode == "particle":
+            self.ui.particle_tool.start()
+        if mode == "spring":
+            self.ui.spring_tool.start()
+        if mode == "env":
+            self.ui.env_tool.start()
         if mode != "spring":
             self.spring_first = None
         if self.selected and mode != "drag":
@@ -240,6 +252,8 @@ class BuilderApp:
                         self.set_mode("arm")
                     elif e.key == pygame.K_7:
                         self.set_mode("inspect")
+                    elif e.key == pygame.K_8:
+                        self.set_mode("env")
                     elif e.key == pygame.K_c:
                         self.choose_color()
                     elif e.key == pygame.K_z:

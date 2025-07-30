@@ -208,6 +208,146 @@ class KeyField:
         return False
 
 
+class ParticleTool:
+    """Handle options for creating new particles."""
+
+    def __init__(self, sidebar: 'SidebarUI'):
+        self.sidebar = sidebar
+        self.app = sidebar.app
+        self.active = False
+
+        x = sidebar.screen.get_width() - sidebar.WIDTH + 10
+        width = sidebar.WIDTH - 20
+        y = sidebar.extra_start_y
+
+        self.color_field = ColorField(
+            "Color", lambda: self.app.color, self.app.set_color, x, y, width
+        )
+        y += 40
+        self.mass_field = SliderField(
+            "Mass", 0.1, 10.0, lambda: self.app.mass, self.app.set_mass, x, y, width
+        )
+        y += 40
+        self.radius_field = SliderField(
+            "Radius", 1, 50, lambda: self.app.radius, self.app.set_radius, x, y, width
+        )
+
+    # ---------------- control
+    def start(self):
+        self.active = True
+
+    def cancel(self):
+        self.active = False
+
+    # ---------------- drawing
+    def draw_ui(self):
+        if not self.active or not self.sidebar.visible:
+            return
+        self.color_field.draw(self.sidebar.screen)
+        self.mass_field.draw(self.sidebar.screen)
+        self.radius_field.draw(self.sidebar.screen)
+
+    def draw_preview(self):
+        pass
+
+    # ---------------- event handling
+    def handle_event(self, event):
+        if not self.active:
+            return False
+        if self.sidebar.visible:
+            if self.color_field.handle_event(event):
+                return True
+            if self.mass_field.handle_event(event):
+                return True
+            if self.radius_field.handle_event(event):
+                return True
+        return False
+
+
+class SpringTool:
+    """Handle spring stiffness options when creating new springs."""
+
+    def __init__(self, sidebar: 'SidebarUI'):
+        self.sidebar = sidebar
+        self.app = sidebar.app
+        self.active = False
+
+        x = sidebar.screen.get_width() - sidebar.WIDTH + 10
+        width = sidebar.WIDTH - 20
+        y = sidebar.extra_start_y
+
+        self.stiff_field = SliderField(
+            "Stiff", 10, 1000, lambda: self.app.stiffness, self.app.set_stiffness, x, y, width
+        )
+
+    # ---------------- control
+    def start(self):
+        self.active = True
+
+    def cancel(self):
+        self.active = False
+
+    # ---------------- drawing
+    def draw_ui(self):
+        if not self.active or not self.sidebar.visible:
+            return
+        self.stiff_field.draw(self.sidebar.screen)
+
+    def draw_preview(self):
+        pass
+
+    # ---------------- event handling
+    def handle_event(self, event):
+        if not self.active:
+            return False
+        if self.sidebar.visible:
+            if self.stiff_field.handle_event(event):
+                return True
+        return False
+
+
+class EnvironmentTool:
+    """Expose global simulation options such as temperature."""
+
+    def __init__(self, sidebar: 'SidebarUI'):
+        self.sidebar = sidebar
+        self.app = sidebar.app
+        self.active = False
+
+        x = sidebar.screen.get_width() - sidebar.WIDTH + 10
+        width = sidebar.WIDTH - 20
+        y = sidebar.extra_start_y
+
+        self.temp_field = SliderField(
+            "Temp", 0, 1000, lambda: self.app.physics.temperature, self.app.set_temperature, x, y, width
+        )
+
+    # ---------------- control
+    def start(self):
+        self.active = True
+
+    def cancel(self):
+        self.active = False
+
+    # ---------------- drawing
+    def draw_ui(self):
+        if not self.active or not self.sidebar.visible:
+            return
+        self.temp_field.draw(self.sidebar.screen)
+
+    def draw_preview(self):
+        pass
+
+    # ---------------- event handling
+    def handle_event(self, event):
+        if not self.active:
+            return False
+        if self.sidebar.visible:
+            if self.temp_field.handle_event(event):
+                return True
+        return False
+
+
 class CircleTool:
     """Handle circle preview creation with sliders and dragging."""
 
@@ -974,14 +1114,15 @@ class SidebarUI:
         self.buttons = []
         self.fields = []
         self.visible = True
-        self.particle_fields = []
-        self.spring_fields = []
         self.circle_tool = None
         self._setup_ui()
         # setup circle tool after computing layout
+        self.particle_tool = ParticleTool(self)
+        self.spring_tool = SpringTool(self)
         self.circle_tool = CircleTool(self)
         self.rod_tool = RodTool(self)
         self.arm_tool = HookArmTool(self)
+        self.env_tool = EnvironmentTool(self)
         self.inspect_tool = InspectTool(self)
 
     # ----------------------------------------------------------- setup
@@ -1003,54 +1144,15 @@ class SidebarUI:
         add_button("Rod", lambda: self.app.set_mode("rod"))
         add_button("Arm", lambda: self.app.set_mode("arm"))
         add_button("Inspect", lambda: self.app.set_mode("inspect"))
+        add_button("Env", lambda: self.app.set_mode("env"))
         add_button("Delete", lambda: self.app.set_mode("delete"))
         add_button(lambda: "Resume" if self.app.paused else "Pause", self.app.toggle_pause)
 
-        # sliders
-        slider_x = sw - self.WIDTH + 10
-        slider_width = self.WIDTH - 20
         y += 10
-        color_field = ColorField(
-            "Color", lambda: self.app.color, self.app.set_color, slider_x, y, slider_width
-        )
-        self.fields.append(color_field)
-        self.particle_fields.append(color_field)
-        y += 40
-        mass_field = SliderField(
-            "Mass", 0.1, 10.0, lambda: self.app.mass, self.app.set_mass, slider_x, y, slider_width
-        )
-        self.fields.append(mass_field)
-        self.particle_fields.append(mass_field)
-        y += 40
-        radius_field = SliderField(
-            "Radius", 1, 50, lambda: self.app.radius, self.app.set_radius, slider_x, y, slider_width
-        )
-        self.fields.append(radius_field)
-        self.particle_fields.append(radius_field)
-        y += 40
-        stiff_field = SliderField(
-            "Stiff", 10, 1000, lambda: self.app.stiffness, self.app.set_stiffness, slider_x, y, slider_width
-        )
-        self.fields.append(stiff_field)
-        self.spring_fields.append(stiff_field)
-        y += 40
-        self.fields.append(
-            SliderField(
-                "Temp", 0, 1000, lambda: self.app.physics.temperature, self.app.set_temperature, slider_x, y, slider_width
-            )
-        )
-        y += 40
         self.extra_start_y = y
 
     def visible_width(self):
         return self.WIDTH if self.visible else 0
-
-    def _field_visible(self, field):
-        if field in self.particle_fields:
-            return self.app.mode == "particle"
-        if field in self.spring_fields:
-            return self.app.mode == "spring"
-        return True
 
     # ----------------------------------------------------------- draw
     def draw(self):
@@ -1071,19 +1173,24 @@ class SidebarUI:
                 self.screen.blit(text_img, text_rect)
 
             for field in self.fields:
-                if self._field_visible(field):
-                    field.draw(self.screen)
+                field.draw(self.screen)
 
             # extra UI from tools
+            self.particle_tool.draw_ui()
+            self.spring_tool.draw_ui()
             self.circle_tool.draw_ui()
             self.rod_tool.draw_ui()
             self.arm_tool.draw_ui()
+            self.env_tool.draw_ui()
             self.inspect_tool.draw_ui()
 
         # preview from tools (visible or not)
+        self.particle_tool.draw_preview()
+        self.spring_tool.draw_preview()
         self.circle_tool.draw_preview()
         self.rod_tool.draw_preview()
         self.arm_tool.draw_preview()
+        self.env_tool.draw_preview()
         self.inspect_tool.draw_preview()
 
         # toggle button (always visible)
@@ -1109,14 +1216,20 @@ class SidebarUI:
 
         if self.visible:
             for field in self.fields:
-                if self._field_visible(field) and field.handle_event(event):
+                if field.handle_event(event):
                     return True
 
+        if self.particle_tool.handle_event(event):
+            return True
+        if self.spring_tool.handle_event(event):
+            return True
         if self.circle_tool.handle_event(event):
             return True
         if self.rod_tool.handle_event(event):
             return True
         if self.arm_tool.handle_event(event):
+            return True
+        if self.env_tool.handle_event(event):
             return True
         if self.inspect_tool.handle_event(event):
             return True

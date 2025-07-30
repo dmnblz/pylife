@@ -48,4 +48,5 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
   adhesion factor per arm.
 - Inspect tool uses ``0`` for spring max force to disable the limit and avoid errors.
 - Particle colour/mass/radius sliders and the spring stiffness slider only appear when their creation modes are active.
+- Particle, spring and environment controls now live behind separate sidebar buttons.
 - Hook arm creation now has a cycle speed slider controlling how fast the arm extends and retracts.
