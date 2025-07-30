@@ -58,33 +58,36 @@ class BendingSpring:
         self.p3.apply_force(f3)
         self.p2.apply_force(f2)
 
-    # def apply(self):
-    #     v1 = self.p1.pos - self.p2.pos
-    #     v2 = self.p3.pos - self.p2.pos
-    #     L1, L2 = v1.length(), v2.length()
-    #     if L1 == 0 or L2 == 0:
-    #         return
-    #
-    #     # signed angle between v1 and v2
-    #     cross_z = v1.x*v2.y - v1.y*v2.x
-    #     dot     = max(-1.0, min(1.0, v1.dot(v2)/(L1*L2)))
-    #     signed_theta = math.atan2(cross_z, dot)
-    #
-    #     # deviation from rest
-    #     d_theta = signed_theta - self.rest_angle
-    #     if abs(d_theta) < 1e-6:
-    #         return
-    #
-    #     # torque → forces
-    #     torque = -self.stiffness * d_theta
-    #     u1, u2 = v1 / L1, v2 / L2
-    #     # perpendicular normals
-    #     n1 = pygame.Vector2(-u1.y, u1.x)
-    #     n2 = pygame.Vector2(u2.y, -u2.x)
-    #     f1 = n1 * torque
-    #     f3 = n2 * torque
-    #     f2 = -(f1 + f3)
-    #
-    #     self.p1.apply_force(f1)
-    #     self.p3.apply_force(f3)
-    #     self.p2.apply_force(f2)
+
+class OrientationSpring:
+    """Constrains the orientation of ``particle`` relative to ``anchor``.
+
+    The spring attempts to keep the line from ``anchor`` to ``particle`` at
+    ``rest_angle`` relative to the anchor's current ``angle`` value.  A torque
+    is applied to the anchor while a linear force rotates ``particle`` around
+    ``anchor``.
+    """
+
+    def __init__(self, anchor: Particle, particle: Particle, rest_angle: float,
+                 stiffness: float):
+        self.anchor = anchor
+        self.particle = particle
+        self.rest_angle = rest_angle
+        self.stiffness = stiffness
+
+    def apply(self):
+        delta = self.particle.pos - self.anchor.pos
+        dist = delta.length()
+        if dist == 0:
+            return
+        current_angle = math.atan2(delta.y, delta.x)
+        target_angle = getattr(self.anchor, "angle", 0.0) + self.rest_angle
+        diff = (current_angle - target_angle + math.pi) % (2 * math.pi) - math.pi
+        if abs(diff) < 1e-6:
+            return
+        torque = -self.stiffness * diff
+        dir_vec = delta / dist
+        perp = pygame.Vector2(-dir_vec.y, dir_vec.x)
+        force = perp * torque
+        self.particle.apply_force(force)
+        self.anchor.apply_torque(-torque)

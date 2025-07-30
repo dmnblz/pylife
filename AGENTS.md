@@ -7,6 +7,7 @@ This repository contains small pygame demos for 2D particle-based physics simula
 - `particle.py` – Particle class using Verlet integration.
 - `spring.py` – linear spring connecting two particles.
 - `bending_spring.py` – bending constraint that keeps an angle between three particles.
+- `OrientationSpring` in `bending_spring.py` – aligns a particle's angle with a connected spring.
 - `physics.py` – `PhysicsEngine` that applies forces, drag and Brownian noise.
 - `renderer.py` – draws particles and springs to the screen.
 - `structures.py` – helper routines for building walls, rods and other shapes.
@@ -50,3 +51,5 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - Particle colour/mass/radius sliders and the spring stiffness slider only appear when their creation modes are active.
 - Particle, spring and environment controls now live behind separate sidebar buttons.
 - Hook arm creation now has a cycle speed slider controlling how fast the arm extends and retracts.
+- Particles now store an orientation angle. ``OrientationSpring`` ties this angle
+  to a spring and the renderer draws a yellow indicator showing the direction.

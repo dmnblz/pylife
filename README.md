@@ -10,6 +10,8 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
   * `particle.py` – a point mass implemented with Verlet integration.
   * `spring.py` – linear springs that apply Hooke's law and change colour depending on stretch/compression.
   * `bending_spring.py` – maintains an angle between three particles.
+  * `OrientationSpring` in `bending_spring.py` – keeps a particle's angle
+    aligned with a connected spring.
   * `physics.py` – contains ``PhysicsEngine`` which integrates particles each
     frame.  The engine applies gravity, spring forces, short range repulsion,
     viscous drag (with extra drag for particles tagged ``"high_drag"``) and
@@ -23,6 +25,10 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
     for extra grip.
   * **Adjustable springs** – spring rest lengths can be changed on the fly to
     mimic contracting or extending structures.
+  * **Particle orientation** – each particle tracks a rotation angle. An
+    ``OrientationSpring`` can keep the line to another particle aligned with
+    this angle and the renderer shows a small yellow dot to indicate the
+    direction.
 
 ### Using high-drag particles
 

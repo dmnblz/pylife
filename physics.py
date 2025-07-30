@@ -11,7 +11,7 @@ system forward in time.
 import pygame
 from particle import Particle
 from spring import Spring
-from bending_spring import BendingSpring
+from bending_spring import BendingSpring, OrientationSpring
 import random
 import math
 
@@ -26,7 +26,10 @@ class PhysicsEngine:
         Linear springs connecting pairs of particles.
     bending_springs:
         Optional list of :class:`BendingSpring` instances providing angular
-        constraints.
+        constraints between triples of particles.
+    orientation_springs:
+        Optional list of :class:`OrientationSpring` objects that tie a
+        particle's ``angle`` to the direction of one of its springs.
     gravity:
         Constant acceleration applied to each particle (x, y).
     repulsion_radius:
@@ -38,11 +41,12 @@ class PhysicsEngine:
     damping_coeff:
         Coefficient for viscous drag and the Brownian noise variance.
     """
-    def __init__(self, particles: list[Particle], springs: list[Spring], bending_springs: list[BendingSpring]=None, gravity=(0, 0), repulsion_radius=20,
+    def __init__(self, particles: list[Particle], springs: list[Spring], bending_springs: list[BendingSpring]=None, orientation_springs: list[OrientationSpring]=None, gravity=(0, 0), repulsion_radius=20,
                  repulsion_strength=100, temperature=1.0, damping_coeff=1.0):
         self.particles = particles
         self.springs = springs
         self.bending_springs = bending_springs
+        self.orientation_springs = orientation_springs
         self.gravity = pygame.Vector2(gravity)
         self.repulsion_radius = repulsion_radius
         self.repulsion_strength = repulsion_strength
@@ -71,6 +75,10 @@ class PhysicsEngine:
         if self.bending_springs:
             for bs in self.bending_springs:
                 bs.apply()
+
+        if self.orientation_springs:
+            for os in self.orientation_springs:
+                os.apply()
 
         # apply repulsion forces between particles to prevent overlap
         for i, p1 in enumerate(self.particles):
