@@ -12,6 +12,7 @@ This repository contains small pygame demos for 2D particle-based physics simula
 - `structures.py` – helper routines for building walls, rods and other shapes.
 - `builder_ui.py` – sidebar UI widgets used by the interactive builder.
 - `color_picker.py` – colour picker helper using Tkinter.
+- `file_dialog.py` – opens save/load dialogs in a separate process.
 - `start_create.py` – interactive builder for constructing scenes.
 - `start.py` – demo of a soft cell made from three circular walls.
 - `start_basic.py` – minimal ring of particles demo.
@@ -55,3 +56,6 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
   They render as yellow dashed hinges and their rest angle and stiffness are editable.
 - A toggle lets bending springs use the current angle of the selected particles
   or a manual value. Inspect mode can modify their angle and stiffness later.
+- Builder sidebar now has **Save** and **Load** buttons for exporting and
+  importing scene states.
+- Loading a saved scene now refreshes the physics engine so simulations resume.

@@ -1,5 +1,6 @@
 import pygame
 import math
+import json
 
 from particle import Particle
 from spring import Spring
@@ -7,6 +8,7 @@ from physics import PhysicsEngine
 from bending_spring import BendingSpring
 from renderer import Renderer
 from builder_ui import SidebarUI
+from file_dialog import choose_save_path, choose_open_path
 from structures import create_rod as structure_create_rod
 from hook_arm import HookArm
 
@@ -166,6 +168,154 @@ class BuilderApp:
 
     def toggle_pause(self):
         self.paused = not self.paused
+
+    # ------------------------------------------------------------------ save/load
+    def save_state_dialog(self):
+        path = choose_save_path("scene.json")
+        if path:
+            self.save_state(path)
+
+    def load_state_dialog(self):
+        path = choose_open_path()
+        if path:
+            self.load_state(path)
+
+    def save_state(self, path: str):
+        data = {
+            "particles": [
+                {
+                    "pos": [p.pos.x, p.pos.y],
+                    "prev": [p.prev_pos.x, p.prev_pos.y],
+                    "mass": p.mass,
+                    "radius": p.radius,
+                    "color": list(p.color) if p.color else None,
+                    "tag": p.tag,
+                    "fixed": p.fixed,
+                }
+                for p in self.particles
+            ],
+            "springs": [
+                {
+                    "p1": self.particles.index(s.p1),
+                    "p2": self.particles.index(s.p2),
+                    "rest": s.rest_length,
+                    "stiff": s.stiffness,
+                    "max": s.max_force,
+                    "invis": s.invisible,
+                }
+                for s in self.springs
+            ],
+            "bending": [
+                {
+                    "p1": self.particles.index(bs.p1),
+                    "p2": self.particles.index(bs.p2),
+                    "p3": self.particles.index(bs.p3),
+                    "angle": bs.rest_angle,
+                    "stiff": bs.stiffness,
+                }
+                for bs in self.bending_springs
+            ],
+            "arms": [
+                {
+                    "particles": [self.particles.index(p) for p in arm.particles],
+                    "springs": [self.springs.index(s) for s in arm.springs],
+                    "rest_lengths": arm.rest_lengths,
+                    "max_lengths": arm.max_lengths,
+                    "cycle_speed": arm.cycle_speed,
+                    "color": list(arm.color),
+                    "high_color": list(arm.high_drag_color),
+                    "adhesion": arm.adhesion_mass_factor,
+                    "orig_mass": arm._orig_mass,
+                    "cycle_key": arm.cycle_key,
+                }
+                for arm in self.arms
+            ],
+            "physics": {
+                "gravity": [self.physics.gravity.x, self.physics.gravity.y],
+                "repulsion_radius": self.physics.repulsion_radius,
+                "repulsion_strength": self.physics.repulsion_strength,
+                "temperature": self.physics.temperature,
+                "damping_coeff": self.physics.damping_coeff,
+            },
+        }
+        with open(path, "w") as fh:
+            json.dump(data, fh, indent=2)
+
+    def load_state(self, path: str):
+        with open(path, "r") as fh:
+            data = json.load(fh)
+
+        self.particles = []
+        for pd in data.get("particles", []):
+            p = Particle(
+                pd["pos"],
+                mass=pd.get("mass", 1.0),
+                color=tuple(pd["color"]) if pd.get("color") else None,
+                radius=pd.get("radius"),
+                tag=pd.get("tag"),
+            )
+            p.prev_pos = pygame.Vector2(pd.get("prev", pd["pos"]))
+            p.fixed = pd.get("fixed", False)
+            self.particles.append(p)
+
+        self.springs = []
+        for sd in data.get("springs", []):
+            s = Spring(
+                self.particles[sd["p1"]],
+                self.particles[sd["p2"]],
+                sd.get("rest", 0),
+                stiffness=sd.get("stiff", 200.0),
+                max_force=sd.get("max"),
+                invisible=sd.get("invis", False),
+            )
+            self.springs.append(s)
+
+        self.bending_springs = []
+        for bd in data.get("bending", []):
+            bs = BendingSpring(
+                self.particles[bd["p1"]],
+                self.particles[bd["p2"]],
+                self.particles[bd["p3"]],
+                bd.get("angle", 0),
+                bd.get("stiff", 0),
+            )
+            self.bending_springs.append(bs)
+
+        self.arms = []
+        self.cycle_keys = {}
+        for ad in data.get("arms", []):
+            arm = HookArm.__new__(HookArm)
+            arm.particles = [self.particles[i] for i in ad["particles"]]
+            arm.springs = [self.springs[i] for i in ad["springs"]]
+            arm.color = tuple(ad["color"])
+            arm.high_drag_color = tuple(ad["high_color"])
+            arm.adhesion_mass_factor = ad.get("adhesion", 10.0)
+            arm.cycle_speed = ad.get("cycle_speed", 240.0)
+            arm.rest_lengths = ad.get("rest_lengths", [s.rest_length for s in arm.springs])
+            arm.max_lengths = ad.get("max_lengths", [r * 4 for r in arm.rest_lengths])
+            arm.tip = arm.particles[-1]
+            arm._orig_mass = ad.get("orig_mass", arm.tip.mass)
+            arm.extend_held = False
+            arm.contract_held = False
+            arm.cycle_held = False
+            arm.cycle_active = False
+            arm.cycle_phase = 0
+            arm.cycle_key = ad.get("cycle_key")
+            if arm.cycle_key is not None:
+                self.cycle_keys.setdefault(arm.cycle_key, []).append(arm)
+            self.arms.append(arm)
+
+        phys = data.get("physics", {})
+        self.physics.gravity = pygame.Vector2(phys.get("gravity", [0, 0]))
+        self.physics.repulsion_radius = phys.get("repulsion_radius", 20)
+        self.physics.repulsion_strength = phys.get("repulsion_strength", 100)
+        self.physics.temperature = phys.get("temperature", 0)
+        self.physics.damping_coeff = phys.get("damping_coeff", 1)
+
+        # refresh physics engine references so loaded objects are simulated
+        self.physics.particles = self.particles
+        self.physics.springs = self.springs
+        self.physics.bending_springs = self.bending_springs
 
     # ------------------------------------------------------------------ circle creation
     def create_circle(self, center: pygame.Vector2, radius: float, segments: int):

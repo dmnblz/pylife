@@ -1405,6 +1405,8 @@ class SidebarUI:
         add_button("Inspect", lambda: self.app.set_mode("inspect"))
         add_button("Env", lambda: self.app.set_mode("env"))
         add_button("Delete", lambda: self.app.set_mode("delete"))
+        add_button("Save", self.app.save_state_dialog)
+        add_button("Load", self.app.load_state_dialog)
         add_button(lambda: "Resume" if self.app.paused else "Pause", self.app.toggle_pause)
 
         y += 10
