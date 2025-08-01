@@ -4,6 +4,7 @@ import math
 from particle import Particle
 from spring import Spring
 from physics import PhysicsEngine
+from bending_spring import BendingSpring
 from renderer import Renderer
 from builder_ui import SidebarUI
 from structures import create_rod as structure_create_rod
@@ -22,6 +23,7 @@ class BuilderApp:
         self.clock = pygame.time.Clock()
         self.particles: list[Particle] = []
         self.springs: list[Spring] = []
+        self.bending_springs: list[BendingSpring] = []
         self.arms: list[HookArm] = []
         self.cycle_keys: dict[int, list[HookArm]] = {}
         self.selected = None
@@ -39,6 +41,7 @@ class BuilderApp:
         self.physics = PhysicsEngine(
             self.particles,
             self.springs,
+            self.bending_springs,
             gravity=(0, 0),
             repulsion_radius=30,
             repulsion_strength=1000,
@@ -62,6 +65,8 @@ class BuilderApp:
             self.ui.particle_tool.cancel()
         if self.mode == "spring" and mode != "spring":
             self.ui.spring_tool.cancel()
+        if self.mode == "bend" and mode != "bend":
+            self.ui.bend_tool.cancel()
         if self.mode == "env" and mode != "env":
             self.ui.env_tool.cancel()
 
@@ -78,6 +83,8 @@ class BuilderApp:
             self.ui.particle_tool.start()
         if mode == "spring":
             self.ui.spring_tool.start()
+        if mode == "bend":
+            self.ui.bend_tool.start()
         if mode == "env":
             self.ui.env_tool.start()
         if mode != "spring":
@@ -264,6 +271,8 @@ class BuilderApp:
                         self.set_mode("particle")
                     elif e.key == pygame.K_3:
                         self.set_mode("spring")
+                    elif e.key == pygame.K_9:
+                        self.set_mode("bend")
                     elif e.key == pygame.K_4:
                         self.set_mode("delete")
                     elif e.key == pygame.K_5:
@@ -392,7 +401,7 @@ class BuilderApp:
                     p.prev_pos.y = p.pos.y
 
             self.screen.fill((30, 30, 30))
-            self.renderer.draw(self.particles, self.springs)
+            self.renderer.draw(self.particles, self.springs, self.bending_springs)
             self.ui.draw()
             # highlight first spring particle
             if self.spring_first is not None and self.mode == "spring":

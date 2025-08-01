@@ -51,3 +51,7 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - Particle, spring and environment controls now live behind separate sidebar buttons.
 - Hook arm creation now has a cycle speed slider controlling how fast the arm extends and retracts.
 - The environment tool exposes sliders for gravity, repulsion and damping in addition to temperature.
+- Bending springs can now be created in the builder by selecting three particles.
+  They render as yellow dashed hinges and their rest angle and stiffness are editable.
+- A toggle lets bending springs use the current angle of the selected particles
+  or a manual value. Inspect mode can modify their angle and stiffness later.

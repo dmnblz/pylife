@@ -4,7 +4,7 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
 
 ## Features
 
-* **Interactive builder** – `start_create.py` opens a window where you can drag particles, connect them with springs and spawn predefined structures.  A sidebar UI contains sliders to tweak parameters such as mass, radius, spring stiffness and various environment settings like temperature, gravity, repulsion and damping. Tools exist for circles, rods, flexible hook arms and an inspect mode for tweaking existing particles and springs.  Arm creation now exposes mass, radius, colour, adhesion settings and cycle speed per arm. Particle, spring and environment controls each have their own button in the sidebar.
+* **Interactive builder** – `start_create.py` opens a window where you can drag particles, connect them with springs and spawn predefined structures.  A sidebar UI contains sliders to tweak parameters such as mass, radius, spring stiffness and various environment settings like temperature, gravity, repulsion and damping. Tools exist for circles, rods, bending springs, flexible hook arms and an inspect mode for tweaking existing particles and springs. Bending springs may use the current angle of the selected particles or a manual value. Arm creation now exposes mass, radius, colour, adhesion settings and cycle speed per arm. Particle, spring and environment controls each have their own button in the sidebar.
 * **Demo scenes** – other `start_*.py` files showcase different preset configurations (e.g. cell walls, rods or gradient walls).  They are good starting points for custom experiments.
 * **Modular codebase** – the core simulation is split into small modules:
   * `particle.py` – a point mass implemented with Verlet integration.
@@ -59,8 +59,9 @@ Mouse and keyboard controls allow you to switch modes and modify properties:
 * **4** – delete the particle or spring under the cursor
 * **5** – create rod structures
 * **6** – attach a hook arm to a particle
-* **7** – inspect an existing particle or spring
+* **7** – inspect an existing particle, spring or bending spring
 * **8** – adjust environment settings (temperature, gravity, repulsion and damping)
+* **9** – create a bending spring from three particles
 * **C** – choose a colour for newly created particles
 * **Z/X** – decrease/increase particle mass
 * **V/B** – decrease/increase particle radius
