@@ -59,3 +59,4 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - Builder sidebar now has **Save** and **Load** buttons for exporting and
   importing scene states.
 - Loading a saved scene now refreshes the physics engine so simulations resume.
+- Circle and rod tools now expose spring stiffness sliders and can add bending springs along their outline.
