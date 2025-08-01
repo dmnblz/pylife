@@ -312,6 +312,11 @@ class BuilderApp:
         self.physics.temperature = phys.get("temperature", 0)
         self.physics.damping_coeff = phys.get("damping_coeff", 1)
 
+        # refresh physics engine references so loaded objects are simulated
+        self.physics.particles = self.particles
+        self.physics.springs = self.springs
+        self.physics.bending_springs = self.bending_springs
+
     # ------------------------------------------------------------------ circle creation
     def create_circle(self, center: pygame.Vector2, radius: float, segments: int):
         particles = []

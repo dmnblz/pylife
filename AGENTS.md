@@ -58,3 +58,4 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
   or a manual value. Inspect mode can modify their angle and stiffness later.
 - Builder sidebar now has **Save** and **Load** buttons for exporting and
   importing scene states.
+- Loading a saved scene now refreshes the physics engine so simulations resume.
