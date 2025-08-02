@@ -318,7 +318,16 @@ class BuilderApp:
         self.physics.bending_springs = self.bending_springs
 
     # ------------------------------------------------------------------ circle creation
-    def create_circle(self, center: pygame.Vector2, radius: float, segments: int):
+    def create_circle(
+        self,
+        center: pygame.Vector2,
+        radius: float,
+        segments: int,
+        stiffness: float,
+        add_bending: bool,
+        bend_stiffness: float,
+    ):
+        """Spawn a ring of particles with optional bending springs."""
         particles = []
         springs = []
         for i in range(segments):
@@ -330,7 +339,22 @@ class BuilderApp:
             p1 = particles[i]
             p2 = particles[(i + 1) % segments]
             rest = (p2.pos - p1.pos).length()
-            springs.append(Spring(p1, p2, rest_length=rest, stiffness=self.stiffness))
+            springs.append(Spring(p1, p2, rest_length=rest, stiffness=stiffness))
+        bends = []
+        if add_bending:
+            for i in range(segments):
+                p1 = particles[i - 1]
+                p2 = particles[i]
+                p3 = particles[(i + 1) % segments]
+                v1 = p1.pos - p2.pos
+                v2 = p3.pos - p2.pos
+                if v1.length() == 0 or v2.length() == 0:
+                    angle = 0.0
+                else:
+                    dot = max(-1.0, min(1.0, v1.normalize().dot(v2.normalize())))
+                    angle = math.acos(dot)
+                bends.append(BendingSpring(p1, p2, p3, angle, bend_stiffness))
+            self.bending_springs.extend(bends)
         self.particles.extend(particles)
         self.springs.extend(springs)
 
@@ -379,20 +403,24 @@ class BuilderApp:
         include_cytoskeleton: bool,
         include_skeleton: bool,
         skeleton_count: int,
+        stiffness: float,
+        add_bending: bool,
+        bend_stiffness: float,
     ):
+        """Create a capsule-shaped rod with optional bending springs."""
         particles, springs = structure_create_rod(
             center,
             radius=radius,
             length=length,
             segments=segments,
-            stiffness=self.stiffness,
+            stiffness=stiffness,
             max_force=None,
             color=self.color,
             include_cytoskeleton=include_cytoskeleton,
-            cyto_stiffness=self.stiffness,
+            cyto_stiffness=stiffness,
             include_skeleton=include_skeleton,
             skeleton_count=skeleton_count,
-            skeleton_stiffness=self.stiffness,
+            skeleton_stiffness=stiffness,
         )
         for p in particles:
             p.mass = self.mass
@@ -400,6 +428,22 @@ class BuilderApp:
             p.color = self.color
         self.particles.extend(particles)
         self.springs.extend(springs)
+        if add_bending:
+            perimeter = particles[:segments]
+            bends = []
+            for i in range(len(perimeter)):
+                p1 = perimeter[i - 1]
+                p2 = perimeter[i]
+                p3 = perimeter[(i + 1) % len(perimeter)]
+                v1 = p1.pos - p2.pos
+                v2 = p3.pos - p2.pos
+                if v1.length() == 0 or v2.length() == 0:
+                    angle = 0.0
+                else:
+                    dot = max(-1.0, min(1.0, v1.normalize().dot(v2.normalize())))
+                    angle = math.acos(dot)
+                bends.append(BendingSpring(p1, p2, p3, angle, bend_stiffness))
+            self.bending_springs.extend(bends)
 
     # ------------------------------------------------------------------ main
     def run(self):

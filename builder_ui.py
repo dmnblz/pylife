@@ -546,6 +546,9 @@ class CircleTool:
         self.radius = 50.0
         self.segments = 8
         self.dragging = False
+        self.stiffness = 200.0
+        self.bend_stiffness = 200.0
+        self.include_bend = False
 
         x = sidebar.screen.get_width() - sidebar.WIDTH + 10
         width = sidebar.WIDTH - 20
@@ -559,6 +562,16 @@ class CircleTool:
             "Segments", 3, 60, lambda: self.segments, self._set_segments, x, y, width
         )
         y += 40
+        self.stiff_field = SliderField(
+            "Stiff", 10, 1000, lambda: self.stiffness, self._set_stiff, x, y, width
+        )
+        y += 40
+        self.bend_rect = pygame.Rect(x, y, width, SidebarUI.BUTTON_HEIGHT)
+        y += SidebarUI.BUTTON_HEIGHT + 4
+        self.bstiff_field = SliderField(
+            "BStiff", 10, 1000, lambda: self.bend_stiffness, self._set_bstiff, x, y, width
+        )
+        y += 40
         self.create_rect = pygame.Rect(x, y, width, SidebarUI.BUTTON_HEIGHT)
 
     # ---------------- value setters
@@ -568,10 +581,21 @@ class CircleTool:
     def _set_segments(self, value: float):
         self.segments = max(3, int(value))
 
+    def _set_stiff(self, value: float):
+        self.stiffness = max(10, value)
+
+    def _set_bstiff(self, value: float):
+        self.bend_stiffness = max(10, value)
+
     # ---------------- control
     def start(self):
         self.active = True
         self.center = None
+        self.stiffness = self.app.stiffness
+        self.bend_stiffness = self.app.stiffness
+        self.include_bend = False
+        self.stiffness = self.app.stiffness
+        self.bend_stiffness = self.app.stiffness
 
     def cancel(self):
         self.active = False
@@ -582,6 +606,14 @@ class CircleTool:
             return
         self.radius_field.draw(self.sidebar.screen)
         self.segments_field.draw(self.sidebar.screen)
+        self.stiff_field.draw(self.sidebar.screen)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.bend_rect)
+        bend_txt = "Bend: On" if self.include_bend else "Bend: Off"
+        txt = self.sidebar.font.render(bend_txt, True, (255, 255, 255))
+        rect = txt.get_rect(center=self.bend_rect.center)
+        self.sidebar.screen.blit(txt, rect)
+        if self.include_bend:
+            self.bstiff_field.draw(self.sidebar.screen)
         pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.create_rect)
         txt = self.sidebar.font.render("Create", True, (255, 255, 255))
         rect = txt.get_rect(center=self.create_rect.center)
@@ -612,9 +644,24 @@ class CircleTool:
                 return True
             if self.segments_field.handle_event(event):
                 return True
+            if self.stiff_field.handle_event(event):
+                return True
+            if self.include_bend and self.bstiff_field.handle_event(event):
+                return True
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if self.bend_rect.collidepoint(event.pos):
+                    self.include_bend = not self.include_bend
+                    return True
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self.create_rect.collidepoint(event.pos) and self.center:
-                    self.app.create_circle(self.center, self.radius, self.segments)
+                    self.app.create_circle(
+                        self.center,
+                        self.radius,
+                        self.segments,
+                        self.stiffness,
+                        self.include_bend,
+                        self.bend_stiffness,
+                    )
                     self.cancel()
                     self.sidebar.app.set_mode("drag")
                     return True
@@ -650,6 +697,9 @@ class RodTool:
         self.include_cytoskeleton = False
         self.include_skeleton = False
         self.dragging = False
+        self.stiffness = 200.0
+        self.bend_stiffness = 200.0
+        self.include_bend = False
 
         x = sidebar.screen.get_width() - sidebar.WIDTH + 10
         width = sidebar.WIDTH - 20
@@ -671,6 +721,16 @@ class RodTool:
             "Skeleton", 1, 20, lambda: self.skeleton_count, self._set_skel_count, x, y, width
         )
         y += 40
+        self.stiff_field = SliderField(
+            "Stiff", 10, 1000, lambda: self.stiffness, self._set_stiff, x, y, width
+        )
+        y += 40
+        self.bend_rect = pygame.Rect(x, y, width, SidebarUI.BUTTON_HEIGHT)
+        y += SidebarUI.BUTTON_HEIGHT + 4
+        self.bstiff_field = SliderField(
+            "BStiff", 10, 1000, lambda: self.bend_stiffness, self._set_bstiff, x, y, width
+        )
+        y += 40
         self.cyto_rect = pygame.Rect(x, y, width, SidebarUI.BUTTON_HEIGHT)
         y += SidebarUI.BUTTON_HEIGHT + 4
         self.skeleton_rect = pygame.Rect(x, y, width, SidebarUI.BUTTON_HEIGHT)
@@ -689,6 +749,12 @@ class RodTool:
 
     def _set_skel_count(self, value: float):
         self.skeleton_count = max(1, int(value))
+
+    def _set_stiff(self, value: float):
+        self.stiffness = max(10, value)
+
+    def _set_bstiff(self, value: float):
+        self.bend_stiffness = max(10, value)
 
     # ---------------- control
     def start(self):
@@ -737,6 +803,14 @@ class RodTool:
         self.length_field.draw(self.sidebar.screen)
         self.segments_field.draw(self.sidebar.screen)
         self.skel_count_field.draw(self.sidebar.screen)
+        self.stiff_field.draw(self.sidebar.screen)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.bend_rect)
+        bend_txt = "Bend: On" if self.include_bend else "Bend: Off"
+        txt = self.sidebar.font.render(bend_txt, True, (255, 255, 255))
+        rect = txt.get_rect(center=self.bend_rect.center)
+        self.sidebar.screen.blit(txt, rect)
+        if self.include_bend:
+            self.bstiff_field.draw(self.sidebar.screen)
         pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.cyto_rect)
         cyto_txt = "Cyto: On" if self.include_cytoskeleton else "Cyto: Off"
         txt = self.sidebar.font.render(cyto_txt, True, (255, 255, 255))
@@ -836,6 +910,14 @@ class RodTool:
                 return True
             if self.skel_count_field.handle_event(event):
                 return True
+            if self.stiff_field.handle_event(event):
+                return True
+            if self.include_bend and self.bstiff_field.handle_event(event):
+                return True
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if self.bend_rect.collidepoint(event.pos):
+                    self.include_bend = not self.include_bend
+                    return True
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self.cyto_rect.collidepoint(event.pos):
                     self.include_cytoskeleton = not self.include_cytoskeleton
@@ -852,6 +934,9 @@ class RodTool:
                         self.include_cytoskeleton,
                         self.include_skeleton,
                         self.skeleton_count,
+                        self.stiffness,
+                        self.include_bend,
+                        self.bend_stiffness,
                     )
                     self.cancel()
                     self.sidebar.app.set_mode("drag")
