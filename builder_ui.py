@@ -416,6 +416,7 @@ class BendingSpringTool:
                         self.stiffness,
                     )
                     self.app.bending_springs.append(bs)
+                    self.app.push_undo(lambda bs=bs: self.app._remove_bending(bs))
                     self.cancel()
                     self.sidebar.app.set_mode("drag")
                     return True
@@ -1552,6 +1553,7 @@ class SidebarUI:
         add_button("Grid", lambda: self.app.set_mode("grid"))
         add_button("Env", lambda: self.app.set_mode("env"))
         add_button("Delete", lambda: self.app.set_mode("delete"))
+        add_button("Undo", self.app.undo)
         add_button("Save", self.app.save_state_dialog)
         add_button("Load", self.app.load_state_dialog)
         add_button(lambda: "Resume" if self.app.paused else "Pause", self.app.toggle_pause)
