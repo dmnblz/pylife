@@ -3,15 +3,14 @@
 import pygame
 
 from ..fields import SliderField
+from .base import Tool
 
 
-class EnvironmentTool:
+class EnvironmentTool(Tool):
     """Expose global simulation options such as gravity and temperature."""
 
     def __init__(self, sidebar: 'SidebarUI'):
-        self.sidebar = sidebar
-        self.app = sidebar.app
-        self.active = False
+        super().__init__(sidebar)
 
         x = sidebar.screen.get_width() - sidebar.WIDTH + 10
         width = sidebar.WIDTH - 20
@@ -59,16 +58,9 @@ class EnvironmentTool:
             x, y, width,
         )
 
-    # ---------------- control
-    def start(self):
-        self.active = True
-
-    def cancel(self):
-        self.active = False
-
     # ---------------- drawing
     def draw_ui(self):
-        if not self.active or not self.sidebar.visible:
+        if not super().draw_ui():
             return
         self.gx_field.draw(self.sidebar.screen)
         self.gy_field.draw(self.sidebar.screen)
@@ -77,12 +69,9 @@ class EnvironmentTool:
         self.damp_field.draw(self.sidebar.screen)
         self.temp_field.draw(self.sidebar.screen)
 
-    def draw_preview(self):
-        pass
-
     # ---------------- event handling
     def handle_event(self, event):
-        if not self.active:
+        if not super().handle_event(event):
             return False
         if self.sidebar.visible:
             if self.gx_field.handle_event(event):

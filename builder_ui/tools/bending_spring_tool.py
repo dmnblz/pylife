@@ -5,15 +5,14 @@ import pygame
 
 from bending_spring import BendingSpring
 from ..fields import SliderField
+from .base import Tool
 
 
-class BendingSpringTool:
+class BendingSpringTool(Tool):
     """Create a bending spring by choosing three particles."""
 
     def __init__(self, sidebar: 'SidebarUI'):
-        self.sidebar = sidebar
-        self.app = sidebar.app
-        self.active = False
+        super().__init__(sidebar)
         self.angle = 90.0
         self.stiffness = 200.0
         self.auto_angle = False
@@ -43,17 +42,17 @@ class BendingSpringTool:
 
     # ---------------- control
     def start(self):
-        self.active = True
+        super().start()
         self.auto_angle = False
         self.selected.clear()
 
     def cancel(self):
-        self.active = False
+        super().cancel()
         self.selected.clear()
 
     # ---------------- drawing
     def draw_ui(self):
-        if not self.active or not self.sidebar.visible:
+        if not super().draw_ui():
             return
         if not self.auto_angle:
             self.angle_field.draw(self.sidebar.screen)
@@ -69,7 +68,7 @@ class BendingSpringTool:
         self.sidebar.screen.blit(txt, rect)
 
     def draw_preview(self):
-        if not self.active:
+        if not super().draw_preview():
             return
         screen = self.sidebar.screen
         color = (150, 150, 150)
@@ -82,7 +81,7 @@ class BendingSpringTool:
 
     # ---------------- event handling
     def handle_event(self, event):
-        if not self.active:
+        if not super().handle_event(event):
             return False
 
         if self.sidebar.visible:

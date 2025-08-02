@@ -3,15 +3,14 @@
 import pygame
 
 from ..fields import SliderField, ColorField
+from .base import Tool
 
 
-class ParticleTool:
+class ParticleTool(Tool):
     """Handle options for creating new particles."""
 
     def __init__(self, sidebar: 'SidebarUI'):
-        self.sidebar = sidebar
-        self.app = sidebar.app
-        self.active = False
+        super().__init__(sidebar)
 
         x = sidebar.screen.get_width() - sidebar.WIDTH + 10
         width = sidebar.WIDTH - 20
@@ -29,27 +28,17 @@ class ParticleTool:
             "Radius", 1, 50, lambda: self.app.radius, self.app.set_radius, x, y, width
         )
 
-    # ---------------- control
-    def start(self):
-        self.active = True
-
-    def cancel(self):
-        self.active = False
-
     # ---------------- drawing
     def draw_ui(self):
-        if not self.active or not self.sidebar.visible:
+        if not super().draw_ui():
             return
         self.color_field.draw(self.sidebar.screen)
         self.mass_field.draw(self.sidebar.screen)
         self.radius_field.draw(self.sidebar.screen)
 
-    def draw_preview(self):
-        pass
-
     # ---------------- event handling
     def handle_event(self, event):
-        if not self.active:
+        if not super().handle_event(event):
             return False
         if self.sidebar.visible:
             if self.color_field.handle_event(event):

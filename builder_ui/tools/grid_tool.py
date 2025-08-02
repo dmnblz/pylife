@@ -3,15 +3,14 @@
 import pygame
 
 from ..fields import SliderField
+from .base import Tool
 
 
-class GridTool:
+class GridTool(Tool):
     """Toggle a grid overlay and adjust its spacing."""
 
     def __init__(self, sidebar: 'SidebarUI'):
-        self.sidebar = sidebar
-        self.app = sidebar.app
-        self.active = False
+        super().__init__(sidebar)
 
         x = sidebar.screen.get_width() - sidebar.WIDTH + 10
         width = sidebar.WIDTH - 20
@@ -23,16 +22,9 @@ class GridTool:
             "Spacing", 5, 200, lambda: self.app.grid_size, self.app.set_grid_size, x, y, width
         )
 
-    # ---------------- control
-    def start(self):
-        self.active = True
-
-    def cancel(self):
-        self.active = False
-
     # ---------------- drawing
     def draw_ui(self):
-        if not self.active or not self.sidebar.visible:
+        if not super().draw_ui():
             return
         pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.toggle_rect)
         state = "On" if self.app.grid_enabled else "Off"
@@ -41,12 +33,9 @@ class GridTool:
         self.sidebar.screen.blit(txt, rect)
         self.size_field.draw(self.sidebar.screen)
 
-    def draw_preview(self):
-        pass
-
     # ---------------- event handling
     def handle_event(self, event):
-        if not self.active:
+        if not super().handle_event(event):
             return False
         if self.sidebar.visible:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:

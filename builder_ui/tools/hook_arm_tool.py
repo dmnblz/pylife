@@ -3,9 +3,10 @@
 import pygame
 
 from ..fields import SliderField, ColorField, KeyField
+from .base import Tool
 
 
-class HookArmTool:
+class HookArmTool(Tool):
     """Preview and creation helper for :class:`HookArm` instances.
 
     The tool lets the user configure segment count, spacing, particle
@@ -14,9 +15,7 @@ class HookArmTool:
     """
 
     def __init__(self, sidebar: 'SidebarUI'):
-        self.sidebar = sidebar
-        self.app = sidebar.app
-        self.active = False
+        super().__init__(sidebar)
         self.base = None
         self.direction = pygame.Vector2(1, 0)
         self.segments = 3
@@ -106,11 +105,11 @@ class HookArmTool:
 
     # ---------------- control
     def start(self):
-        self.active = True
+        super().start()
         self.base = None
 
     def cancel(self):
-        self.active = False
+        super().cancel()
         self.dragging = False
 
     # ---------------- drawing helpers
@@ -127,7 +126,7 @@ class HookArmTool:
         return pts
 
     def draw_ui(self):
-        if not self.active or not self.sidebar.visible:
+        if not super().draw_ui():
             return
         self.seg_field.draw(self.sidebar.screen)
         self.space_field.draw(self.sidebar.screen)
@@ -145,7 +144,7 @@ class HookArmTool:
         self.sidebar.screen.blit(txt, rect)
 
     def draw_preview(self):
-        if not self.active or not self.base:
+        if not super().draw_preview() or not self.base:
             return
         screen = self.sidebar.screen
         color = (150, 150, 150)
@@ -157,7 +156,7 @@ class HookArmTool:
 
     # ---------------- event handling
     def handle_event(self, event):
-        if not self.active:
+        if not super().handle_event(event):
             return False
 
         if self.sidebar.visible:

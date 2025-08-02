@@ -4,15 +4,14 @@ import math
 import pygame
 
 from ..fields import SliderField
+from .base import Tool
 
 
-class CircleTool:
+class CircleTool(Tool):
     """Handle circle preview creation with sliders and dragging."""
 
     def __init__(self, sidebar: 'SidebarUI'):
-        self.sidebar = sidebar
-        self.app = sidebar.app
-        self.active = False
+        super().__init__(sidebar)
         self.center = None
         self.radius = 50.0
         self.segments = 8
@@ -60,20 +59,18 @@ class CircleTool:
 
     # ---------------- control
     def start(self):
-        self.active = True
+        super().start()
         self.center = None
         self.stiffness = self.app.stiffness
         self.bend_stiffness = self.app.stiffness
         self.include_bend = False
-        self.stiffness = self.app.stiffness
-        self.bend_stiffness = self.app.stiffness
 
     def cancel(self):
-        self.active = False
+        super().cancel()
         self.dragging = False
 
     def draw_ui(self):
-        if not self.active or not self.sidebar.visible:
+        if not super().draw_ui():
             return
         self.radius_field.draw(self.sidebar.screen)
         self.segments_field.draw(self.sidebar.screen)
@@ -91,7 +88,7 @@ class CircleTool:
         self.sidebar.screen.blit(txt, rect)
 
     def draw_preview(self):
-        if not self.active or self.center is None:
+        if not super().draw_preview() or self.center is None:
             return
         screen = self.sidebar.screen
         color = (150, 150, 150)
@@ -111,7 +108,7 @@ class CircleTool:
 
     # ---------------- event handling
     def handle_event(self, event):
-        if not self.active:
+        if not super().handle_event(event):
             return False
 
         if self.sidebar.visible:

@@ -4,15 +4,14 @@ import math
 import pygame
 
 from ..fields import SliderField, ColorField
+from .base import Tool
 
 
-class InspectTool:
+class InspectTool(Tool):
     """Select a particle or spring and edit its properties from the sidebar."""
 
     def __init__(self, sidebar: 'SidebarUI'):
-        self.sidebar = sidebar
-        self.app = sidebar.app
-        self.active = False
+        super().__init__(sidebar)
         self.particle = None
         self.spring = None
         self.bend = None
@@ -120,19 +119,19 @@ class InspectTool:
 
     # ---------------- control
     def start(self):
-        self.active = True
+        super().start()
         self.particle = None
         self.spring = None
         self.bend = None
 
     def cancel(self):
-        self.active = False
+        super().cancel()
         self.particle = None
         self.spring = None
         self.bend = None
 
     def draw_ui(self):
-        if not self.active or not self.sidebar.visible:
+        if not super().draw_ui():
             return
         if self.particle:
             self.color_field.draw(self.sidebar.screen)
@@ -153,7 +152,7 @@ class InspectTool:
             self.bstiff_field.draw(self.sidebar.screen)
 
     def draw_preview(self):
-        if not self.active:
+        if not super().draw_preview():
             return
         if self.particle:
             pygame.draw.circle(
@@ -189,7 +188,7 @@ class InspectTool:
 
     # ---------------- event handling
     def handle_event(self, event):
-        if not self.active:
+        if not super().handle_event(event):
             return False
 
         if self.sidebar.visible:
