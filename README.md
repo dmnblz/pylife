@@ -16,7 +16,9 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
     Brownian noise.
   * `renderer.py` – draws particles and springs to the pygame window.
   * `structures.py` – helper functions to build shapes like circular walls or rods.
-  * `builder_ui/` and `color_picker.py` – the sidebar widgets and the cross‑platform colour selection utility.
+  * `builder_ui/` and `color_picker.py` – the sidebar widgets and the cross‑platform colour selection utility. Tools in this
+    package inherit from a small :class:`Tool` base class that provides
+    default lifecycle, drawing and event hooks.
   * **High-drag adhesion** – set a particle's ``tag`` to ``"high_drag"`` and the
     physics engine multiplies its viscous drag, causing it to stick in place.
   * **Weighted adhesion** – a ``HookArm`` tip also increases in mass when stuck

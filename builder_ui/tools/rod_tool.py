@@ -4,15 +4,14 @@ import math
 import pygame
 
 from ..fields import SliderField
+from .base import Tool
 
 
-class RodTool:
+class RodTool(Tool):
     """Handle rod preview creation with sliders and click placement."""
 
     def __init__(self, sidebar: 'SidebarUI'):
-        self.sidebar = sidebar
-        self.app = sidebar.app
-        self.active = False
+        super().__init__(sidebar)
         self.center = None
         self.radius = 30.0
         self.length = 100.0
@@ -82,11 +81,11 @@ class RodTool:
 
     # ---------------- control
     def start(self):
-        self.active = True
+        super().start()
         self.center = None
 
     def cancel(self):
-        self.active = False
+        super().cancel()
         self.dragging = False
 
     # ---------------- helpers
@@ -121,7 +120,7 @@ class RodTool:
 
     # ---------------- drawing
     def draw_ui(self):
-        if not self.active or not self.sidebar.visible:
+        if not super().draw_ui():
             return
         self.radius_field.draw(self.sidebar.screen)
         self.length_field.draw(self.sidebar.screen)
@@ -152,7 +151,7 @@ class RodTool:
 
     def draw_preview(self):
         """Draw the rod preview at the current mouse position."""
-        if not self.active or self.center is None:
+        if not super().draw_preview() or self.center is None:
             return
 
         screen = self.sidebar.screen
@@ -222,7 +221,7 @@ class RodTool:
 
     # ---------------- event handling
     def handle_event(self, event):
-        if not self.active:
+        if not super().handle_event(event):
             return False
 
         if self.sidebar.visible:
@@ -242,7 +241,6 @@ class RodTool:
                 if self.bend_rect.collidepoint(event.pos):
                     self.include_bend = not self.include_bend
                     return True
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self.cyto_rect.collidepoint(event.pos):
                     self.include_cytoskeleton = not self.include_cytoskeleton
                     return True
