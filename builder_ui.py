@@ -440,6 +440,59 @@ class BendingSpringTool:
         return False
 
 
+class GridTool:
+    """Toggle a grid overlay and adjust its spacing."""
+
+    def __init__(self, sidebar: 'SidebarUI'):
+        self.sidebar = sidebar
+        self.app = sidebar.app
+        self.active = False
+
+        x = sidebar.screen.get_width() - sidebar.WIDTH + 10
+        width = sidebar.WIDTH - 20
+        y = sidebar.extra_start_y
+
+        self.toggle_rect = pygame.Rect(x, y, width, SidebarUI.BUTTON_HEIGHT)
+        y += SidebarUI.BUTTON_HEIGHT + 12
+        self.size_field = SliderField(
+            "Spacing", 5, 200, lambda: self.app.grid_size, self.app.set_grid_size, x, y, width
+        )
+
+    # ---------------- control
+    def start(self):
+        self.active = True
+
+    def cancel(self):
+        self.active = False
+
+    # ---------------- drawing
+    def draw_ui(self):
+        if not self.active or not self.sidebar.visible:
+            return
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.toggle_rect)
+        state = "On" if self.app.grid_enabled else "Off"
+        txt = self.sidebar.font.render(f"Grid: {state}", True, (255, 255, 255))
+        rect = txt.get_rect(center=self.toggle_rect.center)
+        self.sidebar.screen.blit(txt, rect)
+        self.size_field.draw(self.sidebar.screen)
+
+    def draw_preview(self):
+        pass
+
+    # ---------------- event handling
+    def handle_event(self, event):
+        if not self.active:
+            return False
+        if self.sidebar.visible:
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if self.toggle_rect.collidepoint(event.pos):
+                    self.app.toggle_grid()
+                    return True
+            if self.size_field.handle_event(event):
+                return True
+        return False
+
+
 class EnvironmentTool:
     """Expose global simulation options such as gravity and temperature."""
 
@@ -624,13 +677,17 @@ class CircleTool:
             return
         screen = self.sidebar.screen
         color = (150, 150, 150)
-        center = (int(self.center.x), int(self.center.y))
-        pygame.draw.circle(screen, color, center, int(self.radius), 1)
+        center = self.app.snap_to_grid(self.center)
+        pygame.draw.circle(screen, color, (int(center.x), int(center.y)), int(self.radius), 1)
         for i in range(self.segments):
             theta1 = (i / self.segments) * 2 * math.pi
             theta2 = ((i + 1) % self.segments) / self.segments * 2 * math.pi
-            p1 = self.center + pygame.Vector2(math.cos(theta1), math.sin(theta1)) * self.radius
-            p2 = self.center + pygame.Vector2(math.cos(theta2), math.sin(theta2)) * self.radius
+            p1 = self.app.snap_to_grid(
+                self.center + pygame.Vector2(math.cos(theta1), math.sin(theta1)) * self.radius
+            )
+            p2 = self.app.snap_to_grid(
+                self.center + pygame.Vector2(math.cos(theta2), math.sin(theta2)) * self.radius
+            )
             pygame.draw.line(screen, color, p1, p2, 1)
             pygame.draw.circle(screen, color, (int(p1.x), int(p1.y)), self.app.radius, 1)
 
@@ -669,11 +726,12 @@ class CircleTool:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             # click in world area to set center
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
-                self.center = pygame.Vector2(event.pos)
+                self.center = self.app.snap_to_grid(pygame.Vector2(event.pos))
                 self.dragging = True
                 return True
         elif event.type == pygame.MOUSEMOTION and self.dragging:
-            self.radius = (pygame.Vector2(event.pos) - self.center).length()
+            mouse = self.app.snap_to_grid(pygame.Vector2(event.pos))
+            self.radius = (mouse - self.center).length()
             return True
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.dragging:
             self.dragging = False
@@ -792,7 +850,7 @@ class RodTool:
                 pos = pygame.Vector2(
                     center_right.x - (s - 2 * math.pi * radius - length), center.y + radius
                 )
-            pts.append(pos)
+            pts.append(self.app.snap_to_grid(pos))
         return pts
 
     # ---------------- drawing
@@ -944,11 +1002,12 @@ class RodTool:
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
-                self.center = pygame.Vector2(event.pos)
+                self.center = self.app.snap_to_grid(pygame.Vector2(event.pos))
                 self.dragging = True
                 return True
         elif event.type == pygame.MOUSEMOTION and self.dragging:
-            self.length = abs(event.pos[0] - self.center.x) * 2
+            mouse = self.app.snap_to_grid(pygame.Vector2(event.pos))
+            self.length = abs(mouse.x - self.center.x) * 2
             return True
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.dragging:
             self.dragging = False
@@ -1075,7 +1134,7 @@ class HookArmTool:
         pts = []
         for i in range(1, self.segments + 1):
             pos = self.base.pos + dir_norm * self.spacing * i
-            pts.append(pos)
+            pts.append(self.app.snap_to_grid(pos))
         return pts
 
     def draw_ui(self):
@@ -1166,7 +1225,8 @@ class HookArmTool:
                     self.dragging = True
                     return True
         elif event.type == pygame.MOUSEMOTION and self.dragging:
-            self.direction = pygame.Vector2(event.pos) - self.base.pos
+            mouse = self.app.snap_to_grid(pygame.Vector2(event.pos))
+            self.direction = mouse - self.base.pos
             return True
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.dragging:
             self.dragging = False
@@ -1465,6 +1525,7 @@ class SidebarUI:
         self.circle_tool = CircleTool(self)
         self.rod_tool = RodTool(self)
         self.arm_tool = HookArmTool(self)
+        self.grid_tool = GridTool(self)
         self.env_tool = EnvironmentTool(self)
         self.inspect_tool = InspectTool(self)
 
@@ -1488,6 +1549,7 @@ class SidebarUI:
         add_button("Rod", lambda: self.app.set_mode("rod"))
         add_button("Arm", lambda: self.app.set_mode("arm"))
         add_button("Inspect", lambda: self.app.set_mode("inspect"))
+        add_button("Grid", lambda: self.app.set_mode("grid"))
         add_button("Env", lambda: self.app.set_mode("env"))
         add_button("Delete", lambda: self.app.set_mode("delete"))
         add_button("Save", self.app.save_state_dialog)
@@ -1528,6 +1590,7 @@ class SidebarUI:
             self.circle_tool.draw_ui()
             self.rod_tool.draw_ui()
             self.arm_tool.draw_ui()
+            self.grid_tool.draw_ui()
             self.env_tool.draw_ui()
             self.inspect_tool.draw_ui()
 
@@ -1538,6 +1601,7 @@ class SidebarUI:
         self.circle_tool.draw_preview()
         self.rod_tool.draw_preview()
         self.arm_tool.draw_preview()
+        self.grid_tool.draw_preview()
         self.env_tool.draw_preview()
         self.inspect_tool.draw_preview()
 
@@ -1578,6 +1642,8 @@ class SidebarUI:
         if self.rod_tool.handle_event(event):
             return True
         if self.arm_tool.handle_event(event):
+            return True
+        if self.grid_tool.handle_event(event):
             return True
         if self.env_tool.handle_event(event):
             return True
