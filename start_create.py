@@ -8,7 +8,7 @@ from spring import Spring
 from physics import PhysicsEngine
 from bending_spring import BendingSpring
 from renderer import Renderer
-from builder_ui import SidebarUI
+from builder_ui.sidebar import SidebarUI
 from file_dialog import choose_save_path, choose_open_path
 from structures import create_rod as structure_create_rod
 from hook_arm import HookArm
