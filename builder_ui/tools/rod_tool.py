@@ -161,7 +161,13 @@ class RodTool(Tool):
             p1 = pts[i]
             p2 = pts[(i + 1) % len(pts)]
             pygame.draw.line(screen, color, p1, p2, 1)
-            pygame.draw.circle(screen, color, (int(p1.x), int(p1.y)), self.app.radius, 1)
+            pygame.draw.circle(
+                screen,
+                color,
+                (int(p1.x), int(p1.y)),
+                self.app.particle.radius,
+                1,
+            )
 
         if self.include_cytoskeleton:
             total_length = 2 * self.length + 2 * math.pi * self.radius
@@ -217,7 +223,13 @@ class RodTool(Tool):
                     pygame.draw.line(screen, color, p, sp, 1)
 
             for sp in skeleton_pts:
-                pygame.draw.circle(screen, color, (int(sp.x), int(sp.y)), self.app.radius, 1)
+                pygame.draw.circle(
+                    screen,
+                    color,
+                    (int(sp.x), int(sp.y)),
+                    self.app.particle.radius,
+                    1,
+                )
 
     # ---------------- event handling
     def handle_event(self, event):

@@ -17,15 +17,34 @@ class ParticleTool(Tool):
         y = sidebar.extra_start_y
 
         self.color_field = ColorField(
-            "Color", lambda: self.app.color, self.app.set_color, x, y, width
+            "Color",
+            lambda: self.app.particle.color,
+            lambda c: setattr(self.app.particle, "color", c),
+            x,
+            y,
+            width,
         )
         y += 40
         self.mass_field = SliderField(
-            "Mass", 0.1, 10.0, lambda: self.app.mass, self.app.set_mass, x, y, width
+            "Mass",
+            0.1,
+            10.0,
+            lambda: self.app.particle.mass,
+            lambda v: setattr(self.app.particle, "mass", max(0.1, v)),
+            x,
+            y,
+            width,
         )
         y += 40
         self.radius_field = SliderField(
-            "Radius", 1, 50, lambda: self.app.radius, self.app.set_radius, x, y, width
+            "Radius",
+            1,
+            50,
+            lambda: self.app.particle.radius,
+            lambda v: setattr(self.app.particle, "radius", max(1, int(v))),
+            x,
+            y,
+            width,
         )
 
     # ---------------- drawing

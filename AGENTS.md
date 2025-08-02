@@ -66,3 +66,6 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - Builder tools now share a common `Tool` base class providing default
   `start`, `cancel`, drawing and event hooks to reduce boilerplate.
 - Builder event handling uses per-mode handler methods looked up from a dispatch dictionary, simplifying `start_create.py`.
+- Particle, spring and environment parameters now reside in ``builder_ui/config.py``
+  dataclasses, and the builder updates these structures directly instead of
+  using individual setter methods.

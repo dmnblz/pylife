@@ -17,7 +17,14 @@ class SpringTool(Tool):
         y = sidebar.extra_start_y
 
         self.stiff_field = SliderField(
-            "Stiff", 10, 1000, lambda: self.app.stiffness, self.app.set_stiffness, x, y, width
+            "Stiff",
+            10,
+            1000,
+            lambda: self.app.spring.stiffness,
+            lambda v: setattr(self.app.spring, "stiffness", max(10, v)),
+            x,
+            y,
+            width,
         )
 
     # ---------------- drawing
