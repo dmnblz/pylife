@@ -38,6 +38,8 @@ class BuilderApp:
         self.radius = 10
         self.color = (255, 0, 0)
         self.stiffness = 200.0
+        self.grid_enabled = False
+        self.grid_size = 40.0
 
         self.font = pygame.font.SysFont(None, 24)
         self.physics = PhysicsEngine(
@@ -71,6 +73,8 @@ class BuilderApp:
             self.ui.bend_tool.cancel()
         if self.mode == "env" and mode != "env":
             self.ui.env_tool.cancel()
+        if self.mode == "grid" and mode != "grid":
+            self.ui.grid_tool.cancel()
 
         self.mode = mode
         if mode == "circle":
@@ -89,6 +93,8 @@ class BuilderApp:
             self.ui.bend_tool.start()
         if mode == "env":
             self.ui.env_tool.start()
+        if mode == "grid":
+            self.ui.grid_tool.start()
         if mode != "spring":
             self.spring_first = None
         if self.selected and mode != "drag":
@@ -168,6 +174,22 @@ class BuilderApp:
 
     def toggle_pause(self):
         self.paused = not self.paused
+
+    def toggle_grid(self):
+        """Enable or disable the placement grid."""
+        self.grid_enabled = not self.grid_enabled
+
+    def set_grid_size(self, value: float):
+        """Set the grid spacing in pixels."""
+        self.grid_size = max(5.0, value)
+
+    def snap_to_grid(self, vec: pygame.Vector2) -> pygame.Vector2:
+        """Return ``vec`` snapped to the nearest grid intersection."""
+        if not self.grid_enabled:
+            return vec
+        x = round(vec.x / self.grid_size) * self.grid_size
+        y = round(vec.y / self.grid_size) * self.grid_size
+        return pygame.Vector2(x, y)
 
     # ------------------------------------------------------------------ save/load
     def save_state_dialog(self):
@@ -328,11 +350,13 @@ class BuilderApp:
         bend_stiffness: float,
     ):
         """Spawn a ring of particles with optional bending springs."""
+        center = self.snap_to_grid(center)
         particles = []
         springs = []
         for i in range(segments):
             theta = (i / segments) * 2 * math.pi
             pos = center + pygame.Vector2(math.cos(theta), math.sin(theta)) * radius
+            pos = self.snap_to_grid(pos)
             p = Particle(pos, mass=self.mass, color=self.color, radius=self.radius)
             particles.append(p)
         for i in range(segments):
@@ -390,6 +414,10 @@ class BuilderApp:
         arm.cycle_key = cycle_key
         if cycle_key is not None:
             self.cycle_keys.setdefault(cycle_key, []).append(arm)
+        if self.grid_enabled:
+            for p in arm.particles:
+                p.pos = self.snap_to_grid(p.pos)
+                p.prev_pos = p.pos.copy()
         self.arms.append(arm)
         self.particles.extend(arm.particles)
         self.springs.extend(arm.springs)
@@ -408,6 +436,7 @@ class BuilderApp:
         bend_stiffness: float,
     ):
         """Create a capsule-shaped rod with optional bending springs."""
+        center = self.snap_to_grid(center)
         particles, springs = structure_create_rod(
             center,
             radius=radius,
@@ -426,6 +455,8 @@ class BuilderApp:
             p.mass = self.mass
             p.radius = self.radius
             p.color = self.color
+            p.pos = self.snap_to_grid(p.pos)
+            p.prev_pos = p.pos.copy()
         self.particles.extend(particles)
         self.springs.extend(springs)
         if add_bending:
@@ -512,6 +543,7 @@ class BuilderApp:
 
                 elif e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
                     mouse = pygame.Vector2(e.pos)
+                    snap_mouse = self.snap_to_grid(mouse)
                     if self.mode == "drag":
                         if self.particles:
                             self.selected = min(
@@ -519,7 +551,7 @@ class BuilderApp:
                             )
                             self.selected.fixed = True
                     elif self.mode == "particle":
-                        p = Particle(mouse, mass=self.mass, color=self.color, radius=self.radius)
+                        p = Particle(snap_mouse, mass=self.mass, color=self.color, radius=self.radius)
                         self.particles.append(p)
                     elif self.mode == "spring":
                         if self.particles:
@@ -595,6 +627,13 @@ class BuilderApp:
                     p.prev_pos.y = p.pos.y
 
             self.screen.fill((30, 30, 30))
+            if self.grid_enabled:
+                max_x = self.screen.get_width() - self.ui.visible_width()
+                max_y = self.screen.get_height()
+                for gx in range(0, int(max_x) + 1, int(self.grid_size)):
+                    pygame.draw.line(self.screen, (60, 60, 60), (gx, 0), (gx, max_y))
+                for gy in range(0, int(max_y) + 1, int(self.grid_size)):
+                    pygame.draw.line(self.screen, (60, 60, 60), (0, gy), (max_x, gy))
             self.renderer.draw(self.particles, self.springs, self.bending_springs)
             self.ui.draw()
             # highlight first spring particle

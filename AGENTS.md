@@ -60,3 +60,4 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
   importing scene states.
 - Loading a saved scene now refreshes the physics engine so simulations resume.
 - Circle and rod tools now expose spring stiffness sliders and can add bending springs along their outline.
+- A new **Grid** tool can overlay a configurable grid; enabling it snaps new particles to the nearest intersection.
