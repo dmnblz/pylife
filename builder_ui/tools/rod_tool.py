@@ -150,72 +150,75 @@ class RodTool:
         rect = txt.get_rect(center=self.create_rect.center)
         self.sidebar.screen.blit(txt, rect)
 
-        # draw cytoskeleton and skeleton previews
-        if self.center:
-            screen = self.sidebar.screen
-            color = (150, 150, 150)
-            pts = self._generate_points()
-            for i in range(len(pts)):
-                p1 = pts[i]
-                p2 = pts[(i + 1) % len(pts)]
-                pygame.draw.line(screen, color, p1, p2, 1)
-                pygame.draw.circle(screen, color, (int(p1.x), int(p1.y)), self.app.radius, 1)
+    def draw_preview(self):
+        """Draw the rod preview at the current mouse position."""
+        if not self.active or self.center is None:
+            return
 
-            if self.include_cytoskeleton:
-                total_length = 2 * self.length + 2 * math.pi * self.radius
-                step = total_length / self.segments
-                n_arc = int(round((math.pi * self.radius) / step))
-                n_side = self.segments - 2 * n_arc
+        screen = self.sidebar.screen
+        color = (150, 150, 150)
+        pts = self._generate_points()
+        for i in range(len(pts)):
+            p1 = pts[i]
+            p2 = pts[(i + 1) % len(pts)]
+            pygame.draw.line(screen, color, p1, p2, 1)
+            pygame.draw.circle(screen, color, (int(p1.x), int(p1.y)), self.app.radius, 1)
 
-                bottom_y = self.center.y - self.radius
-                top_y = self.center.y + self.radius
-                bottom_nodes = [
-                    p
-                    for p in pts
-                    if abs(p.y - bottom_y) < 1e-6
-                    and (self.center.x - self.length / 2) < p.x < (self.center.x + self.length / 2)
-                ]
-                top_nodes = [
-                    p
-                    for p in pts
-                    if abs(p.y - top_y) < 1e-6
-                    and (self.center.x - self.length / 2) < p.x < (self.center.x + self.length / 2)
-                ]
-                bottom_nodes.sort(key=lambda p: p.x)
-                top_nodes.sort(key=lambda p: p.x)
-                for b, t in zip(bottom_nodes, top_nodes):
-                    pygame.draw.line(screen, color, b, t, 1)
+        if self.include_cytoskeleton:
+            total_length = 2 * self.length + 2 * math.pi * self.radius
+            step = total_length / self.segments
+            n_arc = int(round((math.pi * self.radius) / step))
+            n_side = self.segments - 2 * n_arc
 
-                for i in range(n_arc // 2):
-                    pygame.draw.line(screen, color, pts[i], pts[n_arc - 1 - i], 1)
+            bottom_y = self.center.y - self.radius
+            top_y = self.center.y + self.radius
+            bottom_nodes = [
+                p
+                for p in pts
+                if abs(p.y - bottom_y) < 1e-6
+                and (self.center.x - self.length / 2) < p.x < (self.center.x + self.length / 2)
+            ]
+            top_nodes = [
+                p
+                for p in pts
+                if abs(p.y - top_y) < 1e-6
+                and (self.center.x - self.length / 2) < p.x < (self.center.x + self.length / 2)
+            ]
+            bottom_nodes.sort(key=lambda p: p.x)
+            top_nodes.sort(key=lambda p: p.x)
+            for b, t in zip(bottom_nodes, top_nodes):
+                pygame.draw.line(screen, color, b, t, 1)
 
-                start = n_arc + n_side
-                for i in range(n_arc // 2):
-                    pygame.draw.line(screen, color, pts[start + i], pts[start + n_arc - 1 - i], 1)
+            for i in range(n_arc // 2):
+                pygame.draw.line(screen, color, pts[i], pts[n_arc - 1 - i], 1)
 
-            if self.include_skeleton:
-                skeleton_pts = []
-                center_left = self.center + pygame.Vector2(-self.length / 2, 0)
-                for k in range(self.skeleton_count):
-                    t = k / (self.skeleton_count - 1) if self.skeleton_count > 1 else 0.5
-                    pos = center_left + pygame.Vector2(self.length * t, 0)
-                    skeleton_pts.append(pos)
+            start = n_arc + n_side
+            for i in range(n_arc // 2):
+                pygame.draw.line(screen, color, pts[start + i], pts[start + n_arc - 1 - i], 1)
 
-                for i in range(len(skeleton_pts) - 1):
-                    pygame.draw.line(screen, color, skeleton_pts[i], skeleton_pts[i + 1], 1)
+        if self.include_skeleton:
+            skeleton_pts = []
+            center_left = self.center + pygame.Vector2(-self.length / 2, 0)
+            for k in range(self.skeleton_count):
+                t = k / (self.skeleton_count - 1) if self.skeleton_count > 1 else 0.5
+                pos = center_left + pygame.Vector2(self.length * t, 0)
+                skeleton_pts.append(pos)
 
-                eps = 1e-6
-                for p in pts:
-                    if abs(p.y - (self.center.y - self.radius)) < eps or abs(p.y - (self.center.y + self.radius)) < eps:
-                        dists = sorted(((sp - p).length(), sp) for sp in skeleton_pts)
-                        for _, sp in dists[:2]:
-                            pygame.draw.line(screen, color, p, sp, 1)
-                    else:
-                        sp = min(skeleton_pts, key=lambda sp: (sp - p).length())
+            for i in range(len(skeleton_pts) - 1):
+                pygame.draw.line(screen, color, skeleton_pts[i], skeleton_pts[i + 1], 1)
+
+            eps = 1e-6
+            for p in pts:
+                if abs(p.y - (self.center.y - self.radius)) < eps or abs(p.y - (self.center.y + self.radius)) < eps:
+                    dists = sorted(((sp - p).length(), sp) for sp in skeleton_pts)
+                    for _, sp in dists[:2]:
                         pygame.draw.line(screen, color, p, sp, 1)
+                else:
+                    sp = min(skeleton_pts, key=lambda sp: (sp - p).length())
+                    pygame.draw.line(screen, color, p, sp, 1)
 
-                for sp in skeleton_pts:
-                    pygame.draw.circle(screen, color, (int(sp.x), int(sp.y)), self.app.radius, 1)
+            for sp in skeleton_pts:
+                pygame.draw.circle(screen, color, (int(sp.x), int(sp.y)), self.app.radius, 1)
 
     # ---------------- event handling
     def handle_event(self, event):

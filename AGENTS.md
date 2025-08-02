@@ -62,3 +62,4 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - Circle and rod tools now expose spring stiffness sliders and can add bending springs along their outline.
 - A new **Grid** tool can overlay a configurable grid; enabling it snaps new particles to the nearest intersection.
 - Sidebar includes an **Undo** button to revert the most recent change.
+- Rod tool preview now renders correctly through a dedicated `draw_preview` method.
