@@ -10,7 +10,7 @@ This repository contains small pygame demos for 2D particle-based physics simula
 - `physics.py` – `PhysicsEngine` that applies forces, drag and Brownian noise.
 - `renderer.py` – draws particles and springs to the screen.
 - `structures.py` – helper routines for building walls, rods and other shapes.
-- `builder_ui.py` – sidebar UI widgets used by the interactive builder.
+- `builder_ui/` – sidebar UI widgets used by the interactive builder.
 - `color_picker.py` – colour picker helper using Tkinter.
 - `file_dialog.py` – opens save/load dialogs in a separate process.
 - `start_create.py` – interactive builder for constructing scenes.
@@ -38,7 +38,7 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - `start_hook_arm.py` now features four arms; hold **W**, **A**, **S** or **D** to
   run a continuous extend/adhere/contract cycle on the corresponding arm.
 - The hook arm's tip becomes heavier while ``"high_drag"`` is active.
-- `start_create.py` and `builder_ui.py` now let you attach hook arms and assign a
+- `start_create.py` and the `builder_ui` package now let you attach hook arms and assign a
   key for cycling them.
 - Multiple hook arms can listen to the same cycle key.
 - A new **Inspect** mode lets you click a particle and modify its mass, radius
