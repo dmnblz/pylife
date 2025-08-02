@@ -9,6 +9,11 @@ from physics import PhysicsEngine
 from bending_spring import BendingSpring
 from renderer import Renderer
 from builder_ui.sidebar import SidebarUI
+from builder_ui.config import (
+    ParticleParams,
+    SpringParams,
+    EnvironmentParams,
+)
 from file_dialog import choose_save_path, choose_open_path
 from structures import create_rod as structure_create_rod
 from hook_arm import HookArm
@@ -33,12 +38,11 @@ class BuilderApp:
         self.spring_first = None
         self.paused = False
 
-        # parameters for creation
+        # configuration dataclasses for creation
         self.mode = "drag"  # drag, particle, spring, rod
-        self.mass = 1.0
-        self.radius = 10
-        self.color = (255, 0, 0)
-        self.stiffness = 200.0
+        self.particle = ParticleParams()
+        self.spring = SpringParams()
+        self.environment = EnvironmentParams()
         self.grid_enabled = False
         self.grid_size = 40.0
 
@@ -47,11 +51,11 @@ class BuilderApp:
             self.particles,
             self.springs,
             self.bending_springs,
-            gravity=(0, 0),
-            repulsion_radius=30,
-            repulsion_strength=1000,
-            temperature=0,
-            damping_coeff=1,
+            gravity=self.environment.gravity,
+            repulsion_radius=self.environment.repulsion_radius,
+            repulsion_strength=self.environment.repulsion_strength,
+            temperature=self.environment.temperature,
+            damping_coeff=self.environment.damping,
         )
         self.renderer = Renderer(self.screen)
         self.ui = SidebarUI(self.screen, self)
@@ -110,75 +114,25 @@ class BuilderApp:
             self.selected = None
 
     def choose_color(self):
-        """Open the color chooser in a separate process and update the color."""
+        """Open the color chooser and update the particle colour."""
         from color_picker import choose_color
 
-        rgb = choose_color(self.color)
+        rgb = choose_color(self.particle.color)
         if rgb:
-            self.color = rgb
-
-    def set_color(self, color):
-        self.color = color
-
-    def get_color_hex(self) -> str:
-        r, g, b = self.color
-        return f"#{r:02X}{g:02X}{b:02X}"
-
-    def set_color_hex(self, value: str):
-        value = value.lstrip("#")
-        if len(value) != 6:
-            return
-        try:
-            r = int(value[0:2], 16)
-            g = int(value[2:4], 16)
-            b = int(value[4:6], 16)
-            self.color = (r, g, b)
-        except ValueError:
-            pass
+            self.particle.color = rgb
 
     def adjust_mass(self, delta: float):
-        self.mass = max(0.1, self.mass + delta)
-
-    def set_mass(self, value: float):
-        self.mass = max(0.1, value)
+        self.particle.mass = max(0.1, self.particle.mass + delta)
 
     def adjust_radius(self, delta: int):
-        self.radius = max(1, self.radius + delta)
-
-    def set_radius(self, value: float):
-        self.radius = max(1, int(value))
+        self.particle.radius = max(1, self.particle.radius + delta)
 
     def adjust_stiffness(self, delta: float):
-        self.stiffness = max(10, self.stiffness + delta)
-
-    def set_stiffness(self, value: float):
-        self.stiffness = max(10, value)
+        self.spring.stiffness = max(10, self.spring.stiffness + delta)
 
     def adjust_temperature(self, delta: float):
-        self.physics.temperature = max(0, self.physics.temperature + delta)
-
-    def set_temperature(self, value: float):
-        self.physics.temperature = max(0, value)
-
-    def set_gravity_x(self, value: float):
-        """Update the X component of global gravity."""
-        self.physics.gravity.x = value
-
-    def set_gravity_y(self, value: float):
-        """Update the Y component of global gravity."""
-        self.physics.gravity.y = value
-
-    def set_repulsion_radius(self, value: float):
-        """Set the particle repulsion radius."""
-        self.physics.repulsion_radius = max(0, value)
-
-    def set_repulsion_strength(self, value: float):
-        """Set the magnitude of the short range repulsive force."""
-        self.physics.repulsion_strength = max(0, value)
-
-    def set_damping(self, value: float):
-        """Adjust the damping coefficient used for drag forces."""
-        self.physics.damping_coeff = max(0, value)
+        self.environment.temperature = max(0, self.environment.temperature + delta)
+        self.physics.temperature = self.environment.temperature
 
     def toggle_pause(self):
         self.paused = not self.paused
@@ -412,10 +366,15 @@ class BuilderApp:
 
         phys = data.get("physics", {})
         self.physics.gravity = pygame.Vector2(phys.get("gravity", [0, 0]))
+        self.environment.gravity = self.physics.gravity
         self.physics.repulsion_radius = phys.get("repulsion_radius", 20)
+        self.environment.repulsion_radius = self.physics.repulsion_radius
         self.physics.repulsion_strength = phys.get("repulsion_strength", 100)
+        self.environment.repulsion_strength = self.physics.repulsion_strength
         self.physics.temperature = phys.get("temperature", 0)
+        self.environment.temperature = self.physics.temperature
         self.physics.damping_coeff = phys.get("damping_coeff", 1)
+        self.environment.damping = self.physics.damping_coeff
 
         # refresh physics engine references so loaded objects are simulated
         self.physics.particles = self.particles
@@ -440,7 +399,12 @@ class BuilderApp:
             theta = (i / segments) * 2 * math.pi
             pos = center + pygame.Vector2(math.cos(theta), math.sin(theta)) * radius
             pos = self.snap_to_grid(pos)
-            p = Particle(pos, mass=self.mass, color=self.color, radius=self.radius)
+            p = Particle(
+                pos,
+                mass=self.particle.mass,
+                color=self.particle.color,
+                radius=self.particle.radius,
+            )
             particles.append(p)
         for i in range(segments):
             p1 = particles[i]
@@ -484,7 +448,12 @@ class BuilderApp:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             mouse = pygame.Vector2(event.pos)
             snap_mouse = self.snap_to_grid(mouse)
-            p = Particle(snap_mouse, mass=self.mass, color=self.color, radius=self.radius)
+            p = Particle(
+                snap_mouse,
+                mass=self.particle.mass,
+                color=self.particle.color,
+                radius=self.particle.radius,
+            )
             self.particles.append(p)
             self.push_undo(lambda p=p: self._remove_particle(p))
 
@@ -504,7 +473,7 @@ class BuilderApp:
                         self.spring_first,
                         particle,
                         rest_length=rest,
-                        stiffness=self.stiffness,
+                        stiffness=self.spring.stiffness,
                     )
                     self.springs.append(s)
                     self.push_undo(lambda s=s: self._remove_spring(s))
@@ -605,7 +574,7 @@ class BuilderApp:
             segments=segments,
             stiffness=stiffness,
             max_force=None,
-            color=self.color,
+            color=self.particle.color,
             include_cytoskeleton=include_cytoskeleton,
             cyto_stiffness=stiffness,
             include_skeleton=include_skeleton,
@@ -613,9 +582,9 @@ class BuilderApp:
             skeleton_stiffness=stiffness,
         )
         for p in particles:
-            p.mass = self.mass
-            p.radius = self.radius
-            p.color = self.color
+            p.mass = self.particle.mass
+            p.radius = self.particle.radius
+            p.color = self.particle.color
             p.pos = self.snap_to_grid(p.pos)
             p.prev_pos = p.pos.copy()
         self.particles.extend(particles)

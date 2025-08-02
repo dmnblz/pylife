@@ -17,46 +17,99 @@ class EnvironmentTool(Tool):
         y = sidebar.extra_start_y
 
         self.gx_field = SliderField(
-            "Grav X", -2000, 2000,
-            lambda: self.app.physics.gravity.x,
-            self.app.set_gravity_x,
-            x, y, width,
+            "Grav X",
+            -2000,
+            2000,
+            lambda: self.app.environment.gravity.x,
+            self._set_gravity_x,
+            x,
+            y,
+            width,
         )
         y += 40
         self.gy_field = SliderField(
-            "Grav Y", -2000, 2000,
-            lambda: self.app.physics.gravity.y,
-            self.app.set_gravity_y,
-            x, y, width,
+            "Grav Y",
+            -2000,
+            2000,
+            lambda: self.app.environment.gravity.y,
+            self._set_gravity_y,
+            x,
+            y,
+            width,
         )
         y += 40
         self.rep_rad_field = SliderField(
-            "Rep Rad", 0, 200,
-            lambda: self.app.physics.repulsion_radius,
-            self.app.set_repulsion_radius,
-            x, y, width,
+            "Rep Rad",
+            0,
+            200,
+            lambda: self.app.environment.repulsion_radius,
+            self._set_repulsion_radius,
+            x,
+            y,
+            width,
         )
         y += 40
         self.rep_str_field = SliderField(
-            "Rep Str", 0, 10000,
-            lambda: self.app.physics.repulsion_strength,
-            self.app.set_repulsion_strength,
-            x, y, width,
+            "Rep Str",
+            0,
+            10000,
+            lambda: self.app.environment.repulsion_strength,
+            self._set_repulsion_strength,
+            x,
+            y,
+            width,
         )
         y += 40
         self.damp_field = SliderField(
-            "Damp", 0, 5,
-            lambda: self.app.physics.damping_coeff,
-            self.app.set_damping,
-            x, y, width,
+            "Damp",
+            0,
+            5,
+            lambda: self.app.environment.damping,
+            self._set_damping,
+            x,
+            y,
+            width,
         )
         y += 40
         self.temp_field = SliderField(
-            "Temp", 0, 1000,
-            lambda: self.app.physics.temperature,
-            self.app.set_temperature,
-            x, y, width,
+            "Temp",
+            0,
+            1000,
+            lambda: self.app.environment.temperature,
+            self._set_temperature,
+            x,
+            y,
+            width,
         )
+
+    # ---------------- value setters
+    def _set_gravity_x(self, value: float):
+        self.app.environment.gravity.x = value
+        self.app.physics.gravity.x = value
+
+    def _set_gravity_y(self, value: float):
+        self.app.environment.gravity.y = value
+        self.app.physics.gravity.y = value
+
+    def _set_repulsion_radius(self, value: float):
+        val = max(0, value)
+        self.app.environment.repulsion_radius = val
+        self.app.physics.repulsion_radius = val
+
+    def _set_repulsion_strength(self, value: float):
+        val = max(0, value)
+        self.app.environment.repulsion_strength = val
+        self.app.physics.repulsion_strength = val
+
+    def _set_damping(self, value: float):
+        val = max(0, value)
+        self.app.environment.damping = val
+        self.app.physics.damping_coeff = val
+
+    def _set_temperature(self, value: float):
+        val = max(0, value)
+        self.app.environment.temperature = val
+        self.app.physics.temperature = val
 
     # ---------------- drawing
     def draw_ui(self):

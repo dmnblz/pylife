@@ -61,8 +61,8 @@ class CircleTool(Tool):
     def start(self):
         super().start()
         self.center = None
-        self.stiffness = self.app.stiffness
-        self.bend_stiffness = self.app.stiffness
+        self.stiffness = self.app.spring.stiffness
+        self.bend_stiffness = self.app.spring.stiffness
         self.include_bend = False
 
     def cancel(self):
@@ -104,7 +104,13 @@ class CircleTool(Tool):
                 self.center + pygame.Vector2(math.cos(theta2), math.sin(theta2)) * self.radius
             )
             pygame.draw.line(screen, color, p1, p2, 1)
-            pygame.draw.circle(screen, color, (int(p1.x), int(p1.y)), self.app.radius, 1)
+            pygame.draw.circle(
+                screen,
+                color,
+                (int(p1.x), int(p1.y)),
+                self.app.particle.radius,
+                1,
+            )
 
     # ---------------- event handling
     def handle_event(self, event):
