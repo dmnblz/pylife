@@ -56,6 +56,12 @@ class BuilderApp:
         self.renderer = Renderer(self.screen)
         self.ui = SidebarUI(self.screen, self)
         self.history: list[callable] = []
+        self.mode_handlers: dict[str, Callable[[pygame.event.Event], None]] = {
+            "drag": self.handle_drag_event,
+            "particle": self.handle_particle_event,
+            "spring": self.handle_spring_event,
+            "delete": self.handle_delete_event,
+        }
 
     # ------------------------------------------------------------------ parameter helpers
     def set_mode(self, mode: str):
@@ -462,6 +468,80 @@ class BuilderApp:
             lambda parts=particles, sprs=springs, bends=bends: self._remove_group(parts, sprs, bends)
         )
 
+    # ------------------------------------------------------------------ mode handlers
+    def handle_drag_event(self, event: pygame.event.Event):
+        """Handle interactions while in *drag* mode."""
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mouse = pygame.Vector2(event.pos)
+            if self.particles:
+                self.selected = min(
+                    self.particles, key=lambda p: (p.pos - mouse).length()
+                )
+                self.selected.fixed = True
+
+    def handle_particle_event(self, event: pygame.event.Event):
+        """Spawn a new particle at the clicked position."""
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mouse = pygame.Vector2(event.pos)
+            snap_mouse = self.snap_to_grid(mouse)
+            p = Particle(snap_mouse, mass=self.mass, color=self.color, radius=self.radius)
+            self.particles.append(p)
+            self.push_undo(lambda p=p: self._remove_particle(p))
+
+    def handle_spring_event(self, event: pygame.event.Event):
+        """Connect two particles with a spring or cancel with ``Escape``."""
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.particles:
+                mouse = pygame.Vector2(event.pos)
+                particle = min(
+                    self.particles, key=lambda p: (p.pos - mouse).length()
+                )
+                if self.spring_first is None:
+                    self.spring_first = particle
+                else:
+                    rest = (particle.pos - self.spring_first.pos).length()
+                    s = Spring(
+                        self.spring_first,
+                        particle,
+                        rest_length=rest,
+                        stiffness=self.stiffness,
+                    )
+                    self.springs.append(s)
+                    self.push_undo(lambda s=s: self._remove_spring(s))
+                    self.spring_first = None
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            self.spring_first = None
+
+    def handle_delete_event(self, event: pygame.event.Event):
+        """Remove the closest particle or spring under the cursor."""
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mouse = pygame.Vector2(event.pos)
+            target_p = None
+            target_s = None
+            dist_p = float("inf")
+            dist_s = float("inf")
+            if self.particles:
+                target_p = min(self.particles, key=lambda p: (p.pos - mouse).length())
+                dist_p = (target_p.pos - mouse).length()
+            if self.springs:
+                def mid_dist(s):
+                    mid = (s.p1.pos + s.p2.pos) * 0.5
+                    return (mid - mouse).length()
+                target_s = min(self.springs, key=mid_dist)
+                dist_s = mid_dist(target_s)
+            if dist_p < dist_s and dist_p < 30 and target_p:
+                removed = [
+                    s for s in self.springs if s.p1 == target_p or s.p2 == target_p
+                ]
+                self.particles.remove(target_p)
+                self.springs = [s for s in self.springs if s not in removed]
+                self.push_undo(
+                    lambda p=target_p, ss=removed: self._restore_particle(p, ss)
+                )
+            elif dist_s < 30 and target_s:
+                self.springs.remove(target_s)
+                self.push_undo(lambda s=target_s: self._restore_spring(s))
+
     def create_hook_arm(
         self,
         base: Particle,
@@ -572,6 +652,7 @@ class BuilderApp:
 
                 if e.type == pygame.QUIT:
                     running = False
+                    continue
 
                 elif e.type == pygame.KEYDOWN:
                     if e.key == pygame.K_1:
@@ -612,8 +693,6 @@ class BuilderApp:
                         self.adjust_temperature(10)
                     elif e.key == pygame.K_p:
                         self.toggle_pause()
-                    elif e.key == pygame.K_ESCAPE:
-                        self.spring_first = None
                     else:
                         arms = self.cycle_keys.get(e.key, [])
                         for arm in arms:
@@ -625,69 +704,14 @@ class BuilderApp:
                         arm.cycle_held = False
                         arm.reset_inert()
 
-                elif e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
-                    mouse = pygame.Vector2(e.pos)
-                    snap_mouse = self.snap_to_grid(mouse)
-                    if self.mode == "drag":
-                        if self.particles:
-                            self.selected = min(
-                                self.particles, key=lambda p: (p.pos - mouse).length()
-                            )
-                            self.selected.fixed = True
-                    elif self.mode == "particle":
-                        p = Particle(snap_mouse, mass=self.mass, color=self.color, radius=self.radius)
-                        self.particles.append(p)
-                        self.push_undo(lambda p=p: self._remove_particle(p))
-                    elif self.mode == "spring":
-                        if self.particles:
-                            particle = min(
-                                self.particles, key=lambda p: (p.pos - mouse).length()
-                            )
-                            if self.spring_first is None:
-                                self.spring_first = particle
-                            else:
-                                rest = (particle.pos - self.spring_first.pos).length()
-                                s = Spring(
-                                    self.spring_first,
-                                    particle,
-                                    rest_length=rest,
-                                    stiffness=self.stiffness,
-                                )
-                                self.springs.append(s)
-                                self.push_undo(lambda s=s: self._remove_spring(s))
-                                self.spring_first = None
-                    elif self.mode == "delete":
-                        # remove closest particle or spring
-                        target_p = None
-                        target_s = None
-                        dist_p = float("inf")
-                        dist_s = float("inf")
-                        if self.particles:
-                            target_p = min(self.particles, key=lambda p: (p.pos - mouse).length())
-                            dist_p = (target_p.pos - mouse).length()
-                        if self.springs:
-                            def mid_dist(s):
-                                mid = (s.p1.pos + s.p2.pos) * 0.5
-                                return (mid - mouse).length()
-                            target_s = min(self.springs, key=mid_dist)
-                            dist_s = mid_dist(target_s)
-                        if dist_p < dist_s and dist_p < 30 and target_p:
-                            removed = [s for s in self.springs if s.p1 == target_p or s.p2 == target_p]
-                            self.particles.remove(target_p)
-                            self.springs = [s for s in self.springs if s not in removed]
-                            self.push_undo(lambda p=target_p, ss=removed: self._restore_particle(p, ss))
-                        elif dist_s < 30 and target_s:
-                            self.springs.remove(target_s)
-                            self.push_undo(lambda s=target_s: self._restore_spring(s))
-                    elif self.mode == "rod":
-                        pass  # handled by rod tool
-                    elif self.mode == "arm":
-                        pass  # handled by arm tool
-
                 elif e.type == pygame.MOUSEBUTTONUP and e.button == 1:
                     if self.selected:
                         self.selected.fixed = False
                         self.selected = None
+
+                handler = self.mode_handlers.get(self.mode)
+                if handler:
+                    handler(e)
 
             if self.selected:
                 self.selected.pos = pygame.Vector2(pygame.mouse.get_pos())

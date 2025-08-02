@@ -65,3 +65,4 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - Rod tool preview now renders correctly through a dedicated `draw_preview` method.
 - Builder tools now share a common `Tool` base class providing default
   `start`, `cancel`, drawing and event hooks to reduce boilerplate.
+- Builder event handling uses per-mode handler methods looked up from a dispatch dictionary, simplifying `start_create.py`.
