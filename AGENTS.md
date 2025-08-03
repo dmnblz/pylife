@@ -80,3 +80,5 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
   reliable static checking.
 - `snap_to_grid` now leaves already aligned coordinates unchanged and is used
   throughout `start_create.py` for grid snapping.
+- Number keys 1–0 now select sidebar tools in order, and button labels display
+  the corresponding shortcut.

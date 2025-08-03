@@ -653,24 +653,23 @@ class BuilderApp:
                     continue
 
                 elif e.type == pygame.KEYDOWN:
-                    if e.key == pygame.K_1:
-                        self.set_mode("drag")
-                    elif e.key == pygame.K_2:
-                        self.set_mode("particle")
-                    elif e.key == pygame.K_3:
-                        self.set_mode("spring")
-                    elif e.key == pygame.K_9:
-                        self.set_mode("bend")
-                    elif e.key == pygame.K_4:
-                        self.set_mode("delete")
-                    elif e.key == pygame.K_5:
-                        self.set_mode("rod")
-                    elif e.key == pygame.K_6:
-                        self.set_mode("arm")
-                    elif e.key == pygame.K_7:
-                        self.set_mode("inspect")
-                    elif e.key == pygame.K_8:
-                        self.set_mode("env")
+                    tool_keys = {
+                        pygame.K_1: "drag",
+                        pygame.K_2: "particle",
+                        pygame.K_3: "spring",
+                        pygame.K_4: "bend",
+                        pygame.K_5: "circle",
+                        pygame.K_6: "rod",
+                        pygame.K_7: "arm",
+                        pygame.K_8: "inspect",
+                        pygame.K_9: "grid",
+                        pygame.K_0: "env",
+                        pygame.K_BACKSPACE: "delete",
+                        pygame.K_DELETE: "delete",
+                    }
+                    mode = tool_keys.get(e.key)
+                    if mode:
+                        self.set_mode(mode)
                     elif e.key == pygame.K_c:
                         self.choose_color()
                     elif e.key == pygame.K_z:
