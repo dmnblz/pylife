@@ -39,6 +39,35 @@ class SpringParams:
 
 
 @dataclass
+class VariableSpringParams:
+    """Parameters for variable springs with two rest lengths.
+
+    Attributes
+    ----------
+    stiffness:
+        Hooke's law stiffness for the spring.
+    alt_factor:
+        Multiplier applied to the initial rest length to obtain the alternate
+        rest length.
+    speed:
+        Rate in pixels per second at which the spring transitions between the
+        two rest lengths.
+    key:
+        Keyboard key activating the alternate length. ``None`` disables key
+        control.
+    mode:
+        ``"hold"`` requires the key to be held, while ``"toggle"`` switches
+        state on each press.
+    """
+
+    stiffness: float = 200.0
+    alt_factor: float = 2.0
+    speed: float = 240.0
+    key: int | None = pygame.K_v
+    mode: str = "hold"
+
+
+@dataclass
 class EnvironmentParams:
     """Global simulation values exposed in the environment tool.
 
@@ -63,4 +92,9 @@ class EnvironmentParams:
     damping: float = 1.0
 
 
-__all__ = ["ParticleParams", "SpringParams", "EnvironmentParams"]
+__all__ = [
+    "ParticleParams",
+    "SpringParams",
+    "VariableSpringParams",
+    "EnvironmentParams",
+]

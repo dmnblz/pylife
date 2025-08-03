@@ -3,7 +3,8 @@
 import math
 import pygame
 
-from ..fields import SliderField, ColorField
+from variable_spring import VariableSpring
+from ..fields import SliderField, ColorField, KeyField
 from .base import Tool
 
 
@@ -46,6 +47,18 @@ class InspectTool(Tool):
             "S MaxF", 0, 2000, self._get_max, self._set_max, x, y, width
         )
         y += 40
+        self.alt_field = SliderField(
+            "V Rest2", 1, 400, self._get_alt_rest, self._set_alt_rest, x, y, width
+        )
+        y += 40
+        self.speed_field = SliderField(
+            "V Speed", 10, 1000, self._get_speed, self._set_speed, x, y, width
+        )
+        y += 40
+        self.key_field = KeyField("V Key", self._get_key, self._set_key, x, y, width)
+        y += 40
+        self.mode_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
+        y += 40
         self.bangle_field = SliderField(
             "B Ang", 0, 180, self._get_bangle, self._set_bangle, x, y, width
         )
@@ -86,11 +99,15 @@ class InspectTool(Tool):
 
     def _get_rest(self) -> float:
         """Return spring rest length."""
+        if isinstance(self.spring, VariableSpring):
+            return self.spring.base_rest_length
         return self.spring.rest_length if self.spring else 0
 
     def _set_rest(self, value: float):
         """Update spring rest length."""
-        if self.spring:
+        if isinstance(self.spring, VariableSpring):
+            self.spring.set_base_rest_length(value)
+        elif self.spring:
             self.spring.rest_length = max(1, value)
 
     def _get_stiff(self) -> float:
@@ -101,6 +118,39 @@ class InspectTool(Tool):
         """Set spring stiffness."""
         if self.spring:
             self.spring.stiffness = max(10, value)
+
+    def _get_alt_rest(self) -> float:
+        """Return alternate rest length for variable springs."""
+        if isinstance(self.spring, VariableSpring):
+            return self.spring.alt_rest_length
+        return 0
+
+    def _set_alt_rest(self, value: float) -> None:
+        """Set alternate rest length for variable springs."""
+        if isinstance(self.spring, VariableSpring):
+            self.spring.set_alt_rest_length(value)
+
+    def _get_speed(self) -> float:
+        """Return change speed for variable springs."""
+        if isinstance(self.spring, VariableSpring):
+            return self.spring.change_speed
+        return 0
+
+    def _set_speed(self, value: float) -> None:
+        """Set change speed for variable springs."""
+        if isinstance(self.spring, VariableSpring):
+            self.spring.change_speed = max(10, value)
+
+    def _get_key(self) -> int | None:
+        """Return control key for variable springs."""
+        if isinstance(self.spring, VariableSpring):
+            return self.spring.key
+        return None
+
+    def _set_key(self, value: int | None) -> None:
+        """Set control key for variable springs."""
+        if isinstance(self.spring, VariableSpring):
+            self.sidebar.app.update_vspring_key(self.spring, value)
 
     def _get_bangle(self) -> float:
         """Return bend rest angle in degrees."""
@@ -163,6 +213,16 @@ class InspectTool(Tool):
             self.rest_field.draw(self.sidebar.screen)
             self.stiff_field.draw(self.sidebar.screen)
             self.max_field.draw(self.sidebar.screen)
+            if isinstance(self.spring, VariableSpring):
+                self.alt_field.draw(self.sidebar.screen)
+                self.speed_field.draw(self.sidebar.screen)
+                self.key_field.draw(self.sidebar.screen)
+                pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.mode_rect)
+                txt = self.sidebar.font.render(
+                    f"Mode: {self.spring.mode}", True, (255, 255, 255)
+                )
+                rect = txt.get_rect(center=self.mode_rect.center)
+                self.sidebar.screen.blit(txt, rect)
             pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.invis_rect)
             txt = self.sidebar.font.render(
                 "Hide" if not self.spring.invisible else "Show", True, (255, 255, 255)
@@ -228,6 +288,20 @@ class InspectTool(Tool):
                 return True
             if self.max_field.handle_event(event):
                 return True
+            if isinstance(self.spring, VariableSpring):
+                if self.alt_field.handle_event(event):
+                    return True
+                if self.speed_field.handle_event(event):
+                    return True
+                if self.key_field.handle_event(event):
+                    return True
+                if (
+                    event.type == pygame.MOUSEBUTTONDOWN
+                    and event.button == 1
+                    and self.mode_rect.collidepoint(event.pos)
+                ):
+                    self.spring.mode = "toggle" if self.spring.mode == "hold" else "hold"
+                    return True
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.invis_rect.collidepoint(event.pos):
                 self._toggle_invisible()
                 return True

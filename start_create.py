@@ -4,6 +4,7 @@ from typing import Callable, Iterable
 
 from particle import Particle
 from spring import Spring
+from variable_spring import VariableSpring
 from physics import PhysicsEngine
 from bending_spring import BendingSpring
 from renderer import Renderer
@@ -11,6 +12,7 @@ from builder_ui.sidebar import SidebarUI
 from builder_ui.config import (
     ParticleParams,
     SpringParams,
+    VariableSpringParams,
     EnvironmentParams,
 )
 import builder_io
@@ -32,9 +34,11 @@ class BuilderApp:
         self.clock = pygame.time.Clock()
         self.particles: list[Particle] = []
         self.springs: list[Spring] = []
+        self.variable_springs: list[VariableSpring] = []
         self.bending_springs: list[BendingSpring] = []
         self.arms: list[HookArm] = []
         self.cycle_keys: dict[int, list[HookArm]] = {}
+        self.vspring_keys: dict[int, list[VariableSpring]] = {}
         self.selected = None
         self.spring_first = None
         self.paused = False
@@ -43,6 +47,7 @@ class BuilderApp:
         self.mode = "drag"  # drag, particle, spring, rod
         self.particle = ParticleParams()
         self.spring = SpringParams()
+        self.vspring = VariableSpringParams()
         self.environment = EnvironmentParams()
         self.grid_enabled = False
         self.grid_size = 40.0
@@ -65,6 +70,7 @@ class BuilderApp:
             "drag": self.handle_drag_event,
             "particle": self.handle_particle_event,
             "spring": self.handle_spring_event,
+            "vspring": self.handle_variable_spring_event,
             "delete": self.handle_delete_event,
         }
 
@@ -83,6 +89,8 @@ class BuilderApp:
             self.ui.particle_tool.cancel()
         if self.mode == "spring" and mode != "spring":
             self.ui.spring_tool.cancel()
+        if self.mode == "vspring" and mode != "vspring":
+            self.ui.variable_spring_tool.cancel()
         if self.mode == "bend" and mode != "bend":
             self.ui.bend_tool.cancel()
         if self.mode == "env" and mode != "env":
@@ -103,13 +111,15 @@ class BuilderApp:
             self.ui.particle_tool.start()
         if mode == "spring":
             self.ui.spring_tool.start()
+        if mode == "vspring":
+            self.ui.variable_spring_tool.start()
         if mode == "bend":
             self.ui.bend_tool.start()
         if mode == "env":
             self.ui.env_tool.start()
         if mode == "grid":
             self.ui.grid_tool.start()
-        if mode != "spring":
+        if mode not in ("spring", "vspring"):
             self.spring_first = None
         if self.selected and mode != "drag":
             self.selected.fixed = False
@@ -209,11 +219,18 @@ class BuilderApp:
 
         # remove springs either passed explicitly or attached to removed particles
         if parts_set or springs_set:
-            self.springs[:] = [
-                s
-                for s in self.springs
-                if s not in springs_set and s.p1 not in parts_set and s.p2 not in parts_set
-            ]
+            for s in list(self.springs):
+                if s in springs_set or s.p1 in parts_set or s.p2 in parts_set:
+                    self.springs.remove(s)
+                    if isinstance(s, VariableSpring):
+                        if s in self.variable_springs:
+                            self.variable_springs.remove(s)
+                        if s.key is not None and s.key in self.vspring_keys:
+                            lst = self.vspring_keys[s.key]
+                            if s in lst:
+                                lst.remove(s)
+                            if not lst:
+                                del self.vspring_keys[s.key]
 
         # remove bending springs tied to removed particles or specified directly
         if parts_set or bends_set:
@@ -251,10 +268,17 @@ class BuilderApp:
         """Reinsert ``p`` and associated springs."""
         self.particles.append(p)
         self.springs.extend(springs)
+        for s in springs:
+            if isinstance(s, VariableSpring):
+                self.variable_springs.append(s)
+                self.register_variable_spring(s)
 
     def _restore_spring(self, s: Spring):
         """Reinsert ``s`` into the simulation."""
         self.springs.append(s)
+        if isinstance(s, VariableSpring):
+            self.variable_springs.append(s)
+            self.register_variable_spring(s)
 
     # ------------------------------------------------------------------ save/load
     def save_state_dialog(self):
@@ -508,6 +532,35 @@ class BuilderApp:
         elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self.spring_first = None
 
+    def handle_variable_spring_event(self, event: pygame.event.Event):
+        """Connect two particles with a variable spring."""
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.particles:
+                mouse = pygame.Vector2(event.pos)
+                particle = min(self.particles, key=lambda p: (p.pos - mouse).length())
+                if self.spring_first is None:
+                    self.spring_first = particle
+                else:
+                    rest = (particle.pos - self.spring_first.pos).length()
+                    alt = rest * self.vspring.alt_factor
+                    s = VariableSpring(
+                        self.spring_first,
+                        particle,
+                        rest_length=rest,
+                        alt_rest_length=alt,
+                        stiffness=self.vspring.stiffness,
+                        key=self.vspring.key,
+                        mode=self.vspring.mode,
+                        change_speed=self.vspring.speed,
+                    )
+                    self.springs.append(s)
+                    self.variable_springs.append(s)
+                    self.register_variable_spring(s)
+                    self.push_undo(lambda s=s: self.remove_entities(springs=[s]))
+                    self.spring_first = None
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            self.spring_first = None
+
     def handle_delete_event(self, event: pygame.event.Event):
         """Remove the closest particle or spring under the cursor."""
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -533,9 +586,27 @@ class BuilderApp:
                 self.push_undo(
                     lambda p=target_p, ss=removed: self._restore_particle(p, ss)
                 )
-            elif dist_s < 30 and target_s:
-                self.remove_entities(springs=[target_s])
-                self.push_undo(lambda s=target_s: self._restore_spring(s))
+        elif dist_s < 30 and target_s:
+            self.remove_entities(springs=[target_s])
+            self.push_undo(lambda s=target_s: self._restore_spring(s))
+
+    def register_variable_spring(self, spring: VariableSpring) -> None:
+        """Register ``spring`` under its control key if any."""
+        if spring.key is not None:
+            self.vspring_keys.setdefault(spring.key, []).append(spring)
+
+    def update_vspring_key(self, spring: VariableSpring, key: int | None) -> None:
+        """Update the control key mapping for ``spring``."""
+        old = spring.key
+        if old is not None:
+            lst = self.vspring_keys.get(old, [])
+            if spring in lst:
+                lst.remove(spring)
+            if not lst and old in self.vspring_keys:
+                del self.vspring_keys[old]
+        spring.key = key
+        if key is not None:
+            self.vspring_keys.setdefault(key, []).append(spring)
 
     def create_hook_arm(
         self,
@@ -694,12 +765,18 @@ class BuilderApp:
                         arms = self.cycle_keys.get(e.key, [])
                         for arm in arms:
                             arm.cycle_held = True
+                        vsprings = self.vspring_keys.get(e.key, [])
+                        for s in vsprings:
+                            s.on_keydown()
 
                 elif e.type == pygame.KEYUP:
                     arms = self.cycle_keys.get(e.key, [])
                     for arm in arms:
                         arm.cycle_held = False
                         arm.reset_inert()
+                    vsprings = self.vspring_keys.get(e.key, [])
+                    for s in vsprings:
+                        s.on_keyup()
 
                 elif e.type == pygame.MOUSEBUTTONUP and e.button == 1:
                     if self.selected:
@@ -715,9 +792,11 @@ class BuilderApp:
                 self.selected.prev_pos = self.selected.pos.copy()
 
             if not self.paused:
-                self.physics.update(dt)
-                for arm in self.arms:
-                    arm.update(dt)
+                  self.physics.update(dt)
+                  for arm in self.arms:
+                      arm.update(dt)
+                  for s in self.variable_springs:
+                      s.update(dt)
 
             # keep particles inside the window and out of the sidebar
             max_x = self.screen.get_width() - self.ui.visible_width()
@@ -747,7 +826,7 @@ class BuilderApp:
             self.renderer.draw(self.particles, self.springs, self.bending_springs)
             self.ui.draw()
             # highlight first spring particle
-            if self.spring_first is not None and self.mode == "spring":
+            if self.spring_first is not None and self.mode in ("spring", "vspring"):
                 pygame.draw.circle(
                     self.screen,
                     (255, 255, 0),

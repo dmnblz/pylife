@@ -4,7 +4,7 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
 
 ## Features
 
-* **Interactive builder** – `start_create.py` opens a window where you can drag particles, connect them with springs and spawn predefined structures. A sidebar UI contains sliders to tweak parameters such as mass, radius, spring stiffness and various environment settings like temperature, gravity, repulsion and damping. Tools exist for circles, rods, bending springs, flexible hook arms and an inspect mode for tweaking existing particles and springs. Circles and rods now have per-shape stiffness sliders and an option to add bending springs along their outline. Bending springs may use the current angle of the selected particles or a manual value. Arm creation now exposes mass, radius, colour, adhesion settings and cycle speed per arm. Particle, spring and environment controls each have their own button in the sidebar. The builder can also save or load the entire scene using sidebar buttons, and an **Undo** button reverts the most recent change. Undo operations now keep springs and bending springs functional thanks to a unified `remove_entities` helper. A dedicated **Grid** tool toggles a grid overlay and lets you adjust its spacing; newly created particles snap to grid intersections while it is enabled. Snapping uses a `snap_to_grid` helper that leaves already aligned positions untouched. Internally, these options are grouped into small dataclasses for particles, springs and the environment, simplifying updates.
+* **Interactive builder** – `start_create.py` opens a window where you can drag particles, connect them with springs and spawn predefined structures. A sidebar UI contains sliders to tweak parameters such as mass, radius, spring stiffness and various environment settings like temperature, gravity, repulsion and damping. Tools exist for circles, rods, bending springs, flexible hook arms and an inspect mode for tweaking existing particles and springs. Circles and rods now have per-shape stiffness sliders and an option to add bending springs along their outline. Bending springs may use the current angle of the selected particles or a manual value. Arm creation now exposes mass, radius, colour, adhesion settings and cycle speed per arm. Particle, spring and environment controls each have their own button in the sidebar. The builder can also save or load the entire scene using sidebar buttons, and an **Undo** button reverts the most recent change. Undo operations now keep springs and bending springs functional thanks to a unified `remove_entities` helper. Variable springs offer two rest lengths switched by a user-defined key in hold or toggle mode. A dedicated **Grid** tool toggles a grid overlay and lets you adjust its spacing; newly created particles snap to grid intersections while it is enabled. Snapping uses a `snap_to_grid` helper that leaves already aligned positions untouched. Internally, these options are grouped into small dataclasses for particles, springs and the environment, simplifying updates.
   Number keys **1–0** switch between the first ten sidebar tools in order and each button displays its shortcut. Internally, the builder now dispatches mouse and keyboard input through per‑mode handlers which are looked up from a small dictionary, simplifying the event logic.
 * **Demo scenes** – other `start_*.py` files showcase different preset configurations (e.g. cell walls, rods or gradient walls).  They are good starting points for custom experiments.
 * **Modular codebase** – the core simulation is split into small modules:
@@ -26,8 +26,8 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
     physics engine multiplies its viscous drag, causing it to stick in place.
   * **Weighted adhesion** – a ``HookArm`` tip also increases in mass when stuck
     for extra grip.
-  * **Adjustable springs** – spring rest lengths can be changed on the fly to
-    mimic contracting or extending structures.
+  * **Variable springs** – springs can switch between two rest lengths via a
+    user-defined key.
   * **Developer-friendly** – comprehensive docstrings document the builder UI
     and creation script.
   * **Typed callbacks** – sidebar widgets declare explicit ``Callable``
@@ -65,6 +65,8 @@ Mouse and keyboard controls allow you to switch modes and modify properties:
 * **1** – drag existing particles
 * **2** – place new particles
 * **3** – connect two particles with a spring
+* Use the **VarSpr** button to link particles with a spring that can expand or
+  contract when a chosen key is pressed
 * **4** – delete the particle or spring under the cursor
 * **5** – create rod structures
 * **6** – attach a hook arm to a particle

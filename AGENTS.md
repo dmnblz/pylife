@@ -6,6 +6,7 @@ This repository contains small pygame demos for 2D particle-based physics simula
 
 - `particle.py` – Particle class using Verlet integration.
 - `spring.py` – linear spring connecting two particles.
+- `variable_spring.py` – spring variant with a user-controlled second rest length.
 - `bending_spring.py` – bending constraint that keeps an angle between three particles.
 - `physics.py` – `PhysicsEngine` that applies forces, drag and Brownian noise.
 - `renderer.py` – draws particles and springs to the screen.
@@ -82,3 +83,5 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
   throughout `start_create.py` for grid snapping.
 - Number keys 1–0 now select sidebar tools in order, and button labels display
   the corresponding shortcut.
+- Variable springs provide two rest lengths controlled by a user key in hold
+  or toggle mode. Inspect mode can modify their lengths, speed, key and mode.
