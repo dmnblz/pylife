@@ -275,46 +275,49 @@ class InspectTool(Tool):
         self.spring = None
         self.bend = None
 
-    def draw_ui(self):
+    def draw_ui(self, offset: int = 0):
         """Render fields for the currently selected object."""
-        if not super().draw_ui():
+        if not super().draw_ui(offset):
             return
         if self.particle:
-            self.color_field.draw(self.sidebar.screen)
-            self.mass_field.draw(self.sidebar.screen)
-            self.radius_field.draw(self.sidebar.screen)
+            self.color_field.draw(self.sidebar.screen, offset)
+            self.mass_field.draw(self.sidebar.screen, offset)
+            self.radius_field.draw(self.sidebar.screen, offset)
         elif self.spring:
             self._layout_spring_fields()
-            self.rest_field.draw(self.sidebar.screen)
-            self.stiff_field.draw(self.sidebar.screen)
-            self.max_field.draw(self.sidebar.screen)
+            self.rest_field.draw(self.sidebar.screen, offset)
+            self.stiff_field.draw(self.sidebar.screen, offset)
+            self.max_field.draw(self.sidebar.screen, offset)
             if isinstance(self.spring, VariableSpring):
-                self.alt_field.draw(self.sidebar.screen)
-                self.speed_field.draw(self.sidebar.screen)
-                self.key_field.draw(self.sidebar.screen)
-                pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.mode_rect)
+                self.alt_field.draw(self.sidebar.screen, offset)
+                self.speed_field.draw(self.sidebar.screen, offset)
+                self.key_field.draw(self.sidebar.screen, offset)
+                mode_rect = self.mode_rect.move(0, offset)
+                pygame.draw.rect(self.sidebar.screen, (80, 80, 80), mode_rect)
                 txt = self.sidebar.font.render(
                     f"Mode: {self.spring.mode}", True, (255, 255, 255)
                 )
-                rect = txt.get_rect(center=self.mode_rect.center)
+                rect = txt.get_rect(center=mode_rect.center)
                 self.sidebar.screen.blit(txt, rect)
-            pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.type_rect)
+            type_rect = self.type_rect.move(0, offset)
+            pygame.draw.rect(self.sidebar.screen, (80, 80, 80), type_rect)
             txt = self.sidebar.font.render(
                 "Normal" if isinstance(self.spring, VariableSpring) else "Variable",
                 True,
                 (255, 255, 255),
             )
-            rect = txt.get_rect(center=self.type_rect.center)
+            rect = txt.get_rect(center=type_rect.center)
             self.sidebar.screen.blit(txt, rect)
-            pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.invis_rect)
+            invis_rect = self.invis_rect.move(0, offset)
+            pygame.draw.rect(self.sidebar.screen, (80, 80, 80), invis_rect)
             txt = self.sidebar.font.render(
                 "Hide" if not self.spring.invisible else "Show", True, (255, 255, 255)
             )
-            rect = txt.get_rect(center=self.invis_rect.center)
+            rect = txt.get_rect(center=invis_rect.center)
             self.sidebar.screen.blit(txt, rect)
         elif self.bend:
-            self.bangle_field.draw(self.sidebar.screen)
-            self.bstiff_field.draw(self.sidebar.screen)
+            self.bangle_field.draw(self.sidebar.screen, offset)
+            self.bstiff_field.draw(self.sidebar.screen, offset)
 
     def draw_preview(self):
         """Highlight the currently selected object."""
@@ -353,57 +356,60 @@ class InspectTool(Tool):
             )
 
     # ---------------- event handling
-    def handle_event(self, event):
+    def handle_event(self, event, offset: int = 0):
         """Process selection and slider events."""
-        if not super().handle_event(event):
+        if not super().handle_event(event, offset):
             return False
         if self.particle:
-            if self.color_field.handle_event(event):
+            if self.color_field.handle_event(event, offset):
                 return True
-            if self.mass_field.handle_event(event):
+            if self.mass_field.handle_event(event, offset):
                 return True
-            if self.radius_field.handle_event(event):
+            if self.radius_field.handle_event(event, offset):
                 return True
         elif self.spring:
             self._layout_spring_fields()
-            if self.rest_field.handle_event(event):
+            if self.rest_field.handle_event(event, offset):
                 return True
-            if self.stiff_field.handle_event(event):
+            if self.stiff_field.handle_event(event, offset):
                 return True
-            if self.max_field.handle_event(event):
+            if self.max_field.handle_event(event, offset):
                 return True
             if isinstance(self.spring, VariableSpring):
-                if self.alt_field.handle_event(event):
+                if self.alt_field.handle_event(event, offset):
                     return True
-                if self.speed_field.handle_event(event):
+                if self.speed_field.handle_event(event, offset):
                     return True
-                if self.key_field.handle_event(event):
+                if self.key_field.handle_event(event, offset):
                     return True
+                mode_rect = self.mode_rect.move(0, offset)
                 if (
                     event.type == pygame.MOUSEBUTTONDOWN
                     and event.button == 1
-                    and self.mode_rect.collidepoint(event.pos)
+                    and mode_rect.collidepoint(event.pos)
                 ):
                     self.spring.mode = "toggle" if self.spring.mode == "hold" else "hold"
                     return True
+            type_rect = self.type_rect.move(0, offset)
             if (
                 event.type == pygame.MOUSEBUTTONDOWN
                 and event.button == 1
-                and self.type_rect.collidepoint(event.pos)
+                and type_rect.collidepoint(event.pos)
             ):
                 self._convert_spring()
                 return True
+            invis_rect = self.invis_rect.move(0, offset)
             if (
                 event.type == pygame.MOUSEBUTTONDOWN
                 and event.button == 1
-                and self.invis_rect.collidepoint(event.pos)
+                and invis_rect.collidepoint(event.pos)
             ):
                 self._toggle_invisible()
                 return True
         elif self.bend:
-            if self.bangle_field.handle_event(event):
+            if self.bangle_field.handle_event(event, offset):
                 return True
-            if self.bstiff_field.handle_event(event):
+            if self.bstiff_field.handle_event(event, offset):
                 return True
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:

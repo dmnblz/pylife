@@ -85,13 +85,15 @@ class SliderField:
 
         return self.min + ratio * (self.max - self.min)
 
-    def draw(self, screen):
+    def draw(self, screen, offset: int = 0):
         """Render the slider and its numeric field.
 
         Parameters
         ----------
         screen:
             Surface on which to draw.
+        offset:
+            Vertical pixel offset applied for scrolling.
 
         Returns
         -------
@@ -99,29 +101,34 @@ class SliderField:
         """
 
         value = self.get_value()
+        slider_rect = self.slider_rect.move(0, offset)
+        box_rect = self.box_rect.move(0, offset)
+
         # label
         lbl = self.font.render(self.label, True, (255, 255, 255))
-        screen.blit(lbl, (self.slider_rect.x, self.slider_rect.y - 18))
+        screen.blit(lbl, (slider_rect.x, slider_rect.y - 18))
 
         # slider track
-        pygame.draw.rect(screen, (80, 80, 80), self.slider_rect)
-        knob_x = int(self.slider_rect.x + self._value_to_ratio(value) * self.slider_rect.width)
-        pygame.draw.rect(screen, (180, 180, 180), (knob_x - 3, self.slider_rect.y - 4, 6, self.slider_rect.height + 8))
+        pygame.draw.rect(screen, (80, 80, 80), slider_rect)
+        knob_x = int(slider_rect.x + self._value_to_ratio(value) * slider_rect.width)
+        pygame.draw.rect(screen, (180, 180, 180), (knob_x - 3, slider_rect.y - 4, 6, slider_rect.height + 8))
 
         # textbox
-        pygame.draw.rect(screen, (255, 255, 255), self.box_rect, 1)
+        pygame.draw.rect(screen, (255, 255, 255), box_rect, 1)
         txt = self.text if self.editing else f"{value:.2f}"
         img = self.font.render(txt, True, (255, 255, 255))
-        rect = img.get_rect(center=self.box_rect.center)
+        rect = img.get_rect(center=box_rect.center)
         screen.blit(img, rect)
 
-    def handle_event(self, event):
+    def handle_event(self, event, offset: int = 0):
         """Process input events for the slider.
 
         Parameters
         ----------
         event:
             Pygame event to handle.
+        offset:
+            Vertical pixel offset applied for scrolling.
 
         Returns
         -------
@@ -129,12 +136,15 @@ class SliderField:
             ``True`` if the event was consumed.
         """
 
+        slider_rect = self.slider_rect.move(0, offset)
+        box_rect = self.box_rect.move(0, offset)
+
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.slider_rect.collidepoint(event.pos):
+            if slider_rect.collidepoint(event.pos):
                 self.dragging = True
                 self._update_value(event.pos[0])
                 return True
-            if self.box_rect.collidepoint(event.pos):
+            if box_rect.collidepoint(event.pos):
                 self.editing = True
                 self.text = ""
                 return True
@@ -221,13 +231,15 @@ class ColorField:
         self.editing = False
         self.text = ""
 
-    def draw(self, screen):
+    def draw(self, screen, offset: int = 0):
         """Render the colour swatch and hex entry box.
 
         Parameters
         ----------
         screen:
             Surface on which to draw.
+        offset:
+            Vertical pixel offset applied for scrolling.
 
         Returns
         -------
@@ -235,25 +247,29 @@ class ColorField:
         """
 
         color = self.get_color()
+        color_rect = self.color_rect.move(0, offset)
+        box_rect = self.box_rect.move(0, offset)
         lbl = self.font.render(self.label, True, (255, 255, 255))
-        screen.blit(lbl, (self.color_rect.x, self.color_rect.y - 18))
+        screen.blit(lbl, (color_rect.x, color_rect.y - 18))
 
-        pygame.draw.rect(screen, color, self.color_rect)
-        pygame.draw.rect(screen, (255, 255, 255), self.color_rect, 1)
+        pygame.draw.rect(screen, color, color_rect)
+        pygame.draw.rect(screen, (255, 255, 255), color_rect, 1)
 
-        pygame.draw.rect(screen, (255, 255, 255), self.box_rect, 1)
+        pygame.draw.rect(screen, (255, 255, 255), box_rect, 1)
         txt = self.text if self.editing else "#%02X%02X%02X" % color
         img = self.font.render(txt, True, (255, 255, 255))
-        rect = img.get_rect(center=self.box_rect.center)
+        rect = img.get_rect(center=box_rect.center)
         screen.blit(img, rect)
 
-    def handle_event(self, event):
+    def handle_event(self, event, offset: int = 0):
         """Process user input for the colour field.
 
         Parameters
         ----------
         event:
             Pygame event to handle.
+        offset:
+            Vertical pixel offset applied for scrolling.
 
         Returns
         -------
@@ -261,11 +277,14 @@ class ColorField:
             ``True`` if the event was consumed.
         """
 
+        color_rect = self.color_rect.move(0, offset)
+        box_rect = self.box_rect.move(0, offset)
+
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.color_rect.collidepoint(event.pos):
+            if color_rect.collidepoint(event.pos):
                 self._choose_color()
                 return True
-            if self.box_rect.collidepoint(event.pos):
+            if box_rect.collidepoint(event.pos):
                 self.editing = True
                 self.text = ""
                 return True
@@ -349,13 +368,15 @@ class KeyField:
         self.box_rect = pygame.Rect(x, y + 10, self.BOX_WIDTH, 22)
         self.editing = False
 
-    def draw(self, screen):
+    def draw(self, screen, offset: int = 0):
         """Render the key field.
 
         Parameters
         ----------
         screen:
             Surface on which to draw.
+        offset:
+            Vertical pixel offset applied for scrolling.
 
         Returns
         -------
@@ -367,20 +388,23 @@ class KeyField:
         if self.editing:
             text = f"[{text}]"
 
+        box_rect = self.box_rect.move(0, offset)
         lbl = self.font.render(self.label, True, (255, 255, 255))
-        screen.blit(lbl, (self.box_rect.x, self.box_rect.y - 18))
-        pygame.draw.rect(screen, (255, 255, 255), self.box_rect, 1)
+        screen.blit(lbl, (box_rect.x, box_rect.y - 18))
+        pygame.draw.rect(screen, (255, 255, 255), box_rect, 1)
         img = self.font.render(text, True, (255, 255, 255))
-        rect = img.get_rect(center=self.box_rect.center)
+        rect = img.get_rect(center=box_rect.center)
         screen.blit(img, rect)
 
-    def handle_event(self, event):
+    def handle_event(self, event, offset: int = 0):
         """Handle mouse and keyboard input.
 
         Parameters
         ----------
         event:
             Pygame event to process.
+        offset:
+            Vertical pixel offset applied for scrolling.
 
         Returns
         -------
@@ -388,8 +412,10 @@ class KeyField:
             ``True`` if the event was consumed.
         """
 
+        box_rect = self.box_rect.move(0, offset)
+
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.box_rect.collidepoint(event.pos):
+            if box_rect.collidepoint(event.pos):
                 self.editing = True
                 return True
         elif event.type == pygame.KEYDOWN and self.editing:

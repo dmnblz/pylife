@@ -37,6 +37,7 @@ class SidebarUI:
         self.buttons = []
         self.fields = []
         self.visible = True
+        self.scroll_offset = 0
         self.circle_tool = None
         self._setup_ui()
         # setup circle tool after computing layout
@@ -59,7 +60,7 @@ class SidebarUI:
         x = sw - self.WIDTH + 10
         y = 10
 
-        def add_button(label, action, key_hint: str | None = None):
+        def add_button(label, action, key_hint: str | None = None, mode: str | None = None):
             """Add a clickable button to the sidebar.
 
             Parameters
@@ -71,27 +72,37 @@ class SidebarUI:
             key_hint:
                 Optional short string shown on the button to indicate a
                 keyboard shortcut.
+            mode:
+                Optional builder mode associated with this button. The
+                button highlights while active.
             """
 
             nonlocal y
             rect = pygame.Rect(x, y, self.WIDTH - 20, self.BUTTON_HEIGHT)
             self.buttons.append(
-                {"rect": rect, "label": label, "action": action, "key": key_hint}
+                {
+                    "rect": rect,
+                    "label": label,
+                    "action": action,
+                    "key": key_hint,
+                    "mode": mode,
+                    "pressed": 0,
+                }
             )
             y += self.BUTTON_HEIGHT + self.BUTTON_MARGIN
 
-        add_button("Drag", lambda: self.app.set_mode("drag"), "1")
-        add_button("Particle", lambda: self.app.set_mode("particle"), "2")
-        add_button("Spring", lambda: self.app.set_mode("spring"), "3")
-        add_button("VarSpr", lambda: self.app.set_mode("vspring"))
-        add_button("Bend", lambda: self.app.set_mode("bend"), "4")
-        add_button("Circle", lambda: self.app.set_mode("circle"), "5")
-        add_button("Rod", lambda: self.app.set_mode("rod"), "6")
-        add_button("Arm", lambda: self.app.set_mode("arm"), "7")
-        add_button("Inspect", lambda: self.app.set_mode("inspect"), "8")
-        add_button("Grid", lambda: self.app.set_mode("grid"), "9")
-        add_button("Env", lambda: self.app.set_mode("env"), "0")
-        add_button("Delete", lambda: self.app.set_mode("delete"), "Del")
+        add_button("Drag", lambda: self.app.set_mode("drag"), "1", "drag")
+        add_button("Particle", lambda: self.app.set_mode("particle"), "2", "particle")
+        add_button("Spring", lambda: self.app.set_mode("spring"), "3", "spring")
+        add_button("VarSpr", lambda: self.app.set_mode("vspring"), mode="vspring")
+        add_button("Bend", lambda: self.app.set_mode("bend"), "4", "bend")
+        add_button("Circle", lambda: self.app.set_mode("circle"), "5", "circle")
+        add_button("Rod", lambda: self.app.set_mode("rod"), "6", "rod")
+        add_button("Arm", lambda: self.app.set_mode("arm"), "7", "arm")
+        add_button("Inspect", lambda: self.app.set_mode("inspect"), "8", "inspect")
+        add_button("Grid", lambda: self.app.set_mode("grid"), "9", "grid")
+        add_button("Env", lambda: self.app.set_mode("env"), "0", "env")
+        add_button("Delete", lambda: self.app.set_mode("delete"), "Del", "delete")
         add_button("Undo", self.app.undo)
         add_button("Save", self.app.save_state_dialog)
         add_button("Load", self.app.load_state_dialog)
@@ -116,30 +127,37 @@ class SidebarUI:
         if self.visible:
             pygame.draw.rect(self.screen, (50, 50, 50), sidebar_rect)
 
+            now = pygame.time.get_ticks()
             for btn in self.buttons:
+                rect = btn["rect"].move(0, self.scroll_offset)
                 label = btn["label"]() if callable(btn["label"]) else btn["label"]
                 hint = btn.get("key")
                 if hint:
                     label = f"{label} [{hint}]"
-                pygame.draw.rect(self.screen, (80, 80, 80), btn["rect"])
+                color = (80, 80, 80)
+                if btn.get("mode") == self.app.mode:
+                    color = (120, 120, 120)
+                if now - btn.get("pressed", 0) < 150:
+                    color = (60, 60, 60)
+                pygame.draw.rect(self.screen, color, rect)
                 text_img = self.font.render(label, True, (255, 255, 255))
-                text_rect = text_img.get_rect(center=btn["rect"].center)
+                text_rect = text_img.get_rect(center=rect.center)
                 self.screen.blit(text_img, text_rect)
 
             for field in self.fields:
-                field.draw(self.screen)
+                field.draw(self.screen, self.scroll_offset)
 
             # extra UI from tools
-            self.particle_tool.draw_ui()
-            self.spring_tool.draw_ui()
-            self.variable_spring_tool.draw_ui()
-            self.bend_tool.draw_ui()
-            self.circle_tool.draw_ui()
-            self.rod_tool.draw_ui()
-            self.arm_tool.draw_ui()
-            self.grid_tool.draw_ui()
-            self.env_tool.draw_ui()
-            self.inspect_tool.draw_ui()
+            self.particle_tool.draw_ui(self.scroll_offset)
+            self.spring_tool.draw_ui(self.scroll_offset)
+            self.variable_spring_tool.draw_ui(self.scroll_offset)
+            self.bend_tool.draw_ui(self.scroll_offset)
+            self.circle_tool.draw_ui(self.scroll_offset)
+            self.rod_tool.draw_ui(self.scroll_offset)
+            self.arm_tool.draw_ui(self.scroll_offset)
+            self.grid_tool.draw_ui(self.scroll_offset)
+            self.env_tool.draw_ui(self.scroll_offset)
+            self.inspect_tool.draw_ui(self.scroll_offset)
 
         # preview from tools (visible or not)
         self.particle_tool.draw_preview()
@@ -180,37 +198,48 @@ class SidebarUI:
                 self.visible = not self.visible
                 return True
 
+        if event.type == pygame.MOUSEWHEEL:
+            if self.visible:
+                self.scroll_offset += event.y * 20
+                return True
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button in (4, 5):
+            if self.visible:
+                self.scroll_offset += 20 if event.button == 4 else -20
+                return True
+
         if self.visible:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 for btn in self.buttons:
-                    if btn["rect"].collidepoint(event.pos):
+                    rect = btn["rect"].move(0, self.scroll_offset)
+                    if rect.collidepoint(event.pos):
                         btn["action"]()
+                        btn["pressed"] = pygame.time.get_ticks()
                         return True
 
         if self.visible:
             for field in self.fields:
-                if field.handle_event(event):
+                if field.handle_event(event, self.scroll_offset):
                     return True
 
-        if self.particle_tool.handle_event(event):
+        if self.particle_tool.handle_event(event, self.scroll_offset):
             return True
-        if self.spring_tool.handle_event(event):
+        if self.spring_tool.handle_event(event, self.scroll_offset):
             return True
-        if self.variable_spring_tool.handle_event(event):
+        if self.variable_spring_tool.handle_event(event, self.scroll_offset):
             return True
-        if self.bend_tool.handle_event(event):
+        if self.bend_tool.handle_event(event, self.scroll_offset):
             return True
-        if self.circle_tool.handle_event(event):
+        if self.circle_tool.handle_event(event, self.scroll_offset):
             return True
-        if self.rod_tool.handle_event(event):
+        if self.rod_tool.handle_event(event, self.scroll_offset):
             return True
-        if self.arm_tool.handle_event(event):
+        if self.arm_tool.handle_event(event, self.scroll_offset):
             return True
-        if self.grid_tool.handle_event(event):
+        if self.grid_tool.handle_event(event, self.scroll_offset):
             return True
-        if self.env_tool.handle_event(event):
+        if self.env_tool.handle_event(event, self.scroll_offset):
             return True
-        if self.inspect_tool.handle_event(event):
+        if self.inspect_tool.handle_event(event, self.scroll_offset):
             return True
 
         return False

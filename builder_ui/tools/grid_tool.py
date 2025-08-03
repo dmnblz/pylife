@@ -25,26 +25,28 @@ class GridTool(Tool):
         )
 
     # ---------------- drawing
-    def draw_ui(self):
+    def draw_ui(self, offset: int = 0):
         """Render the grid toggle and spacing slider."""
-        if not super().draw_ui():
+        if not super().draw_ui(offset):
             return
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.toggle_rect)
+        toggle_rect = self.toggle_rect.move(0, offset)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), toggle_rect)
         state = "On" if self.app.grid_enabled else "Off"
         txt = self.sidebar.font.render(f"Grid: {state}", True, (255, 255, 255))
-        rect = txt.get_rect(center=self.toggle_rect.center)
+        rect = txt.get_rect(center=toggle_rect.center)
         self.sidebar.screen.blit(txt, rect)
-        self.size_field.draw(self.sidebar.screen)
+        self.size_field.draw(self.sidebar.screen, offset)
 
     # ---------------- event handling
-    def handle_event(self, event):
+    def handle_event(self, event, offset: int = 0):
         """Handle mouse input for grid toggling and spacing."""
-        if not super().handle_event(event):
+        if not super().handle_event(event, offset):
             return False
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.toggle_rect.collidepoint(event.pos):
+            toggle_rect = self.toggle_rect.move(0, offset)
+            if toggle_rect.collidepoint(event.pos):
                 self.app.toggle_grid()
                 return True
-        if self.size_field.handle_event(event):
+        if self.size_field.handle_event(event, offset):
             return True
         return False

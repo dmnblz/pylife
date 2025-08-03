@@ -61,33 +61,35 @@ class VariableSpringTool(Tool):
         y += 40
         self.mode_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
 
-    def draw_ui(self):
+    def draw_ui(self, offset: int = 0):
         """Render the slider and key fields."""
-        if not super().draw_ui():
+        if not super().draw_ui(offset):
             return
-        self.stiff_field.draw(self.sidebar.screen)
-        self.alt_field.draw(self.sidebar.screen)
-        self.speed_field.draw(self.sidebar.screen)
-        self.key_field.draw(self.sidebar.screen)
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.mode_rect)
+        self.stiff_field.draw(self.sidebar.screen, offset)
+        self.alt_field.draw(self.sidebar.screen, offset)
+        self.speed_field.draw(self.sidebar.screen, offset)
+        self.key_field.draw(self.sidebar.screen, offset)
+        mode_rect = self.mode_rect.move(0, offset)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), mode_rect)
         txt = self.sidebar.font.render(f"Mode: {self.app.vspring.mode}", True, (255, 255, 255))
-        rect = txt.get_rect(center=self.mode_rect.center)
+        rect = txt.get_rect(center=mode_rect.center)
         self.sidebar.screen.blit(txt, rect)
 
-    def handle_event(self, event):
+    def handle_event(self, event, offset: int = 0):
         """Forward events to sliders and handle mode toggling."""
-        if not super().handle_event(event):
+        if not super().handle_event(event, offset):
             return False
-        if self.stiff_field.handle_event(event):
+        if self.stiff_field.handle_event(event, offset):
             return True
-        if self.alt_field.handle_event(event):
+        if self.alt_field.handle_event(event, offset):
             return True
-        if self.speed_field.handle_event(event):
+        if self.speed_field.handle_event(event, offset):
             return True
-        if self.key_field.handle_event(event):
+        if self.key_field.handle_event(event, offset):
             return True
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.mode_rect.collidepoint(event.pos):
+            mode_rect = self.mode_rect.move(0, offset)
+            if mode_rect.collidepoint(event.pos):
                 self.app.vspring.mode = "toggle" if self.app.vspring.mode == "hold" else "hold"
                 return True
         return False

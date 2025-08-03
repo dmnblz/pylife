@@ -35,12 +35,19 @@ class Tool:
         self.active = False
 
     # ---------------- drawing ---------------------------------------------------
-    def draw_ui(self) -> bool:
+    def draw_ui(self, offset: int = 0) -> bool:
         """Return ``True`` if the tool should draw its UI.
+
+        Parameters
+        ----------
+        offset:
+            Vertical sidebar offset applied during scrolling. The base class
+            ignores this value but subclasses should forward it to their
+            widgets.
 
         Subclasses should start their ``draw_ui`` implementation with::
 
-            if not super().draw_ui():
+            if not super().draw_ui(offset):
                 return
 
         The default method simply checks whether the tool is active and the
@@ -54,13 +61,20 @@ class Tool:
         return self.active
 
     # ---------------- events ----------------------------------------------------
-    def handle_event(self, event) -> bool:  # pragma: no cover - trivial
+    def handle_event(self, event, offset: int = 0) -> bool:  # pragma: no cover - trivial
         """Return ``True`` if the tool should handle ``event``.
 
-        Subclasses typically call ``super().handle_event(event)`` and abort if
+        Parameters
+        ----------
+        event:
+            Pygame event being processed.
+        offset:
+            Vertical sidebar offset applied during scrolling.
+
+        Subclasses typically call ``super().handle_event(event, offset)`` and abort if
         it returns ``False``::
 
-            if not super().handle_event(event):
+            if not super().handle_event(event, offset):
                 return False
 
         The default method returns ``True`` only when the tool is active and the

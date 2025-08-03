@@ -30,17 +30,17 @@ class SpringTool(Tool):
         )
 
     # ---------------- drawing
-    def draw_ui(self):
+    def draw_ui(self, offset: int = 0):
         """Render the spring stiffness slider."""
-        if not super().draw_ui():
+        if not super().draw_ui(offset):
             return
-        self.stiff_field.draw(self.sidebar.screen)
+        self.stiff_field.draw(self.sidebar.screen, offset)
 
     # ---------------- event handling
-    def handle_event(self, event):
+    def handle_event(self, event, offset: int = 0):
         """Forward input events to the stiffness slider."""
-        if not super().handle_event(event):
+        if not super().handle_event(event, offset):
             return False
-        if self.stiff_field.handle_event(event):
+        if self.stiff_field.handle_event(event, offset):
             return True
         return False

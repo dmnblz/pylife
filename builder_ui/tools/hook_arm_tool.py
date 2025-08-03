@@ -152,23 +152,24 @@ class HookArmTool(Tool):
             pts.append(self.app.snap_to_grid(pos))
         return pts
 
-    def draw_ui(self):
+    def draw_ui(self, offset: int = 0):
         """Render hook arm configuration controls."""
-        if not super().draw_ui():
+        if not super().draw_ui(offset):
             return
-        self.seg_field.draw(self.sidebar.screen)
-        self.space_field.draw(self.sidebar.screen)
-        self.mass_field.draw(self.sidebar.screen)
-        self.radius_field.draw(self.sidebar.screen)
-        self.stiff_field.draw(self.sidebar.screen)
-        self.speed_field.draw(self.sidebar.screen)
-        self.color_field.draw(self.sidebar.screen)
-        self.high_field.draw(self.sidebar.screen)
-        self.adh_field.draw(self.sidebar.screen)
-        self.key_field.draw(self.sidebar.screen)
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.create_rect)
+        self.seg_field.draw(self.sidebar.screen, offset)
+        self.space_field.draw(self.sidebar.screen, offset)
+        self.mass_field.draw(self.sidebar.screen, offset)
+        self.radius_field.draw(self.sidebar.screen, offset)
+        self.stiff_field.draw(self.sidebar.screen, offset)
+        self.speed_field.draw(self.sidebar.screen, offset)
+        self.color_field.draw(self.sidebar.screen, offset)
+        self.high_field.draw(self.sidebar.screen, offset)
+        self.adh_field.draw(self.sidebar.screen, offset)
+        self.key_field.draw(self.sidebar.screen, offset)
+        create_rect = self.create_rect.move(0, offset)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), create_rect)
         txt = self.sidebar.font.render("Create", True, (255, 255, 255))
-        rect = txt.get_rect(center=self.create_rect.center)
+        rect = txt.get_rect(center=create_rect.center)
         self.sidebar.screen.blit(txt, rect)
 
     def draw_preview(self):
@@ -184,32 +185,33 @@ class HookArmTool(Tool):
             last = p
 
     # ---------------- event handling
-    def handle_event(self, event):
+    def handle_event(self, event, offset: int = 0):
         """Manage UI interaction and base selection."""
-        if not super().handle_event(event):
+        if not super().handle_event(event, offset):
             return False
-        if self.seg_field.handle_event(event):
+        if self.seg_field.handle_event(event, offset):
             return True
-        if self.space_field.handle_event(event):
+        if self.space_field.handle_event(event, offset):
             return True
-        if self.mass_field.handle_event(event):
+        if self.mass_field.handle_event(event, offset):
             return True
-        if self.radius_field.handle_event(event):
+        if self.radius_field.handle_event(event, offset):
             return True
-        if self.stiff_field.handle_event(event):
+        if self.stiff_field.handle_event(event, offset):
             return True
-        if self.speed_field.handle_event(event):
+        if self.speed_field.handle_event(event, offset):
             return True
-        if self.color_field.handle_event(event):
+        if self.color_field.handle_event(event, offset):
             return True
-        if self.high_field.handle_event(event):
+        if self.high_field.handle_event(event, offset):
             return True
-        if self.adh_field.handle_event(event):
+        if self.adh_field.handle_event(event, offset):
             return True
-        if self.key_field.handle_event(event):
+        if self.key_field.handle_event(event, offset):
             return True
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.create_rect.collidepoint(event.pos) and self.base:
+            create_rect = self.create_rect.move(0, offset)
+            if create_rect.collidepoint(event.pos) and self.base:
                 self.app.create_hook_arm(
                     self.base,
                     self.direction,

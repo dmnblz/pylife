@@ -50,24 +50,24 @@ class ParticleTool(Tool):
         )
 
     # ---------------- drawing
-    def draw_ui(self):
+    def draw_ui(self, offset: int = 0):
         """Render particle configuration sliders."""
-        if not super().draw_ui():
+        if not super().draw_ui(offset):
             return
-        self.color_field.draw(self.sidebar.screen)
-        self.mass_field.draw(self.sidebar.screen)
-        self.radius_field.draw(self.sidebar.screen)
+        self.color_field.draw(self.sidebar.screen, offset)
+        self.mass_field.draw(self.sidebar.screen, offset)
+        self.radius_field.draw(self.sidebar.screen, offset)
 
     # ---------------- event handling
-    def handle_event(self, event):
+    def handle_event(self, event, offset: int = 0):
         """Forward input events to particle option widgets."""
-        if not super().handle_event(event):
+        if not super().handle_event(event, offset):
             return False
-        if self.color_field.handle_event(event):
+        if self.color_field.handle_event(event, offset):
             return True
-        if self.mass_field.handle_event(event):
+        if self.mass_field.handle_event(event, offset):
             return True
-        if self.radius_field.handle_event(event):
+        if self.radius_field.handle_event(event, offset):
             return True
         return False
 
