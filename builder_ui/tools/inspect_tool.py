@@ -3,6 +3,7 @@
 import math
 import pygame
 
+from spring import Spring
 from variable_spring import VariableSpring
 from ..fields import SliderField, ColorField, KeyField
 from .base import Tool
@@ -21,8 +22,10 @@ class InspectTool(Tool):
 
         x = sidebar.screen.get_width() - sidebar.WIDTH + 10
         width = sidebar.WIDTH - 20
-        y = sidebar.extra_start_y
+        base_y = sidebar.extra_start_y
 
+        # particle fields
+        y = base_y
         self.color_field = ColorField(
             "P Color", self._get_color, self._set_color, x, y, width
         )
@@ -34,7 +37,9 @@ class InspectTool(Tool):
         self.radius_field = SliderField(
             "P Radius", 1, 50, self._get_radius, self._set_radius, x, y, width
         )
-        y += 40
+
+        # spring fields
+        y = base_y
         self.rest_field = SliderField(
             "S Rest", 1, 400, self._get_rest, self._set_rest, x, y, width
         )
@@ -59,6 +64,12 @@ class InspectTool(Tool):
         y += 40
         self.mode_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
         y += 40
+        self.type_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
+        y += 40
+        self.invis_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
+
+        # bend fields
+        y = base_y
         self.bangle_field = SliderField(
             "B Ang", 0, 180, self._get_bangle, self._set_bangle, x, y, width
         )
@@ -66,8 +77,6 @@ class InspectTool(Tool):
         self.bstiff_field = SliderField(
             "B Stiff", 10, 1000, self._get_bstiff, self._set_bstiff, x, y, width
         )
-        y += 40
-        self.invis_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
 
     # ---------------- helpers
     def _get_color(self) -> tuple[int, int, int]:
@@ -152,6 +161,66 @@ class InspectTool(Tool):
         if isinstance(self.spring, VariableSpring):
             self.sidebar.app.update_vspring_key(self.spring, value)
 
+    def _convert_spring(self) -> None:
+        """Toggle the selected spring between variable and normal types."""
+        if not self.spring:
+            return
+        if isinstance(self.spring, VariableSpring):
+            old = self.spring
+            self.sidebar.app.update_vspring_key(old, None)
+            new = Spring(
+                old.p1,
+                old.p2,
+                old.base_rest_length,
+                old.stiffness,
+                max_force=old.max_force,
+                invisible=old.invisible,
+            )
+            idx = self.app.springs.index(old)
+            self.app.springs[idx] = new
+            self.spring = new
+        else:
+            old = self.spring
+            cfg = self.sidebar.app.config.variable_spring
+            new = VariableSpring(
+                old.p1,
+                old.p2,
+                old.rest_length,
+                old.rest_length * cfg.alt_factor,
+                old.stiffness,
+                key=cfg.key,
+                mode=cfg.mode,
+                change_speed=cfg.speed,
+                max_force=old.max_force,
+                invisible=old.invisible,
+            )
+            idx = self.app.springs.index(old)
+            self.app.springs[idx] = new
+            self.sidebar.app.register_variable_spring(new)
+            self.spring = new
+
+    def _layout_spring_fields(self) -> None:
+        """Position spring widgets based on spring type."""
+        y = self.sidebar.extra_start_y
+        self.rest_field.rect.y = y
+        y += 40
+        self.stiff_field.rect.y = y
+        y += 40
+        self.max_field.rect.y = y
+        y += 40
+        if isinstance(self.spring, VariableSpring):
+            self.alt_field.rect.y = y
+            y += 40
+            self.speed_field.rect.y = y
+            y += 40
+            self.key_field.rect.y = y
+            y += 40
+            self.mode_rect.y = y
+            y += 40
+        self.type_rect.y = y
+        y += 40
+        self.invis_rect.y = y
+
     def _get_bangle(self) -> float:
         """Return bend rest angle in degrees."""
         return math.degrees(self.bend.rest_angle) if self.bend else 0
@@ -210,6 +279,7 @@ class InspectTool(Tool):
             self.mass_field.draw(self.sidebar.screen)
             self.radius_field.draw(self.sidebar.screen)
         elif self.spring:
+            self._layout_spring_fields()
             self.rest_field.draw(self.sidebar.screen)
             self.stiff_field.draw(self.sidebar.screen)
             self.max_field.draw(self.sidebar.screen)
@@ -223,6 +293,14 @@ class InspectTool(Tool):
                 )
                 rect = txt.get_rect(center=self.mode_rect.center)
                 self.sidebar.screen.blit(txt, rect)
+            pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.type_rect)
+            txt = self.sidebar.font.render(
+                "Normal" if isinstance(self.spring, VariableSpring) else "Variable",
+                True,
+                (255, 255, 255),
+            )
+            rect = txt.get_rect(center=self.type_rect.center)
+            self.sidebar.screen.blit(txt, rect)
             pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.invis_rect)
             txt = self.sidebar.font.render(
                 "Hide" if not self.spring.invisible else "Show", True, (255, 255, 255)
@@ -282,6 +360,7 @@ class InspectTool(Tool):
             if self.radius_field.handle_event(event):
                 return True
         elif self.spring:
+            self._layout_spring_fields()
             if self.rest_field.handle_event(event):
                 return True
             if self.stiff_field.handle_event(event):
@@ -302,7 +381,18 @@ class InspectTool(Tool):
                 ):
                     self.spring.mode = "toggle" if self.spring.mode == "hold" else "hold"
                     return True
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.invis_rect.collidepoint(event.pos):
+            if (
+                event.type == pygame.MOUSEBUTTONDOWN
+                and event.button == 1
+                and self.type_rect.collidepoint(event.pos)
+            ):
+                self._convert_spring()
+                return True
+            if (
+                event.type == pygame.MOUSEBUTTONDOWN
+                and event.button == 1
+                and self.invis_rect.collidepoint(event.pos)
+            ):
                 self._toggle_invisible()
                 return True
         elif self.bend:

@@ -87,3 +87,5 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
   or toggle mode. Inspect mode can modify their lengths, speed, key and mode.
 - Delete tool no longer crashes when removing springs.
 - Saving and loading scenes now keep variable spring parameters and key bindings.
+- Inspect mode can convert normal springs to variable springs and back, and
+  spring fields in the sidebar align correctly.
