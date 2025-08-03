@@ -63,11 +63,10 @@ class ParticleTool(Tool):
         """Forward input events to particle option widgets."""
         if not super().handle_event(event):
             return False
-        if self.sidebar.visible:
-            if self.color_field.handle_event(event):
-                return True
-            if self.mass_field.handle_event(event):
-                return True
-            if self.radius_field.handle_event(event):
-                return True
+        if self.color_field.handle_event(event):
+            return True
+        if self.mass_field.handle_event(event):
+            return True
+        if self.radius_field.handle_event(event):
+            return True
         return False

@@ -136,17 +136,16 @@ class EnvironmentTool(Tool):
         """Forward events to environment sliders."""
         if not super().handle_event(event):
             return False
-        if self.sidebar.visible:
-            if self.gx_field.handle_event(event):
-                return True
-            if self.gy_field.handle_event(event):
-                return True
-            if self.rep_rad_field.handle_event(event):
-                return True
-            if self.rep_str_field.handle_event(event):
-                return True
-            if self.damp_field.handle_event(event):
-                return True
-            if self.temp_field.handle_event(event):
-                return True
+        if self.gx_field.handle_event(event):
+            return True
+        if self.gy_field.handle_event(event):
+            return True
+        if self.rep_rad_field.handle_event(event):
+            return True
+        if self.rep_str_field.handle_event(event):
+            return True
+        if self.damp_field.handle_event(event):
+            return True
+        if self.temp_field.handle_event(event):
+            return True
         return False

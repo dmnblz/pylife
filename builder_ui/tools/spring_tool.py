@@ -41,7 +41,6 @@ class SpringTool(Tool):
         """Forward input events to the stiffness slider."""
         if not super().handle_event(event):
             return False
-        if self.sidebar.visible:
-            if self.stiff_field.handle_event(event):
-                return True
+        if self.stiff_field.handle_event(event):
+            return True
         return False

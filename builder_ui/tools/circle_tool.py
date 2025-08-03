@@ -128,32 +128,31 @@ class CircleTool(Tool):
         if not super().handle_event(event):
             return False
 
-        if self.sidebar.visible:
-            if self.radius_field.handle_event(event):
+        if self.radius_field.handle_event(event):
+            return True
+        if self.segments_field.handle_event(event):
+            return True
+        if self.stiff_field.handle_event(event):
+            return True
+        if self.include_bend and self.bstiff_field.handle_event(event):
+            return True
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.bend_rect.collidepoint(event.pos):
+                self.include_bend = not self.include_bend
                 return True
-            if self.segments_field.handle_event(event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.create_rect.collidepoint(event.pos) and self.center:
+                self.app.create_circle(
+                    self.center,
+                    self.radius,
+                    self.segments,
+                    self.stiffness,
+                    self.include_bend,
+                    self.bend_stiffness,
+                )
+                self.cancel()
+                self.sidebar.app.set_mode("drag")
                 return True
-            if self.stiff_field.handle_event(event):
-                return True
-            if self.include_bend and self.bstiff_field.handle_event(event):
-                return True
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if self.bend_rect.collidepoint(event.pos):
-                    self.include_bend = not self.include_bend
-                    return True
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if self.create_rect.collidepoint(event.pos) and self.center:
-                    self.app.create_circle(
-                        self.center,
-                        self.radius,
-                        self.segments,
-                        self.stiffness,
-                        self.include_bend,
-                        self.bend_stiffness,
-                    )
-                    self.cancel()
-                    self.sidebar.app.set_mode("drag")
-                    return True
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             # click in world area to set center

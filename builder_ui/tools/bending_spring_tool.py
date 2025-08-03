@@ -92,42 +92,40 @@ class BendingSpringTool(Tool):
         """Handle field input and particle selection."""
         if not super().handle_event(event):
             return False
-
-        if self.sidebar.visible:
-            if not self.auto_angle:
-                if self.angle_field.handle_event(event):
-                    return True
-            if self.stiff_field.handle_event(event):
+        if not self.auto_angle:
+            if self.angle_field.handle_event(event):
                 return True
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if self.auto_rect.collidepoint(event.pos):
-                    self.auto_angle = not self.auto_angle
-                    return True
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if self.create_rect.collidepoint(event.pos) and len(self.selected) == 3:
-                    from math import radians
-                    if self.auto_angle:
-                        v1 = self.selected[0].pos - self.selected[1].pos
-                        v2 = self.selected[2].pos - self.selected[1].pos
-                        if v1.length() == 0 or v2.length() == 0:
-                            angle = 0
-                        else:
-                            dot = max(-1.0, min(1.0, v1.dot(v2) / (v1.length()*v2.length())))
-                            angle = math.acos(dot)
+        if self.stiff_field.handle_event(event):
+            return True
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.auto_rect.collidepoint(event.pos):
+                self.auto_angle = not self.auto_angle
+                return True
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.create_rect.collidepoint(event.pos) and len(self.selected) == 3:
+                from math import radians
+                if self.auto_angle:
+                    v1 = self.selected[0].pos - self.selected[1].pos
+                    v2 = self.selected[2].pos - self.selected[1].pos
+                    if v1.length() == 0 or v2.length() == 0:
+                        angle = 0
                     else:
-                        angle = radians(self.angle)
-                    bs = BendingSpring(
-                        self.selected[0],
-                        self.selected[1],
-                        self.selected[2],
-                        angle,
-                        self.stiffness,
-                    )
-                    self.app.bending_springs.append(bs)
-                    self.app.push_undo(lambda bs=bs: self.app._remove_bending(bs))
-                    self.cancel()
-                    self.sidebar.app.set_mode("drag")
-                    return True
+                        dot = max(-1.0, min(1.0, v1.dot(v2) / (v1.length()*v2.length())))
+                        angle = math.acos(dot)
+                else:
+                    angle = radians(self.angle)
+                bs = BendingSpring(
+                    self.selected[0],
+                    self.selected[1],
+                    self.selected[2],
+                    angle,
+                    self.stiffness,
+                )
+                self.app.bending_springs.append(bs)
+                self.app.push_undo(lambda bs=bs: self.app._remove_bending(bs))
+                self.cancel()
+                self.sidebar.app.set_mode("drag")
+                return True
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():

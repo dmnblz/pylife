@@ -248,46 +248,44 @@ class RodTool(Tool):
         """Process mouse input for rod placement and option toggles."""
         if not super().handle_event(event):
             return False
-
-        if self.sidebar.visible:
-            if self.radius_field.handle_event(event):
+        if self.radius_field.handle_event(event):
+            return True
+        if self.length_field.handle_event(event):
+            return True
+        if self.segments_field.handle_event(event):
+            return True
+        if self.skel_count_field.handle_event(event):
+            return True
+        if self.stiff_field.handle_event(event):
+            return True
+        if self.include_bend and self.bstiff_field.handle_event(event):
+            return True
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.bend_rect.collidepoint(event.pos):
+                self.include_bend = not self.include_bend
                 return True
-            if self.length_field.handle_event(event):
+            if self.cyto_rect.collidepoint(event.pos):
+                self.include_cytoskeleton = not self.include_cytoskeleton
                 return True
-            if self.segments_field.handle_event(event):
+            if self.skeleton_rect.collidepoint(event.pos):
+                self.include_skeleton = not self.include_skeleton
                 return True
-            if self.skel_count_field.handle_event(event):
+            if self.create_rect.collidepoint(event.pos) and self.center:
+                self.app.create_rod(
+                    self.center,
+                    self.radius,
+                    self.length,
+                    self.segments,
+                    self.include_cytoskeleton,
+                    self.include_skeleton,
+                    self.skeleton_count,
+                    self.stiffness,
+                    self.include_bend,
+                    self.bend_stiffness,
+                )
+                self.cancel()
+                self.sidebar.app.set_mode("drag")
                 return True
-            if self.stiff_field.handle_event(event):
-                return True
-            if self.include_bend and self.bstiff_field.handle_event(event):
-                return True
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if self.bend_rect.collidepoint(event.pos):
-                    self.include_bend = not self.include_bend
-                    return True
-                if self.cyto_rect.collidepoint(event.pos):
-                    self.include_cytoskeleton = not self.include_cytoskeleton
-                    return True
-                if self.skeleton_rect.collidepoint(event.pos):
-                    self.include_skeleton = not self.include_skeleton
-                    return True
-                if self.create_rect.collidepoint(event.pos) and self.center:
-                    self.app.create_rod(
-                        self.center,
-                        self.radius,
-                        self.length,
-                        self.segments,
-                        self.include_cytoskeleton,
-                        self.include_skeleton,
-                        self.skeleton_count,
-                        self.stiffness,
-                        self.include_bend,
-                        self.bend_stiffness,
-                    )
-                    self.cancel()
-                    self.sidebar.app.set_mode("drag")
-                    return True
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
