@@ -12,6 +12,8 @@ class BendingSpringTool(Tool):
     """Create a bending spring by choosing three particles."""
 
     def __init__(self, sidebar: 'SidebarUI'):
+        """Configure fields for creating bending springs."""
+
         super().__init__(sidebar)
         self.angle = 90.0
         self.stiffness = 200.0
@@ -35,23 +37,28 @@ class BendingSpringTool(Tool):
         self.create_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
 
     def _set_angle(self, val: float):
+        """Set the manual bend angle in degrees."""
         self.angle = max(0, val)
 
     def _set_stiff(self, val: float):
+        """Set stiffness for the new bending spring."""
         self.stiffness = max(10, val)
 
     # ---------------- control
     def start(self):
+        """Activate the tool and clear previous selections."""
         super().start()
         self.auto_angle = False
         self.selected.clear()
 
     def cancel(self):
+        """Deactivate the tool and forget current selections."""
         super().cancel()
         self.selected.clear()
 
     # ---------------- drawing
     def draw_ui(self):
+        """Render bending spring configuration controls."""
         if not super().draw_ui():
             return
         if not self.auto_angle:
@@ -68,6 +75,7 @@ class BendingSpringTool(Tool):
         self.sidebar.screen.blit(txt, rect)
 
     def draw_preview(self):
+        """Highlight selected particles and preview links."""
         if not super().draw_preview():
             return
         screen = self.sidebar.screen
@@ -81,6 +89,7 @@ class BendingSpringTool(Tool):
 
     # ---------------- event handling
     def handle_event(self, event):
+        """Handle field input and particle selection."""
         if not super().handle_event(event):
             return False
 

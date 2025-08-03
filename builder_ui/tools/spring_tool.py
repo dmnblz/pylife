@@ -10,6 +10,8 @@ class SpringTool(Tool):
     """Handle spring stiffness options when creating new springs."""
 
     def __init__(self, sidebar: 'SidebarUI'):
+        """Create the stiffness slider for new springs."""
+
         super().__init__(sidebar)
 
         x = sidebar.screen.get_width() - sidebar.WIDTH + 10
@@ -29,12 +31,14 @@ class SpringTool(Tool):
 
     # ---------------- drawing
     def draw_ui(self):
+        """Render the spring stiffness slider."""
         if not super().draw_ui():
             return
         self.stiff_field.draw(self.sidebar.screen)
 
     # ---------------- event handling
     def handle_event(self, event):
+        """Forward input events to the stiffness slider."""
         if not super().handle_event(event):
             return False
         if self.sidebar.visible:

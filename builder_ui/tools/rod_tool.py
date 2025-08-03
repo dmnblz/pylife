@@ -11,6 +11,8 @@ class RodTool(Tool):
     """Handle rod preview creation with sliders and click placement."""
 
     def __init__(self, sidebar: 'SidebarUI'):
+        """Prepare UI elements for rod creation."""
+
         super().__init__(sidebar)
         self.center = None
         self.radius = 30.0
@@ -62,34 +64,43 @@ class RodTool(Tool):
 
     # ---------------- value setters
     def _set_radius(self, value: float):
+        """Set rod radius."""
         self.radius = max(1, value)
 
     def _set_length(self, value: float):
+        """Set rod length."""
         self.length = max(1, value)
 
     def _set_segments(self, value: float):
+        """Set number of perimeter particles."""
         self.segments = max(4, int(value))
 
     def _set_skel_count(self, value: float):
+        """Set number of skeleton nodes."""
         self.skeleton_count = max(1, int(value))
 
     def _set_stiff(self, value: float):
+        """Set spring stiffness for rods."""
         self.stiffness = max(10, value)
 
     def _set_bstiff(self, value: float):
+        """Set bending spring stiffness."""
         self.bend_stiffness = max(10, value)
 
     # ---------------- control
     def start(self):
+        """Activate the tool and reset the center."""
         super().start()
         self.center = None
 
     def cancel(self):
+        """Deactivate the tool and stop dragging."""
         super().cancel()
         self.dragging = False
 
     # ---------------- helpers
     def _generate_points(self):
+        """Return perimeter points for the current rod preview."""
         center = self.center
         if center is None:
             return []
@@ -120,6 +131,7 @@ class RodTool(Tool):
 
     # ---------------- drawing
     def draw_ui(self):
+        """Render rod configuration controls."""
         if not super().draw_ui():
             return
         self.radius_field.draw(self.sidebar.screen)
@@ -233,6 +245,7 @@ class RodTool(Tool):
 
     # ---------------- event handling
     def handle_event(self, event):
+        """Process mouse input for rod placement and option toggles."""
         if not super().handle_event(event):
             return False
 

@@ -20,6 +20,16 @@ class SidebarUI:
     TOGGLE_SIZE = 20
 
     def __init__(self, screen: pygame.Surface, app):
+        """Create the sidebar UI and all tool instances.
+
+        Parameters
+        ----------
+        screen:
+            Surface used for rendering.
+        app:
+            Owning :class:`~start_create.BuilderApp`.
+        """
+
         self.screen = screen
         self.app = app
         self.font = pygame.font.SysFont(None, 24)
@@ -41,6 +51,8 @@ class SidebarUI:
 
     # ----------------------------------------------------------- setup
     def _setup_ui(self):
+        """Create default buttons and compute layout offsets."""
+
         sw = self.screen.get_width()
         x = sw - self.WIDTH + 10
         y = 10
@@ -71,10 +83,12 @@ class SidebarUI:
         self.extra_start_y = y
 
     def visible_width(self):
+        """Return the width of the sidebar when visible."""
         return self.WIDTH if self.visible else 0
 
     # ----------------------------------------------------------- draw
     def draw(self):
+        """Render the sidebar and active tool interfaces."""
         sw = self.screen.get_width()
         sidebar_rect = pygame.Rect(sw - self.visible_width(), 0, self.visible_width(), self.screen.get_height())
         toggle_x = sw - self.visible_width() - self.TOGGLE_SIZE
@@ -125,6 +139,19 @@ class SidebarUI:
 
     # ----------------------------------------------------------- event handler
     def handle_event(self, event):
+        """Forward events to the sidebar and active tools.
+
+        Parameters
+        ----------
+        event:
+            Pygame event to process.
+
+        Returns
+        -------
+        bool
+            ``True`` if the event was consumed.
+        """
+
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.toggle_rect.collidepoint(event.pos):
                 self.visible = not self.visible

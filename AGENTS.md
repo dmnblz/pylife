@@ -71,3 +71,4 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - Particle, spring and environment parameters now reside in ``builder_ui/config.py``
   dataclasses, and the builder updates these structures directly instead of
   using individual setter methods.
+- Comprehensive docstrings added across builder tools and the main builder app.

@@ -10,6 +10,8 @@ class EnvironmentTool(Tool):
     """Expose global simulation options such as gravity and temperature."""
 
     def __init__(self, sidebar: 'SidebarUI'):
+        """Build sliders for global simulation parameters."""
+
         super().__init__(sidebar)
 
         x = sidebar.screen.get_width() - sidebar.WIDTH + 10
@@ -84,35 +86,42 @@ class EnvironmentTool(Tool):
 
     # ---------------- value setters
     def _set_gravity_x(self, value: float):
+        """Set horizontal gravity component."""
         self.app.environment.gravity.x = value
         self.app.physics.gravity.x = value
 
     def _set_gravity_y(self, value: float):
+        """Set vertical gravity component."""
         self.app.environment.gravity.y = value
         self.app.physics.gravity.y = value
 
     def _set_repulsion_radius(self, value: float):
+        """Update radius for particle repulsion."""
         val = max(0, value)
         self.app.environment.repulsion_radius = val
         self.app.physics.repulsion_radius = val
 
     def _set_repulsion_strength(self, value: float):
+        """Update magnitude of particle repulsion."""
         val = max(0, value)
         self.app.environment.repulsion_strength = val
         self.app.physics.repulsion_strength = val
 
     def _set_damping(self, value: float):
+        """Adjust global viscous damping."""
         val = max(0, value)
         self.app.environment.damping = val
         self.app.physics.damping_coeff = val
 
     def _set_temperature(self, value: float):
+        """Set Brownian motion intensity."""
         val = max(0, value)
         self.app.environment.temperature = val
         self.app.physics.temperature = val
 
     # ---------------- drawing
     def draw_ui(self):
+        """Render sliders for environment parameters."""
         if not super().draw_ui():
             return
         self.gx_field.draw(self.sidebar.screen)
@@ -124,6 +133,7 @@ class EnvironmentTool(Tool):
 
     # ---------------- event handling
     def handle_event(self, event):
+        """Forward events to environment sliders."""
         if not super().handle_event(event):
             return False
         if self.sidebar.visible:

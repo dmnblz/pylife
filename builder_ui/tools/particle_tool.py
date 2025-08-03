@@ -10,6 +10,8 @@ class ParticleTool(Tool):
     """Handle options for creating new particles."""
 
     def __init__(self, sidebar: 'SidebarUI'):
+        """Initialise sliders controlling new particle properties."""
+
         super().__init__(sidebar)
 
         x = sidebar.screen.get_width() - sidebar.WIDTH + 10
@@ -49,6 +51,7 @@ class ParticleTool(Tool):
 
     # ---------------- drawing
     def draw_ui(self):
+        """Render particle configuration sliders."""
         if not super().draw_ui():
             return
         self.color_field.draw(self.sidebar.screen)
@@ -57,6 +60,7 @@ class ParticleTool(Tool):
 
     # ---------------- event handling
     def handle_event(self, event):
+        """Forward input events to particle option widgets."""
         if not super().handle_event(event):
             return False
         if self.sidebar.visible:
