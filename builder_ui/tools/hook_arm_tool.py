@@ -60,17 +60,17 @@ class HookArmTool(Tool):
             "Speed", 50, 1000, lambda: self.cycle_speed, self._set_speed, x, y, width
         )
         y += 40
-        self.color_field = ColorField("Color", lambda: self.color, self._set_color, x, y, width)
+        self.color_field = ColorField("Color", self._get_color, self._set_color, x, y, width)
         y += 40
         self.high_field = ColorField(
-            "HDrag", lambda: self.high_drag_color, self._set_high_color, x, y, width
+            "HDrag", self._get_high_color, self._set_high_color, x, y, width
         )
         y += 40
         self.adh_field = SliderField(
             "AdhesMF", 1, 20, lambda: self.adhesion_factor, self._set_adhesion, x, y, width
         )
         y += 40
-        self.key_field = KeyField("Cycle", lambda: self.cycle_key, self._set_key, x, y, width)
+        self.key_field = KeyField("Cycle", self._get_key, self._set_key, x, y, width)
         y += 40
         self.create_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
 
@@ -99,17 +99,29 @@ class HookArmTool(Tool):
         """Set cycle speed for automatic motion."""
         self.cycle_speed = max(10, value)
 
-    def _set_color(self, color):
+    def _get_color(self) -> tuple[int, int, int]:
+        """Return the default arm colour."""
+        return self.color
+
+    def _set_color(self, color: tuple[int, int, int]) -> None:
         """Set default arm colour."""
         self.color = color
 
-    def _set_high_color(self, color):
+    def _get_high_color(self) -> tuple[int, int, int]:
+        """Return the high-drag arm colour."""
+        return self.high_drag_color
+
+    def _set_high_color(self, color: tuple[int, int, int]) -> None:
         """Set colour used when high drag is active."""
         self.high_drag_color = color
 
     def _set_adhesion(self, value: float):
         """Set mass multiplier applied during adhesion."""
         self.adhesion_factor = max(1, value)
+
+    def _get_key(self) -> int | None:
+        """Return the keyboard key used to cycle the arm."""
+        return self.cycle_key
 
     def _set_key(self, value: int | None):
         """Set keyboard key used to cycle the arm."""
