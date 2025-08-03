@@ -178,10 +178,12 @@ class InspectTool(Tool):
             )
             idx = self.app.springs.index(old)
             self.app.springs[idx] = new
+            if old in self.app.variable_springs:
+                self.app.variable_springs.remove(old)
             self.spring = new
         else:
             old = self.spring
-            cfg = self.sidebar.app.config.variable_spring
+            cfg = self.app.vspring
             new = VariableSpring(
                 old.p1,
                 old.p2,
@@ -196,6 +198,7 @@ class InspectTool(Tool):
             )
             idx = self.app.springs.index(old)
             self.app.springs[idx] = new
+            self.app.variable_springs.append(new)
             self.sidebar.app.register_variable_spring(new)
             self.spring = new
 

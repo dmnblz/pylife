@@ -90,3 +90,5 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - Inspect mode can convert normal springs to variable springs and back, and
   spring fields in the sidebar align correctly. Inspecting springs no longer
   crashes after fixing slider positioning.
+- Converting a normal spring to a variable spring through the Inspect tool no
+  longer raises an exception.
