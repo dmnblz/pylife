@@ -4,6 +4,7 @@ import pygame
 
 from .tools.particle_tool import ParticleTool
 from .tools.spring_tool import SpringTool
+from .tools.variable_spring_tool import VariableSpringTool
 from .tools.bending_spring_tool import BendingSpringTool
 from .tools.grid_tool import GridTool
 from .tools.environment_tool import EnvironmentTool
@@ -41,6 +42,7 @@ class SidebarUI:
         # setup circle tool after computing layout
         self.particle_tool = ParticleTool(self)
         self.spring_tool = SpringTool(self)
+        self.variable_spring_tool = VariableSpringTool(self)
         self.bend_tool = BendingSpringTool(self)
         self.circle_tool = CircleTool(self)
         self.rod_tool = RodTool(self)
@@ -81,6 +83,7 @@ class SidebarUI:
         add_button("Drag", lambda: self.app.set_mode("drag"), "1")
         add_button("Particle", lambda: self.app.set_mode("particle"), "2")
         add_button("Spring", lambda: self.app.set_mode("spring"), "3")
+        add_button("VarSpr", lambda: self.app.set_mode("vspring"))
         add_button("Bend", lambda: self.app.set_mode("bend"), "4")
         add_button("Circle", lambda: self.app.set_mode("circle"), "5")
         add_button("Rod", lambda: self.app.set_mode("rod"), "6")
@@ -129,6 +132,7 @@ class SidebarUI:
             # extra UI from tools
             self.particle_tool.draw_ui()
             self.spring_tool.draw_ui()
+            self.variable_spring_tool.draw_ui()
             self.bend_tool.draw_ui()
             self.circle_tool.draw_ui()
             self.rod_tool.draw_ui()
@@ -140,6 +144,7 @@ class SidebarUI:
         # preview from tools (visible or not)
         self.particle_tool.draw_preview()
         self.spring_tool.draw_preview()
+        self.variable_spring_tool.draw_preview()
         self.bend_tool.draw_preview()
         self.circle_tool.draw_preview()
         self.rod_tool.draw_preview()
@@ -190,6 +195,8 @@ class SidebarUI:
         if self.particle_tool.handle_event(event):
             return True
         if self.spring_tool.handle_event(event):
+            return True
+        if self.variable_spring_tool.handle_event(event):
             return True
         if self.bend_tool.handle_event(event):
             return True
