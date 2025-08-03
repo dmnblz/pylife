@@ -57,23 +57,38 @@ class SidebarUI:
         x = sw - self.WIDTH + 10
         y = 10
 
-        def add_button(label, action):
+        def add_button(label, action, key_hint: str | None = None):
+            """Add a clickable button to the sidebar.
+
+            Parameters
+            ----------
+            label:
+                Text to display on the button.
+            action:
+                Callback executed on click.
+            key_hint:
+                Optional short string shown on the button to indicate a
+                keyboard shortcut.
+            """
+
             nonlocal y
             rect = pygame.Rect(x, y, self.WIDTH - 20, self.BUTTON_HEIGHT)
-            self.buttons.append({"rect": rect, "label": label, "action": action})
+            self.buttons.append(
+                {"rect": rect, "label": label, "action": action, "key": key_hint}
+            )
             y += self.BUTTON_HEIGHT + self.BUTTON_MARGIN
 
-        add_button("Drag", lambda: self.app.set_mode("drag"))
-        add_button("Particle", lambda: self.app.set_mode("particle"))
-        add_button("Spring", lambda: self.app.set_mode("spring"))
-        add_button("Bend", lambda: self.app.set_mode("bend"))
-        add_button("Circle", lambda: self.app.set_mode("circle"))
-        add_button("Rod", lambda: self.app.set_mode("rod"))
-        add_button("Arm", lambda: self.app.set_mode("arm"))
-        add_button("Inspect", lambda: self.app.set_mode("inspect"))
-        add_button("Grid", lambda: self.app.set_mode("grid"))
-        add_button("Env", lambda: self.app.set_mode("env"))
-        add_button("Delete", lambda: self.app.set_mode("delete"))
+        add_button("Drag", lambda: self.app.set_mode("drag"), "1")
+        add_button("Particle", lambda: self.app.set_mode("particle"), "2")
+        add_button("Spring", lambda: self.app.set_mode("spring"), "3")
+        add_button("Bend", lambda: self.app.set_mode("bend"), "4")
+        add_button("Circle", lambda: self.app.set_mode("circle"), "5")
+        add_button("Rod", lambda: self.app.set_mode("rod"), "6")
+        add_button("Arm", lambda: self.app.set_mode("arm"), "7")
+        add_button("Inspect", lambda: self.app.set_mode("inspect"), "8")
+        add_button("Grid", lambda: self.app.set_mode("grid"), "9")
+        add_button("Env", lambda: self.app.set_mode("env"), "0")
+        add_button("Delete", lambda: self.app.set_mode("delete"), "Del")
         add_button("Undo", self.app.undo)
         add_button("Save", self.app.save_state_dialog)
         add_button("Load", self.app.load_state_dialog)
@@ -100,6 +115,9 @@ class SidebarUI:
 
             for btn in self.buttons:
                 label = btn["label"]() if callable(btn["label"]) else btn["label"]
+                hint = btn.get("key")
+                if hint:
+                    label = f"{label} [{hint}]"
                 pygame.draw.rect(self.screen, (80, 80, 80), btn["rect"])
                 text_img = self.font.render(label, True, (255, 255, 255))
                 text_rect = text_img.get_rect(center=btn["rect"].center)
