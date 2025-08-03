@@ -15,6 +15,8 @@ class HookArmTool(Tool):
     """
 
     def __init__(self, sidebar: 'SidebarUI'):
+        """Setup controls for building hook arms."""
+
         super().__init__(sidebar)
         self.base = None
         self.direction = pygame.Vector2(1, 0)
@@ -74,46 +76,59 @@ class HookArmTool(Tool):
 
     # ---------------- value setters
     def _set_segments(self, value: float):
+        """Set number of arm segments."""
         self.segments = max(1, int(value))
 
     def _set_spacing(self, value: float):
+        """Set spacing between arm particles."""
         self.spacing = max(1, value)
 
     def _set_mass(self, value: float):
+        """Set particle mass for the arm."""
         self.mass = max(0.1, value)
 
     def _set_radius(self, value: float):
+        """Set particle radius for the arm."""
         self.radius = max(1, value)
 
     def _set_stiffness(self, value: float):
+        """Set spring stiffness along the arm."""
         self.stiffness = max(10, value)
 
     def _set_speed(self, value: float):
+        """Set cycle speed for automatic motion."""
         self.cycle_speed = max(10, value)
 
     def _set_color(self, color):
+        """Set default arm colour."""
         self.color = color
 
     def _set_high_color(self, color):
+        """Set colour used when high drag is active."""
         self.high_drag_color = color
 
     def _set_adhesion(self, value: float):
+        """Set mass multiplier applied during adhesion."""
         self.adhesion_factor = max(1, value)
 
     def _set_key(self, value: int | None):
+        """Set keyboard key used to cycle the arm."""
         self.cycle_key = value
 
     # ---------------- control
     def start(self):
+        """Activate the tool and clear base particle."""
         super().start()
         self.base = None
 
     def cancel(self):
+        """Deactivate the tool and stop dragging preview."""
         super().cancel()
         self.dragging = False
 
     # ---------------- drawing helpers
     def _preview_points(self):
+        """Compute points for the arm preview."""
         if not self.base:
             return []
         if self.direction.length() == 0:
@@ -126,6 +141,7 @@ class HookArmTool(Tool):
         return pts
 
     def draw_ui(self):
+        """Render hook arm configuration controls."""
         if not super().draw_ui():
             return
         self.seg_field.draw(self.sidebar.screen)
@@ -144,6 +160,7 @@ class HookArmTool(Tool):
         self.sidebar.screen.blit(txt, rect)
 
     def draw_preview(self):
+        """Draw a preview of the prospective arm."""
         if not super().draw_preview() or not self.base:
             return
         screen = self.sidebar.screen
@@ -156,6 +173,7 @@ class HookArmTool(Tool):
 
     # ---------------- event handling
     def handle_event(self, event):
+        """Manage UI interaction and base selection."""
         if not super().handle_event(event):
             return False
 

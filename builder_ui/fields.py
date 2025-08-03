@@ -10,6 +10,22 @@ class SliderField:
     BOX_WIDTH = 50
 
     def __init__(self, label, min_val, max_val, get_value, set_value, x, y, width):
+        """Initialise a new slider widget.
+
+        Parameters
+        ----------
+        label:
+            Text label displayed above the slider.
+        min_val, max_val:
+            Range of selectable values.
+        get_value:
+            Callable returning the current value.
+        set_value:
+            Callable used to update the value.
+        x, y, width:
+            Position and width of the slider in pixels.
+        """
+
         self.label = label
         self.min = min_val
         self.max = max_val
@@ -26,12 +42,50 @@ class SliderField:
         self.text = ""
 
     def _value_to_ratio(self, value):
+        """Map ``value`` onto the 0–1 slider range.
+
+        Parameters
+        ----------
+        value:
+            Value within ``[self.min, self.max]``.
+
+        Returns
+        -------
+        float
+            Normalised ratio representing the slider position.
+        """
+
         return max(0, min(1, (value - self.min) / (self.max - self.min)))
 
     def _ratio_to_value(self, ratio):
+        """Convert a slider ratio back into a value.
+
+        Parameters
+        ----------
+        ratio:
+            Normalised position between 0 and 1.
+
+        Returns
+        -------
+        float
+            Value corresponding to ``ratio``.
+        """
+
         return self.min + ratio * (self.max - self.min)
 
     def draw(self, screen):
+        """Render the slider and its numeric field.
+
+        Parameters
+        ----------
+        screen:
+            Surface on which to draw.
+
+        Returns
+        -------
+        None
+        """
+
         value = self.get_value()
         # label
         lbl = self.font.render(self.label, True, (255, 255, 255))
@@ -50,6 +104,19 @@ class SliderField:
         screen.blit(img, rect)
 
     def handle_event(self, event):
+        """Process input events for the slider.
+
+        Parameters
+        ----------
+        event:
+            Pygame event to handle.
+
+        Returns
+        -------
+        bool
+            ``True`` if the event was consumed.
+        """
+
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.slider_rect.collidepoint(event.pos):
                 self.dragging = True
@@ -85,6 +152,18 @@ class SliderField:
         return False
 
     def _update_value(self, mouse_x):
+        """Update the stored value from the mouse position.
+
+        Parameters
+        ----------
+        mouse_x:
+            Horizontal mouse coordinate in pixels.
+
+        Returns
+        -------
+        None
+        """
+
         ratio = (mouse_x - self.slider_rect.x) / self.slider_rect.width
         ratio = max(0, min(1, ratio))
         self.set_value(self._ratio_to_value(ratio))
@@ -97,6 +176,18 @@ class ColorField:
     COLOR_SIZE = 24
 
     def __init__(self, label, get_color, set_color, x, y, width):
+        """Initialise a colour selection field.
+
+        Parameters
+        ----------
+        label:
+            Text displayed above the field.
+        get_color, set_color:
+            Callables for retrieving and storing the colour.
+        x, y, width:
+            Position and width in pixels.
+        """
+
         self.label = label
         self.get_color = get_color
         self.set_color = set_color
@@ -111,6 +202,18 @@ class ColorField:
         self.text = ""
 
     def draw(self, screen):
+        """Render the colour swatch and hex entry box.
+
+        Parameters
+        ----------
+        screen:
+            Surface on which to draw.
+
+        Returns
+        -------
+        None
+        """
+
         color = self.get_color()
         lbl = self.font.render(self.label, True, (255, 255, 255))
         screen.blit(lbl, (self.color_rect.x, self.color_rect.y - 18))
@@ -125,6 +228,19 @@ class ColorField:
         screen.blit(img, rect)
 
     def handle_event(self, event):
+        """Process user input for the colour field.
+
+        Parameters
+        ----------
+        event:
+            Pygame event to handle.
+
+        Returns
+        -------
+        bool
+            ``True`` if the event was consumed.
+        """
+
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.color_rect.collidepoint(event.pos):
                 self._choose_color()
@@ -155,6 +271,18 @@ class ColorField:
             self.set_color(rgb)
 
     def _set_color_hex(self, value: str):
+        """Parse ``value`` as ``#RRGGBB`` and update the colour.
+
+        Parameters
+        ----------
+        value:
+            Hexadecimal colour string.
+
+        Returns
+        -------
+        None
+        """
+
         value = value.lstrip("#")
         if len(value) != 6:
             return
@@ -173,6 +301,18 @@ class KeyField:
     BOX_WIDTH = 60
 
     def __init__(self, label, get_key, set_key, x, y, width):
+        """Create an editable key field.
+
+        Parameters
+        ----------
+        label:
+            Text displayed above the field.
+        get_key, set_key:
+            Callables for retrieving and storing the key.
+        x, y, width:
+            Position and width in pixels.
+        """
+
         self.label = label
         self.get_key = get_key
         self.set_key = set_key
@@ -182,6 +322,18 @@ class KeyField:
         self.editing = False
 
     def draw(self, screen):
+        """Render the key field.
+
+        Parameters
+        ----------
+        screen:
+            Surface on which to draw.
+
+        Returns
+        -------
+        None
+        """
+
         key = self.get_key()
         text = pygame.key.name(key) if key is not None else "None"
         if self.editing:
@@ -195,6 +347,19 @@ class KeyField:
         screen.blit(img, rect)
 
     def handle_event(self, event):
+        """Handle mouse and keyboard input.
+
+        Parameters
+        ----------
+        event:
+            Pygame event to process.
+
+        Returns
+        -------
+        bool
+            ``True`` if the event was consumed.
+        """
+
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.box_rect.collidepoint(event.pos):
                 self.editing = True

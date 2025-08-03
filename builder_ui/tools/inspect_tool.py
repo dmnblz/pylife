@@ -11,6 +11,8 @@ class InspectTool(Tool):
     """Select a particle or spring and edit its properties from the sidebar."""
 
     def __init__(self, sidebar: 'SidebarUI'):
+        """Prepare fields for inspecting particles, springs and bends."""
+
         super().__init__(sidebar)
         self.particle = None
         self.spring = None
@@ -56,81 +58,101 @@ class InspectTool(Tool):
 
     # ---------------- helpers
     def _get_color(self):
+        """Return the selected particle colour or white."""
         return self.particle.color if self.particle else (255, 255, 255)
 
     def _set_color(self, color):
+        """Update the selected particle colour."""
         if self.particle:
             self.particle.color = color
 
     def _get_mass(self):
+        """Return selected particle mass."""
         return self.particle.mass if self.particle else 0
 
     def _set_mass(self, value: float):
+        """Set selected particle mass."""
         if self.particle:
             self.particle.mass = max(0.1, value)
 
     def _get_radius(self):
+        """Return selected particle radius."""
         return self.particle.radius if self.particle else 0
 
     def _set_radius(self, value: float):
+        """Set selected particle radius."""
         if self.particle:
             self.particle.radius = max(1, int(value))
 
     def _get_rest(self):
+        """Return spring rest length."""
         return self.spring.rest_length if self.spring else 0
 
     def _set_rest(self, value: float):
+        """Update spring rest length."""
         if self.spring:
             self.spring.rest_length = max(1, value)
 
     def _get_stiff(self):
+        """Return spring stiffness."""
         return self.spring.stiffness if self.spring else 0
 
     def _set_stiff(self, value: float):
+        """Set spring stiffness."""
         if self.spring:
             self.spring.stiffness = max(10, value)
 
     def _get_bangle(self):
+        """Return bend rest angle in degrees."""
         return math.degrees(self.bend.rest_angle) if self.bend else 0
 
     def _set_bangle(self, value: float):
+        """Set bend rest angle in degrees."""
         if self.bend:
             self.bend.rest_angle = math.radians(max(0, value))
 
     def _get_bstiff(self):
+        """Return bend stiffness."""
         return self.bend.stiffness if self.bend else 0
 
     def _set_bstiff(self, value: float):
+        """Set bend stiffness."""
         if self.bend:
             self.bend.stiffness = max(10, value)
 
     def _get_max(self):
+        """Return spring max force or ``0`` if unlimited."""
         if not self.spring:
             return 0
         return self.spring.max_force if self.spring.max_force is not None else 0
 
     def _set_max(self, value: float):
+        """Set spring max force, using ``None`` for no limit."""
         if self.spring:
             self.spring.max_force = None if value == 0 else value
 
     def _toggle_invisible(self):
+        """Toggle visibility of the selected spring."""
         if self.spring:
             self.spring.invisible = not self.spring.invisible
 
     # ---------------- control
     def start(self):
+        """Activate the tool and clear previous selection."""
         super().start()
         self.particle = None
         self.spring = None
         self.bend = None
 
     def cancel(self):
+        """Deactivate the tool and clear selection."""
         super().cancel()
         self.particle = None
         self.spring = None
         self.bend = None
 
     def draw_ui(self):
+        """Render fields for the currently selected object."""
         if not super().draw_ui():
             return
         if self.particle:
@@ -152,6 +174,7 @@ class InspectTool(Tool):
             self.bstiff_field.draw(self.sidebar.screen)
 
     def draw_preview(self):
+        """Highlight the currently selected object."""
         if not super().draw_preview():
             return
         if self.particle:
@@ -188,6 +211,7 @@ class InspectTool(Tool):
 
     # ---------------- event handling
     def handle_event(self, event):
+        """Process selection and slider events."""
         if not super().handle_event(event):
             return False
 

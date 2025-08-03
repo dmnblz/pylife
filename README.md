@@ -27,6 +27,8 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
     for extra grip.
   * **Adjustable springs** – spring rest lengths can be changed on the fly to
     mimic contracting or extending structures.
+  * **Developer-friendly** – comprehensive docstrings document the builder UI
+    and creation script.
 
 ### Using high-drag particles
 

@@ -11,6 +11,8 @@ class CircleTool(Tool):
     """Handle circle preview creation with sliders and dragging."""
 
     def __init__(self, sidebar: 'SidebarUI'):
+        """Configure sliders and defaults for circle creation."""
+
         super().__init__(sidebar)
         self.center = None
         self.radius = 50.0
@@ -46,19 +48,24 @@ class CircleTool(Tool):
 
     # ---------------- value setters
     def _set_radius(self, value: float):
+        """Update preview radius."""
         self.radius = max(1, value)
 
     def _set_segments(self, value: float):
+        """Set number of circle segments."""
         self.segments = max(3, int(value))
 
     def _set_stiff(self, value: float):
+        """Set spring stiffness for new circles."""
         self.stiffness = max(10, value)
 
     def _set_bstiff(self, value: float):
+        """Set bending spring stiffness."""
         self.bend_stiffness = max(10, value)
 
     # ---------------- control
     def start(self):
+        """Begin circle placement and reset parameters."""
         super().start()
         self.center = None
         self.stiffness = self.app.spring.stiffness
@@ -66,10 +73,12 @@ class CircleTool(Tool):
         self.include_bend = False
 
     def cancel(self):
+        """Abort circle creation."""
         super().cancel()
         self.dragging = False
 
     def draw_ui(self):
+        """Render circle creation controls."""
         if not super().draw_ui():
             return
         self.radius_field.draw(self.sidebar.screen)
@@ -88,6 +97,7 @@ class CircleTool(Tool):
         self.sidebar.screen.blit(txt, rect)
 
     def draw_preview(self):
+        """Draw a circle preview at the current mouse position."""
         if not super().draw_preview() or self.center is None:
             return
         screen = self.sidebar.screen
@@ -114,6 +124,7 @@ class CircleTool(Tool):
 
     # ---------------- event handling
     def handle_event(self, event):
+        """Handle mouse input for circle placement and UI controls."""
         if not super().handle_event(event):
             return False
 

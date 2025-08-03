@@ -24,6 +24,8 @@ FPS = 120
 class BuilderApp:
     """Main application class for the particle builder demo."""
     def __init__(self):
+        """Initialise pygame, state containers and helper objects."""
+
         pygame.init()
         self.screen = pygame.display.set_mode(SCREEN_SIZE)
         pygame.display.set_caption("Particle Builder")
@@ -68,6 +70,7 @@ class BuilderApp:
 
     # ------------------------------------------------------------------ parameter helpers
     def set_mode(self, mode: str):
+        """Switch the active builder mode and notify tools."""
         if self.mode == "circle" and mode != "circle":
             self.ui.circle_tool.cancel()
         if self.mode == "rod" and mode != "rod":
@@ -121,19 +124,24 @@ class BuilderApp:
             self.particle.color = rgb
 
     def adjust_mass(self, delta: float):
+        """Increment particle mass by ``delta``."""
         self.particle.mass = max(0.1, self.particle.mass + delta)
 
     def adjust_radius(self, delta: int):
+        """Increment particle radius by ``delta`` pixels."""
         self.particle.radius = max(1, self.particle.radius + delta)
 
     def adjust_stiffness(self, delta: float):
+        """Increment spring stiffness by ``delta``."""
         self.spring.stiffness = max(10, self.spring.stiffness + delta)
 
     def adjust_temperature(self, delta: float):
+        """Increment environment temperature by ``delta``."""
         self.environment.temperature = max(0, self.environment.temperature + delta)
         self.physics.temperature = self.environment.temperature
 
     def toggle_pause(self):
+        """Pause or resume the simulation."""
         self.paused = not self.paused
 
     def toggle_grid(self):
@@ -607,6 +615,7 @@ class BuilderApp:
 
     # ------------------------------------------------------------------ main
     def run(self):
+        """Main application loop."""
         running = True
         while running:
             dt = self.clock.tick(FPS) / 1000

@@ -10,6 +10,8 @@ class GridTool(Tool):
     """Toggle a grid overlay and adjust its spacing."""
 
     def __init__(self, sidebar: 'SidebarUI'):
+        """Create widgets for toggling the grid and adjusting spacing."""
+
         super().__init__(sidebar)
 
         x = sidebar.screen.get_width() - sidebar.WIDTH + 10
@@ -24,6 +26,7 @@ class GridTool(Tool):
 
     # ---------------- drawing
     def draw_ui(self):
+        """Render the grid toggle and spacing slider."""
         if not super().draw_ui():
             return
         pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.toggle_rect)
@@ -35,6 +38,7 @@ class GridTool(Tool):
 
     # ---------------- event handling
     def handle_event(self, event):
+        """Handle mouse input for grid toggling and spacing."""
         if not super().handle_event(event):
             return False
         if self.sidebar.visible:
