@@ -586,9 +586,9 @@ class BuilderApp:
                 self.push_undo(
                     lambda p=target_p, ss=removed: self._restore_particle(p, ss)
                 )
-        elif dist_s < 30 and target_s:
-            self.remove_entities(springs=[target_s])
-            self.push_undo(lambda s=target_s: self._restore_spring(s))
+            elif dist_s < 30 and target_s:
+                self.remove_entities(springs=[target_s])
+                self.push_undo(lambda s=target_s: self._restore_spring(s))
 
     def register_variable_spring(self, spring: VariableSpring) -> None:
         """Register ``spring`` under its control key if any."""

@@ -85,3 +85,4 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
   the corresponding shortcut.
 - Variable springs provide two rest lengths controlled by a user key in hold
   or toggle mode. Inspect mode can modify their lengths, speed, key and mode.
+- Delete tool no longer crashes when removing springs.
