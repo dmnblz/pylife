@@ -20,6 +20,7 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
   * `builder_ui/` and `color_picker.py` – the sidebar widgets and the cross‑platform colour selection utility. Tools in this
     package inherit from a small :class:`Tool` base class that provides
     default lifecycle, drawing and event hooks.
+  * `builder_io.py` – save/load helpers for the interactive builder.
   * **High-drag adhesion** – set a particle's ``tag`` to ``"high_drag"`` and the
     physics engine multiplies its viscous drag, causing it to stick in place.
   * **Weighted adhesion** – a ``HookArm`` tip also increases in mass when stuck

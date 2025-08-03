@@ -13,6 +13,7 @@ This repository contains small pygame demos for 2D particle-based physics simula
 - `builder_ui/` – sidebar UI widgets used by the interactive builder.
 - `color_picker.py` – colour picker helper using Tkinter.
 - `file_dialog.py` – opens save/load dialogs in a separate process.
+- `builder_io.py` – helper functions to save or load builder scenes.
 - `start_create.py` – interactive builder for constructing scenes.
 - `start.py` – demo of a soft cell made from three circular walls.
 - `start_basic.py` – minimal ring of particles demo.
@@ -59,6 +60,7 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - Builder sidebar now has **Save** and **Load** buttons for exporting and
   importing scene states.
 - Loading a saved scene now refreshes the physics engine so simulations resume.
+- Save/load logic now lives in a new ``builder_io`` module.
 - Circle and rod tools now expose spring stiffness sliders and can add bending springs along their outline.
 - A new **Grid** tool can overlay a configurable grid; enabling it snaps new particles to the nearest intersection.
 - Sidebar includes an **Undo** button to revert the most recent change.

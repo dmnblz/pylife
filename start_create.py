@@ -1,6 +1,5 @@
 import pygame
 import math
-import json
 from typing import Callable
 
 from particle import Particle
@@ -14,7 +13,7 @@ from builder_ui.config import (
     SpringParams,
     EnvironmentParams,
 )
-from file_dialog import choose_save_path, choose_open_path
+import builder_io
 from structures import create_rod as structure_create_rod
 from hook_arm import HookArm
 
@@ -230,17 +229,18 @@ class BuilderApp:
 
     # ------------------------------------------------------------------ save/load
     def save_state_dialog(self):
-        path = choose_save_path("scene.json")
-        if path:
-            self.save_state(path)
+        """Export the current scene through a save dialog."""
+        builder_io.save_state_dialog(self._build_state())
 
     def load_state_dialog(self):
-        path = choose_open_path()
-        if path:
-            self.load_state(path)
+        """Import a scene from a chosen file path."""
+        data = builder_io.load_state_dialog()
+        if data:
+            self._apply_state(data)
 
-    def save_state(self, path: str):
-        data = {
+    def _build_state(self) -> dict:
+        """Return a serialisable representation of the scene."""
+        return {
             "particles": [
                 {
                     "pos": [p.pos.x, p.pos.y],
@@ -297,13 +297,9 @@ class BuilderApp:
                 "damping_coeff": self.physics.damping_coeff,
             },
         }
-        with open(path, "w") as fh:
-            json.dump(data, fh, indent=2)
 
-    def load_state(self, path: str):
-        with open(path, "r") as fh:
-            data = json.load(fh)
-
+    def _apply_state(self, data: dict) -> None:
+        """Rebuild the scene from a serialised *data* structure."""
         self.particles = []
         for pd in data.get("particles", []):
             p = Particle(
