@@ -115,6 +115,50 @@ class SidebarUI:
         """Return the width of the sidebar when visible."""
         return self.WIDTH if self.visible else 0
 
+    # ----------------------------------------------------------- scrolling helpers
+    def _rect_bottom(self, obj) -> int:
+        """Return the maximum bottom coordinate of ``pygame.Rect`` attrs."""
+        bottom = 0
+        for val in getattr(obj, "__dict__", {}).values():
+            if isinstance(val, pygame.Rect):
+                bottom = max(bottom, val.bottom)
+        return bottom
+
+    def _tool_bottom(self, tool) -> int:
+        """Return the lowest UI element used by ``tool``."""
+        bottom = 0
+        for val in vars(tool).values():
+            if isinstance(val, (list, tuple)):
+                for item in val:
+                    bottom = max(bottom, self._rect_bottom(item))
+            else:
+                bottom = max(bottom, self._rect_bottom(val))
+        return bottom
+
+    def _content_bottom(self) -> int:
+        """Compute the bottom edge of all sidebar content."""
+        bottoms = [btn["rect"].bottom for btn in self.buttons]
+        bottoms += [self._rect_bottom(f) for f in self.fields]
+        tools = [
+            self.particle_tool,
+            self.spring_tool,
+            self.variable_spring_tool,
+            self.bend_tool,
+            self.circle_tool,
+            self.rod_tool,
+            self.arm_tool,
+            self.grid_tool,
+            self.env_tool,
+            self.inspect_tool,
+        ]
+        bottoms += [self._tool_bottom(t) for t in tools]
+        return max(bottoms, default=0) + 10
+
+    def _clamp_scroll(self) -> None:
+        """Limit ``scroll_offset`` to the available content range."""
+        max_offset = min(0, self.screen.get_height() - self._content_bottom())
+        self.scroll_offset = max(max_offset, min(0, self.scroll_offset))
+
     # ----------------------------------------------------------- draw
     def draw(self):
         """Render the sidebar and active tool interfaces."""
@@ -201,10 +245,12 @@ class SidebarUI:
         if event.type == pygame.MOUSEWHEEL:
             if self.visible:
                 self.scroll_offset += event.y * 20
+                self._clamp_scroll()
                 return True
         if event.type == pygame.MOUSEBUTTONDOWN and event.button in (4, 5):
             if self.visible:
                 self.scroll_offset += 20 if event.button == 4 else -20
+                self._clamp_scroll()
                 return True
 
         if self.visible:
