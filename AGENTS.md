@@ -94,3 +94,5 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
   longer raises an exception.
 - Sidebar buttons darken briefly when clicked and highlight the active tool.
 - The sidebar supports mouse-wheel scrolling to access overflow options.
+- Scrolling now stops at the top and bottom of the content to avoid losing the
+  sidebar's current context.
