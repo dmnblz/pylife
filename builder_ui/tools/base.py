@@ -63,7 +63,8 @@ class Tool:
             if not super().handle_event(event):
                 return False
 
-        The default simply checks ``self.active``.
+        The default method returns ``True`` only when the tool is active and the
+        sidebar is visible.
         """
 
-        return self.active
+        return self.active and getattr(self.sidebar, "visible", True)

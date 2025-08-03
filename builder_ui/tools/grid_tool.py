@@ -41,11 +41,10 @@ class GridTool(Tool):
         """Handle mouse input for grid toggling and spacing."""
         if not super().handle_event(event):
             return False
-        if self.sidebar.visible:
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if self.toggle_rect.collidepoint(event.pos):
-                    self.app.toggle_grid()
-                    return True
-            if self.size_field.handle_event(event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.toggle_rect.collidepoint(event.pos):
+                self.app.toggle_grid()
                 return True
+        if self.size_field.handle_event(event):
+            return True
         return False

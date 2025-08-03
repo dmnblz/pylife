@@ -72,3 +72,5 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
   dataclasses, and the builder updates these structures directly instead of
   using individual setter methods.
 - Comprehensive docstrings added across builder tools and the main builder app.
+- Tool base class now performs active/visibility checks in ``handle_event``,
+  removing duplicate logic from individual tools.

@@ -214,30 +214,28 @@ class InspectTool(Tool):
         """Process selection and slider events."""
         if not super().handle_event(event):
             return False
-
-        if self.sidebar.visible:
-            if self.particle:
-                if self.color_field.handle_event(event):
-                    return True
-                if self.mass_field.handle_event(event):
-                    return True
-                if self.radius_field.handle_event(event):
-                    return True
-            elif self.spring:
-                if self.rest_field.handle_event(event):
-                    return True
-                if self.stiff_field.handle_event(event):
-                    return True
-                if self.max_field.handle_event(event):
-                    return True
-                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.invis_rect.collidepoint(event.pos):
-                    self._toggle_invisible()
-                    return True
-            elif self.bend:
-                if self.bangle_field.handle_event(event):
-                    return True
-                if self.bstiff_field.handle_event(event):
-                    return True
+        if self.particle:
+            if self.color_field.handle_event(event):
+                return True
+            if self.mass_field.handle_event(event):
+                return True
+            if self.radius_field.handle_event(event):
+                return True
+        elif self.spring:
+            if self.rest_field.handle_event(event):
+                return True
+            if self.stiff_field.handle_event(event):
+                return True
+            if self.max_field.handle_event(event):
+                return True
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.invis_rect.collidepoint(event.pos):
+                self._toggle_invisible()
+                return True
+        elif self.bend:
+            if self.bangle_field.handle_event(event):
+                return True
+            if self.bstiff_field.handle_event(event):
+                return True
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():

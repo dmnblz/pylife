@@ -176,47 +176,45 @@ class HookArmTool(Tool):
         """Manage UI interaction and base selection."""
         if not super().handle_event(event):
             return False
-
-        if self.sidebar.visible:
-            if self.seg_field.handle_event(event):
+        if self.seg_field.handle_event(event):
+            return True
+        if self.space_field.handle_event(event):
+            return True
+        if self.mass_field.handle_event(event):
+            return True
+        if self.radius_field.handle_event(event):
+            return True
+        if self.stiff_field.handle_event(event):
+            return True
+        if self.speed_field.handle_event(event):
+            return True
+        if self.color_field.handle_event(event):
+            return True
+        if self.high_field.handle_event(event):
+            return True
+        if self.adh_field.handle_event(event):
+            return True
+        if self.key_field.handle_event(event):
+            return True
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.create_rect.collidepoint(event.pos) and self.base:
+                self.app.create_hook_arm(
+                    self.base,
+                    self.direction,
+                    self.segments,
+                    self.spacing,
+                    self.mass,
+                    self.radius,
+                    self.stiffness,
+                    self.color,
+                    self.high_drag_color,
+                    self.adhesion_factor,
+                    self.cycle_key,
+                    self.cycle_speed,
+                )
+                self.cancel()
+                self.sidebar.app.set_mode("drag")
                 return True
-            if self.space_field.handle_event(event):
-                return True
-            if self.mass_field.handle_event(event):
-                return True
-            if self.radius_field.handle_event(event):
-                return True
-            if self.stiff_field.handle_event(event):
-                return True
-            if self.speed_field.handle_event(event):
-                return True
-            if self.color_field.handle_event(event):
-                return True
-            if self.high_field.handle_event(event):
-                return True
-            if self.adh_field.handle_event(event):
-                return True
-            if self.key_field.handle_event(event):
-                return True
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if self.create_rect.collidepoint(event.pos) and self.base:
-                    self.app.create_hook_arm(
-                        self.base,
-                        self.direction,
-                        self.segments,
-                        self.spacing,
-                        self.mass,
-                        self.radius,
-                        self.stiffness,
-                        self.color,
-                        self.high_drag_color,
-                        self.adhesion_factor,
-                        self.cycle_key,
-                        self.cycle_speed,
-                    )
-                    self.cancel()
-                    self.sidebar.app.set_mode("drag")
-                    return True
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
