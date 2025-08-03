@@ -57,21 +57,23 @@ class BendingSpringTool(Tool):
         self.selected.clear()
 
     # ---------------- drawing
-    def draw_ui(self):
+    def draw_ui(self, offset: int = 0):
         """Render bending spring configuration controls."""
-        if not super().draw_ui():
+        if not super().draw_ui(offset):
             return
         if not self.auto_angle:
-            self.angle_field.draw(self.sidebar.screen)
-        self.stiff_field.draw(self.sidebar.screen)
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.auto_rect)
+            self.angle_field.draw(self.sidebar.screen, offset)
+        self.stiff_field.draw(self.sidebar.screen, offset)
+        auto_rect = self.auto_rect.move(0, offset)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), auto_rect)
         label = "Auto" if not self.auto_angle else "Manual"
         txt = self.sidebar.font.render(label, True, (255, 255, 255))
-        rect = txt.get_rect(center=self.auto_rect.center)
+        rect = txt.get_rect(center=auto_rect.center)
         self.sidebar.screen.blit(txt, rect)
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.create_rect)
+        create_rect = self.create_rect.move(0, offset)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), create_rect)
         txt = self.sidebar.font.render("Create", True, (255, 255, 255))
-        rect = txt.get_rect(center=self.create_rect.center)
+        rect = txt.get_rect(center=create_rect.center)
         self.sidebar.screen.blit(txt, rect)
 
     def draw_preview(self):
@@ -88,21 +90,23 @@ class BendingSpringTool(Tool):
             pygame.draw.line(screen, color, self.selected[1].pos, self.selected[2].pos, 1)
 
     # ---------------- event handling
-    def handle_event(self, event):
+    def handle_event(self, event, offset: int = 0):
         """Handle field input and particle selection."""
-        if not super().handle_event(event):
+        if not super().handle_event(event, offset):
             return False
         if not self.auto_angle:
-            if self.angle_field.handle_event(event):
+            if self.angle_field.handle_event(event, offset):
                 return True
-        if self.stiff_field.handle_event(event):
+        if self.stiff_field.handle_event(event, offset):
             return True
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.auto_rect.collidepoint(event.pos):
+            auto_rect = self.auto_rect.move(0, offset)
+            if auto_rect.collidepoint(event.pos):
                 self.auto_angle = not self.auto_angle
                 return True
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.create_rect.collidepoint(event.pos) and len(self.selected) == 3:
+            create_rect = self.create_rect.move(0, offset)
+            if create_rect.collidepoint(event.pos) and len(self.selected) == 3:
                 from math import radians
                 if self.auto_angle:
                     v1 = self.selected[0].pos - self.selected[1].pos

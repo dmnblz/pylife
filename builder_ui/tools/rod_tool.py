@@ -130,35 +130,39 @@ class RodTool(Tool):
         return pts
 
     # ---------------- drawing
-    def draw_ui(self):
+    def draw_ui(self, offset: int = 0):
         """Render rod configuration controls."""
-        if not super().draw_ui():
+        if not super().draw_ui(offset):
             return
-        self.radius_field.draw(self.sidebar.screen)
-        self.length_field.draw(self.sidebar.screen)
-        self.segments_field.draw(self.sidebar.screen)
-        self.skel_count_field.draw(self.sidebar.screen)
-        self.stiff_field.draw(self.sidebar.screen)
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.bend_rect)
+        self.radius_field.draw(self.sidebar.screen, offset)
+        self.length_field.draw(self.sidebar.screen, offset)
+        self.segments_field.draw(self.sidebar.screen, offset)
+        self.skel_count_field.draw(self.sidebar.screen, offset)
+        self.stiff_field.draw(self.sidebar.screen, offset)
+        bend_rect = self.bend_rect.move(0, offset)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), bend_rect)
         bend_txt = "Bend: On" if self.include_bend else "Bend: Off"
         txt = self.sidebar.font.render(bend_txt, True, (255, 255, 255))
-        rect = txt.get_rect(center=self.bend_rect.center)
+        rect = txt.get_rect(center=bend_rect.center)
         self.sidebar.screen.blit(txt, rect)
         if self.include_bend:
-            self.bstiff_field.draw(self.sidebar.screen)
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.cyto_rect)
+            self.bstiff_field.draw(self.sidebar.screen, offset)
+        cyto_rect = self.cyto_rect.move(0, offset)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), cyto_rect)
         cyto_txt = "Cytoskeleton" if self.include_cytoskeleton else "No Cytoskeleton"
         txt = self.sidebar.font.render(cyto_txt, True, (255, 255, 255))
-        rect = txt.get_rect(center=self.cyto_rect.center)
+        rect = txt.get_rect(center=cyto_rect.center)
         self.sidebar.screen.blit(txt, rect)
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.skeleton_rect)
+        skeleton_rect = self.skeleton_rect.move(0, offset)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), skeleton_rect)
         skel_txt = "Skeleton" if self.include_skeleton else "No Skeleton"
         txt = self.sidebar.font.render(skel_txt, True, (255, 255, 255))
-        rect = txt.get_rect(center=self.skeleton_rect.center)
+        rect = txt.get_rect(center=skeleton_rect.center)
         self.sidebar.screen.blit(txt, rect)
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.create_rect)
+        create_rect = self.create_rect.move(0, offset)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), create_rect)
         txt = self.sidebar.font.render("Create", True, (255, 255, 255))
-        rect = txt.get_rect(center=self.create_rect.center)
+        rect = txt.get_rect(center=create_rect.center)
         self.sidebar.screen.blit(txt, rect)
 
     def draw_preview(self):
@@ -244,33 +248,37 @@ class RodTool(Tool):
                 )
 
     # ---------------- event handling
-    def handle_event(self, event):
+    def handle_event(self, event, offset: int = 0):
         """Process mouse input for rod placement and option toggles."""
-        if not super().handle_event(event):
+        if not super().handle_event(event, offset):
             return False
-        if self.radius_field.handle_event(event):
+        if self.radius_field.handle_event(event, offset):
             return True
-        if self.length_field.handle_event(event):
+        if self.length_field.handle_event(event, offset):
             return True
-        if self.segments_field.handle_event(event):
+        if self.segments_field.handle_event(event, offset):
             return True
-        if self.skel_count_field.handle_event(event):
+        if self.skel_count_field.handle_event(event, offset):
             return True
-        if self.stiff_field.handle_event(event):
+        if self.stiff_field.handle_event(event, offset):
             return True
-        if self.include_bend and self.bstiff_field.handle_event(event):
+        if self.include_bend and self.bstiff_field.handle_event(event, offset):
             return True
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.bend_rect.collidepoint(event.pos):
+            bend_rect = self.bend_rect.move(0, offset)
+            if bend_rect.collidepoint(event.pos):
                 self.include_bend = not self.include_bend
                 return True
-            if self.cyto_rect.collidepoint(event.pos):
+            cyto_rect = self.cyto_rect.move(0, offset)
+            if cyto_rect.collidepoint(event.pos):
                 self.include_cytoskeleton = not self.include_cytoskeleton
                 return True
-            if self.skeleton_rect.collidepoint(event.pos):
+            skeleton_rect = self.skeleton_rect.move(0, offset)
+            if skeleton_rect.collidepoint(event.pos):
                 self.include_skeleton = not self.include_skeleton
                 return True
-            if self.create_rect.collidepoint(event.pos) and self.center:
+            create_rect = self.create_rect.move(0, offset)
+            if create_rect.collidepoint(event.pos) and self.center:
                 self.app.create_rod(
                     self.center,
                     self.radius,

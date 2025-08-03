@@ -120,32 +120,32 @@ class EnvironmentTool(Tool):
         self.app.physics.temperature = val
 
     # ---------------- drawing
-    def draw_ui(self):
+    def draw_ui(self, offset: int = 0):
         """Render sliders for environment parameters."""
-        if not super().draw_ui():
+        if not super().draw_ui(offset):
             return
-        self.gx_field.draw(self.sidebar.screen)
-        self.gy_field.draw(self.sidebar.screen)
-        self.rep_rad_field.draw(self.sidebar.screen)
-        self.rep_str_field.draw(self.sidebar.screen)
-        self.damp_field.draw(self.sidebar.screen)
-        self.temp_field.draw(self.sidebar.screen)
+        self.gx_field.draw(self.sidebar.screen, offset)
+        self.gy_field.draw(self.sidebar.screen, offset)
+        self.rep_rad_field.draw(self.sidebar.screen, offset)
+        self.rep_str_field.draw(self.sidebar.screen, offset)
+        self.damp_field.draw(self.sidebar.screen, offset)
+        self.temp_field.draw(self.sidebar.screen, offset)
 
     # ---------------- event handling
-    def handle_event(self, event):
+    def handle_event(self, event, offset: int = 0):
         """Forward events to environment sliders."""
-        if not super().handle_event(event):
+        if not super().handle_event(event, offset):
             return False
-        if self.gx_field.handle_event(event):
+        if self.gx_field.handle_event(event, offset):
             return True
-        if self.gy_field.handle_event(event):
+        if self.gy_field.handle_event(event, offset):
             return True
-        if self.rep_rad_field.handle_event(event):
+        if self.rep_rad_field.handle_event(event, offset):
             return True
-        if self.rep_str_field.handle_event(event):
+        if self.rep_str_field.handle_event(event, offset):
             return True
-        if self.damp_field.handle_event(event):
+        if self.damp_field.handle_event(event, offset):
             return True
-        if self.temp_field.handle_event(event):
+        if self.temp_field.handle_event(event, offset):
             return True
         return False

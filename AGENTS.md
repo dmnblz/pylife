@@ -92,3 +92,5 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
   crashes after fixing slider positioning.
 - Converting a normal spring to a variable spring through the Inspect tool no
   longer raises an exception.
+- Sidebar buttons darken briefly when clicked and highlight the active tool.
+- The sidebar supports mouse-wheel scrolling to access overflow options.

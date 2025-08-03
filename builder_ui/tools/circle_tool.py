@@ -77,23 +77,25 @@ class CircleTool(Tool):
         super().cancel()
         self.dragging = False
 
-    def draw_ui(self):
+    def draw_ui(self, offset: int = 0):
         """Render circle creation controls."""
-        if not super().draw_ui():
+        if not super().draw_ui(offset):
             return
-        self.radius_field.draw(self.sidebar.screen)
-        self.segments_field.draw(self.sidebar.screen)
-        self.stiff_field.draw(self.sidebar.screen)
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.bend_rect)
+        self.radius_field.draw(self.sidebar.screen, offset)
+        self.segments_field.draw(self.sidebar.screen, offset)
+        self.stiff_field.draw(self.sidebar.screen, offset)
+        bend_rect = self.bend_rect.move(0, offset)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), bend_rect)
         bend_txt = "Bend: On" if self.include_bend else "Bend: Off"
         txt = self.sidebar.font.render(bend_txt, True, (255, 255, 255))
-        rect = txt.get_rect(center=self.bend_rect.center)
+        rect = txt.get_rect(center=bend_rect.center)
         self.sidebar.screen.blit(txt, rect)
         if self.include_bend:
-            self.bstiff_field.draw(self.sidebar.screen)
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), self.create_rect)
+            self.bstiff_field.draw(self.sidebar.screen, offset)
+        create_rect = self.create_rect.move(0, offset)
+        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), create_rect)
         txt = self.sidebar.font.render("Create", True, (255, 255, 255))
-        rect = txt.get_rect(center=self.create_rect.center)
+        rect = txt.get_rect(center=create_rect.center)
         self.sidebar.screen.blit(txt, rect)
 
     def draw_preview(self):
@@ -123,25 +125,27 @@ class CircleTool(Tool):
             )
 
     # ---------------- event handling
-    def handle_event(self, event):
+    def handle_event(self, event, offset: int = 0):
         """Handle mouse input for circle placement and UI controls."""
-        if not super().handle_event(event):
+        if not super().handle_event(event, offset):
             return False
 
-        if self.radius_field.handle_event(event):
+        if self.radius_field.handle_event(event, offset):
             return True
-        if self.segments_field.handle_event(event):
+        if self.segments_field.handle_event(event, offset):
             return True
-        if self.stiff_field.handle_event(event):
+        if self.stiff_field.handle_event(event, offset):
             return True
-        if self.include_bend and self.bstiff_field.handle_event(event):
+        if self.include_bend and self.bstiff_field.handle_event(event, offset):
             return True
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.bend_rect.collidepoint(event.pos):
+            bend_rect = self.bend_rect.move(0, offset)
+            if bend_rect.collidepoint(event.pos):
                 self.include_bend = not self.include_bend
                 return True
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.create_rect.collidepoint(event.pos) and self.center:
+            create_rect = self.create_rect.move(0, offset)
+            if create_rect.collidepoint(event.pos) and self.center:
                 self.app.create_circle(
                     self.center,
                     self.radius,
