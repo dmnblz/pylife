@@ -76,3 +76,5 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
   and arms without breaking subsequent undo operations.
 - Tool base class now performs active/visibility checks in ``handle_event``,
   removing duplicate logic from individual tools.
+- `snap_to_grid` now leaves already aligned coordinates unchanged and is used
+  throughout `start_create.py` for grid snapping.

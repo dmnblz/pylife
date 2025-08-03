@@ -153,11 +153,21 @@ class BuilderApp:
         self.grid_size = max(5.0, value)
 
     def snap_to_grid(self, vec: pygame.Vector2) -> pygame.Vector2:
-        """Return ``vec`` snapped to the nearest grid intersection."""
+        """Return ``vec`` snapped to the nearest grid intersection.
+
+        If the grid is disabled or ``vec`` already lies on a grid intersection,
+        the original vector is returned unchanged.
+        """
+
         if not self.grid_enabled:
             return vec
+
         x = round(vec.x / self.grid_size) * self.grid_size
         y = round(vec.y / self.grid_size) * self.grid_size
+
+        if x == vec.x and y == vec.y:
+            return vec
+
         return pygame.Vector2(x, y)
 
     # ------------------------------------------------------------------ undo support
@@ -559,10 +569,10 @@ class BuilderApp:
         arm.cycle_key = cycle_key
         if cycle_key is not None:
             self.cycle_keys.setdefault(cycle_key, []).append(arm)
-        if self.grid_enabled:
-            for p in arm.particles:
-                p.pos = self.snap_to_grid(p.pos)
-                p.prev_pos = p.pos.copy()
+
+        for p in arm.particles:
+            p.pos = self.snap_to_grid(p.pos)
+            p.prev_pos = p.pos.copy()
         self.arms.append(arm)
         self.particles.extend(arm.particles)
         self.springs.extend(arm.springs)
