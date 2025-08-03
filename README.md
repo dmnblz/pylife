@@ -30,6 +30,8 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
     mimic contracting or extending structures.
   * **Developer-friendly** – comprehensive docstrings document the builder UI
     and creation script.
+  * **Typed callbacks** – sidebar widgets declare explicit ``Callable``
+    signatures for getters and setters, aiding static type checkers.
 
 ### Using high-drag particles
 

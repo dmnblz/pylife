@@ -1,5 +1,7 @@
 """Sidebar input widgets such as sliders, colour selectors and key fields."""
 
+from typing import Callable
+
 import pygame
 from color_picker import choose_color
 
@@ -9,7 +11,17 @@ class SliderField:
 
     BOX_WIDTH = 50
 
-    def __init__(self, label, min_val, max_val, get_value, set_value, x, y, width):
+    def __init__(
+        self,
+        label: str,
+        min_val: float,
+        max_val: float,
+        get_value: Callable[[], float],
+        set_value: Callable[[float], None],
+        x: int,
+        y: int,
+        width: int,
+    ):
         """Initialise a new slider widget.
 
         Parameters
@@ -29,8 +41,8 @@ class SliderField:
         self.label = label
         self.min = min_val
         self.max = max_val
-        self.get_value = get_value
-        self.set_value = set_value
+        self.get_value: Callable[[], float] = get_value
+        self.set_value: Callable[[float], None] = set_value
         self.font = pygame.font.SysFont(None, 22)
 
         slider_width = width - self.BOX_WIDTH - 10
@@ -175,7 +187,15 @@ class ColorField:
     BOX_WIDTH = 70
     COLOR_SIZE = 24
 
-    def __init__(self, label, get_color, set_color, x, y, width):
+    def __init__(
+        self,
+        label: str,
+        get_color: Callable[[], tuple[int, int, int]],
+        set_color: Callable[[tuple[int, int, int]], None],
+        x: int,
+        y: int,
+        width: int,
+    ):
         """Initialise a colour selection field.
 
         Parameters
@@ -189,8 +209,8 @@ class ColorField:
         """
 
         self.label = label
-        self.get_color = get_color
-        self.set_color = set_color
+        self.get_color: Callable[[], tuple[int, int, int]] = get_color
+        self.set_color: Callable[[tuple[int, int, int]], None] = set_color
         self.font = pygame.font.SysFont(None, 22)
 
         self.color_rect = pygame.Rect(x, y + 14, self.COLOR_SIZE, self.COLOR_SIZE)
@@ -300,7 +320,15 @@ class KeyField:
 
     BOX_WIDTH = 60
 
-    def __init__(self, label, get_key, set_key, x, y, width):
+    def __init__(
+        self,
+        label: str,
+        get_key: Callable[[], int | None],
+        set_key: Callable[[int | None], None],
+        x: int,
+        y: int,
+        width: int,
+    ):
         """Create an editable key field.
 
         Parameters
@@ -314,8 +342,8 @@ class KeyField:
         """
 
         self.label = label
-        self.get_key = get_key
-        self.set_key = set_key
+        self.get_key: Callable[[], int | None] = get_key
+        self.set_key: Callable[[int | None], None] = set_key
         self.font = pygame.font.SysFont(None, 22)
 
         self.box_rect = pygame.Rect(x, y + 10, self.BOX_WIDTH, 22)
