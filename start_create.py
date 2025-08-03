@@ -1,6 +1,6 @@
 import pygame
 import math
-from typing import Callable
+from typing import Callable, Iterable
 
 from particle import Particle
 from spring import Spring
@@ -170,27 +170,56 @@ class BuilderApp:
         if self.history:
             self.history.pop()()
 
-    def _remove_particle(self, p: Particle):
-        """Remove ``p`` and any constraints or arms using it."""
-        if p in self.particles:
-            self.particles.remove(p)
-        self.springs = [s for s in self.springs if s.p1 != p and s.p2 != p]
-        self.bending_springs = [
-            bs for bs in self.bending_springs if p not in (bs.p1, bs.p2, bs.p3)
-        ]
+    def remove_entities(
+        self,
+        particles: Iterable[Particle] = (),
+        springs: Iterable[Spring] = (),
+        bends: Iterable[BendingSpring] = (),
+        arms: Iterable[HookArm] = (),
+    ) -> None:
+        """Remove collections of objects from the simulation.
+
+        Arms listed in ``arms`` are detached along with their particles and
+        springs.  Springs, bending springs and particles referencing a particle
+        slated for removal are also discarded.  Lists are mutated in place so
+        external references such as the physics engine remain valid.
+        """
+
+        parts_set = set(particles)
+        springs_set = set(springs)
+        bends_set = set(bends)
+        arms_set = set(arms)
+
+        # remove arms explicitly passed or those referencing removed particles
         for arm in list(self.arms):
-            if p in arm.particles:
+            if arm in arms_set or any(p in parts_set for p in arm.particles):
                 self._remove_arm(arm)
+                parts_set.difference_update(arm.particles)
+                springs_set.difference_update(arm.springs)
 
-    def _remove_spring(self, s: Spring):
-        """Remove ``s`` from the simulation."""
-        if s in self.springs:
-            self.springs.remove(s)
+        # remove springs either passed explicitly or attached to removed particles
+        if parts_set or springs_set:
+            self.springs[:] = [
+                s
+                for s in self.springs
+                if s not in springs_set and s.p1 not in parts_set and s.p2 not in parts_set
+            ]
 
-    def _remove_bending(self, bs: BendingSpring):
-        """Remove a bending spring from the simulation."""
-        if bs in self.bending_springs:
-            self.bending_springs.remove(bs)
+        # remove bending springs tied to removed particles or specified directly
+        if parts_set or bends_set:
+            self.bending_springs[:] = [
+                bs
+                for bs in self.bending_springs
+                if bs not in bends_set
+                and bs.p1 not in parts_set
+                and bs.p2 not in parts_set
+                and bs.p3 not in parts_set
+            ]
+
+        # finally drop particles themselves
+        for p in parts_set:
+            if p in self.particles:
+                self.particles.remove(p)
 
     def _remove_arm(self, arm: HookArm):
         """Detach and delete ``arm`` along with its parts."""
@@ -216,24 +245,6 @@ class BuilderApp:
     def _restore_spring(self, s: Spring):
         """Reinsert ``s`` into the simulation."""
         self.springs.append(s)
-
-    def _remove_group(
-        self,
-        particles: list[Particle],
-        springs: list[Spring],
-        bends: list[BendingSpring],
-        arms: list[HookArm] | None = None,
-    ):
-        """Remove batches of objects from the simulation."""
-        arms = arms or []
-        for arm in arms:
-            self._remove_arm(arm)
-        for bs in bends:
-            self._remove_bending(bs)
-        for s in springs:
-            self._remove_spring(s)
-        for p in particles:
-            self._remove_particle(p)
 
     # ------------------------------------------------------------------ save/load
     def save_state_dialog(self):
@@ -433,7 +444,9 @@ class BuilderApp:
         self.particles.extend(particles)
         self.springs.extend(springs)
         self.push_undo(
-            lambda parts=particles, sprs=springs, bends=bends: self._remove_group(parts, sprs, bends)
+            lambda parts=particles, sprs=springs, bends=bends: self.remove_entities(
+                parts, sprs, bends
+            )
         )
 
     # ------------------------------------------------------------------ mode handlers
@@ -459,7 +472,7 @@ class BuilderApp:
                 radius=self.particle.radius,
             )
             self.particles.append(p)
-            self.push_undo(lambda p=p: self._remove_particle(p))
+            self.push_undo(lambda p=p: self.remove_entities([p]))
 
     def handle_spring_event(self, event: pygame.event.Event):
         """Connect two particles with a spring or cancel with ``Escape``."""
@@ -480,7 +493,7 @@ class BuilderApp:
                         stiffness=self.spring.stiffness,
                     )
                     self.springs.append(s)
-                    self.push_undo(lambda s=s: self._remove_spring(s))
+                    self.push_undo(lambda s=s: self.remove_entities(springs=[s]))
                     self.spring_first = None
         elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self.spring_first = None
@@ -506,13 +519,12 @@ class BuilderApp:
                 removed = [
                     s for s in self.springs if s.p1 == target_p or s.p2 == target_p
                 ]
-                self.particles.remove(target_p)
-                self.springs = [s for s in self.springs if s not in removed]
+                self.remove_entities([target_p])
                 self.push_undo(
                     lambda p=target_p, ss=removed: self._restore_particle(p, ss)
                 )
             elif dist_s < 30 and target_s:
-                self.springs.remove(target_s)
+                self.remove_entities(springs=[target_s])
                 self.push_undo(lambda s=target_s: self._restore_spring(s))
 
     def create_hook_arm(
@@ -554,7 +566,7 @@ class BuilderApp:
         self.arms.append(arm)
         self.particles.extend(arm.particles)
         self.springs.extend(arm.springs)
-        self.push_undo(lambda arm=arm: self._remove_arm(arm))
+        self.push_undo(lambda arm=arm: self.remove_entities(arms=[arm]))
 
     def create_rod(
         self,
@@ -610,7 +622,9 @@ class BuilderApp:
                 bends.append(BendingSpring(p1, p2, p3, angle, bend_stiffness))
             self.bending_springs.extend(bends)
         self.push_undo(
-            lambda parts=particles, sprs=springs, bends=bends: self._remove_group(parts, sprs, bends)
+            lambda parts=particles, sprs=springs, bends=bends: self.remove_entities(
+                parts, sprs, bends
+            )
         )
 
     # ------------------------------------------------------------------ main
