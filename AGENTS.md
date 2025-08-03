@@ -88,4 +88,5 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - Delete tool no longer crashes when removing springs.
 - Saving and loading scenes now keep variable spring parameters and key bindings.
 - Inspect mode can convert normal springs to variable springs and back, and
-  spring fields in the sidebar align correctly.
+  spring fields in the sidebar align correctly. Inspecting springs no longer
+  crashes after fixing slider positioning.

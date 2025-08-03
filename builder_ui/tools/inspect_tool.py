@@ -201,19 +201,21 @@ class InspectTool(Tool):
 
     def _layout_spring_fields(self) -> None:
         """Position spring widgets based on spring type."""
+
+        def place_slider(field, top):
+            """Align ``field`` so its label starts at ``top``."""
+            field.slider_rect.y = top + 18
+            field.box_rect.y = top + 10
+            return top + 40
+
         y = self.sidebar.extra_start_y
-        self.rest_field.rect.y = y
-        y += 40
-        self.stiff_field.rect.y = y
-        y += 40
-        self.max_field.rect.y = y
-        y += 40
+        y = place_slider(self.rest_field, y)
+        y = place_slider(self.stiff_field, y)
+        y = place_slider(self.max_field, y)
         if isinstance(self.spring, VariableSpring):
-            self.alt_field.rect.y = y
-            y += 40
-            self.speed_field.rect.y = y
-            y += 40
-            self.key_field.rect.y = y
+            y = place_slider(self.alt_field, y)
+            y = place_slider(self.speed_field, y)
+            self.key_field.box_rect.y = y + 10
             y += 40
             self.mode_rect.y = y
             y += 40
