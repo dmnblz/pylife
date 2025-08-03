@@ -23,50 +23,50 @@ class InspectTool(Tool):
         y = sidebar.extra_start_y
 
         self.color_field = ColorField(
-            "P Color", lambda: self._get_color(), self._set_color, x, y, width
+            "P Color", self._get_color, self._set_color, x, y, width
         )
         y += 40
         self.mass_field = SliderField(
-            "P Mass", 0.1, 10.0, lambda: self._get_mass(), self._set_mass, x, y, width
+            "P Mass", 0.1, 10.0, self._get_mass, self._set_mass, x, y, width
         )
         y += 40
         self.radius_field = SliderField(
-            "P Radius", 1, 50, lambda: self._get_radius(), self._set_radius, x, y, width
+            "P Radius", 1, 50, self._get_radius, self._set_radius, x, y, width
         )
         y += 40
         self.rest_field = SliderField(
-            "S Rest", 1, 400, lambda: self._get_rest(), self._set_rest, x, y, width
+            "S Rest", 1, 400, self._get_rest, self._set_rest, x, y, width
         )
         y += 40
         self.stiff_field = SliderField(
-            "S Stiff", 10, 1000, lambda: self._get_stiff(), self._set_stiff, x, y, width
+            "S Stiff", 10, 1000, self._get_stiff, self._set_stiff, x, y, width
         )
         y += 40
         self.max_field = SliderField(
-            "S MaxF", 0, 2000, lambda: self._get_max(), self._set_max, x, y, width
+            "S MaxF", 0, 2000, self._get_max, self._set_max, x, y, width
         )
         y += 40
         self.bangle_field = SliderField(
-            "B Ang", 0, 180, lambda: self._get_bangle(), self._set_bangle, x, y, width
+            "B Ang", 0, 180, self._get_bangle, self._set_bangle, x, y, width
         )
         y += 40
         self.bstiff_field = SliderField(
-            "B Stiff", 10, 1000, lambda: self._get_bstiff(), self._set_bstiff, x, y, width
+            "B Stiff", 10, 1000, self._get_bstiff, self._set_bstiff, x, y, width
         )
         y += 40
         self.invis_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
 
     # ---------------- helpers
-    def _get_color(self):
+    def _get_color(self) -> tuple[int, int, int]:
         """Return the selected particle colour or white."""
         return self.particle.color if self.particle else (255, 255, 255)
 
-    def _set_color(self, color):
+    def _set_color(self, color: tuple[int, int, int]) -> None:
         """Update the selected particle colour."""
         if self.particle:
             self.particle.color = color
 
-    def _get_mass(self):
+    def _get_mass(self) -> float:
         """Return selected particle mass."""
         return self.particle.mass if self.particle else 0
 
@@ -75,7 +75,7 @@ class InspectTool(Tool):
         if self.particle:
             self.particle.mass = max(0.1, value)
 
-    def _get_radius(self):
+    def _get_radius(self) -> float:
         """Return selected particle radius."""
         return self.particle.radius if self.particle else 0
 
@@ -84,7 +84,7 @@ class InspectTool(Tool):
         if self.particle:
             self.particle.radius = max(1, int(value))
 
-    def _get_rest(self):
+    def _get_rest(self) -> float:
         """Return spring rest length."""
         return self.spring.rest_length if self.spring else 0
 
@@ -93,7 +93,7 @@ class InspectTool(Tool):
         if self.spring:
             self.spring.rest_length = max(1, value)
 
-    def _get_stiff(self):
+    def _get_stiff(self) -> float:
         """Return spring stiffness."""
         return self.spring.stiffness if self.spring else 0
 
@@ -102,7 +102,7 @@ class InspectTool(Tool):
         if self.spring:
             self.spring.stiffness = max(10, value)
 
-    def _get_bangle(self):
+    def _get_bangle(self) -> float:
         """Return bend rest angle in degrees."""
         return math.degrees(self.bend.rest_angle) if self.bend else 0
 
@@ -111,7 +111,7 @@ class InspectTool(Tool):
         if self.bend:
             self.bend.rest_angle = math.radians(max(0, value))
 
-    def _get_bstiff(self):
+    def _get_bstiff(self) -> float:
         """Return bend stiffness."""
         return self.bend.stiffness if self.bend else 0
 
@@ -120,7 +120,7 @@ class InspectTool(Tool):
         if self.bend:
             self.bend.stiffness = max(10, value)
 
-    def _get_max(self):
+    def _get_max(self) -> float:
         """Return spring max force or ``0`` if unlimited."""
         if not self.spring:
             return 0
