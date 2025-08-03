@@ -291,6 +291,34 @@ class BuilderApp:
         if data:
             self._apply_state(data)
 
+    def _build_springs(self) -> list[dict]:
+        """Return serialisable data for all springs."""
+        data: list[dict] = []
+        for s in self.springs:
+            sd = {
+                "p1": self.particles.index(s.p1),
+                "p2": self.particles.index(s.p2),
+                "rest": s.rest_length,
+                "stiff": s.stiffness,
+                "max": s.max_force,
+                "invis": s.invisible,
+            }
+            if isinstance(s, VariableSpring):
+                sd.update(
+                    {
+                        "type": "variable",
+                        "rest": s.base_rest_length,
+                        "alt": s.alt_rest_length,
+                        "speed": s.change_speed,
+                        "key": s.key,
+                        "mode": s.mode,
+                        "active": s.active,
+                        "curr": s.rest_length,
+                    }
+                )
+            data.append(sd)
+        return data
+
     def _build_state(self) -> dict:
         """Return a serialisable representation of the scene."""
         return {
@@ -306,17 +334,7 @@ class BuilderApp:
                 }
                 for p in self.particles
             ],
-            "springs": [
-                {
-                    "p1": self.particles.index(s.p1),
-                    "p2": self.particles.index(s.p2),
-                    "rest": s.rest_length,
-                    "stiff": s.stiffness,
-                    "max": s.max_force,
-                    "invis": s.invisible,
-                }
-                for s in self.springs
-            ],
+            "springs": self._build_springs(),
             "bending": [
                 {
                     "p1": self.particles.index(bs.p1),
@@ -367,16 +385,37 @@ class BuilderApp:
             self.particles.append(p)
 
         self.springs = []
+        self.variable_springs = []
+        self.vspring_keys = {}
         for sd in data.get("springs", []):
-            s = Spring(
-                self.particles[sd["p1"]],
-                self.particles[sd["p2"]],
-                sd.get("rest", 0),
-                stiffness=sd.get("stiff", 200.0),
-                max_force=sd.get("max"),
-                invisible=sd.get("invis", False),
-            )
-            self.springs.append(s)
+            if sd.get("type") == "variable":
+                s = VariableSpring(
+                    self.particles[sd["p1"]],
+                    self.particles[sd["p2"]],
+                    sd.get("rest", 0),
+                    sd.get("alt", 0),
+                    sd.get("stiff", 200.0),
+                    key=sd.get("key"),
+                    mode=sd.get("mode", "hold"),
+                    change_speed=sd.get("speed", 240.0),
+                    max_force=sd.get("max"),
+                    invisible=sd.get("invis", False),
+                )
+                s.active = sd.get("active", False)
+                s.rest_length = sd.get("curr", s.base_rest_length)
+                self.springs.append(s)
+                self.variable_springs.append(s)
+                self.register_variable_spring(s)
+            else:
+                s = Spring(
+                    self.particles[sd["p1"]],
+                    self.particles[sd["p2"]],
+                    sd.get("rest", 0),
+                    stiffness=sd.get("stiff", 200.0),
+                    max_force=sd.get("max"),
+                    invisible=sd.get("invis", False),
+                )
+                self.springs.append(s)
 
         self.bending_springs = []
         for bd in data.get("bending", []):
