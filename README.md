@@ -29,7 +29,8 @@ Number keys **1–0** switch between the first ten sidebar tools in order and ea
   * **Variable springs** – springs can switch between two rest lengths via a
     user-defined key.
   * **Variable particles** – particles can switch between two drag values via a
-    key in hold or toggle mode.
+    key in hold or toggle mode. Inspect mode can also convert existing particles
+    to or from this type.
   * **Developer-friendly** – comprehensive docstrings document the builder UI
     and creation script.
   * **Typed callbacks** – sidebar widgets declare explicit ``Callable``
@@ -89,7 +90,7 @@ Mouse and keyboard controls allow you to switch modes and modify properties:
 * Hit **Undo** in the sidebar to revert the most recent addition or deletion.
 * Scroll the sidebar with the mouse wheel; scrolling stops at the list bounds.
 
-Particles can be grabbed with the left mouse button.  When in spring mode, click two particles to connect them. Selecting the **Arm** tool lets you click a particle, drag out a direction and then hit *Create* to spawn a hook arm. The sidebar fields let you set the arm's mass, radius, stiffness, cycle speed, colours and adhesion factor before creation, and any number of arms may share the same cycle key. The **Inspect** tool can select a particle or a spring so their properties (colour, mass, radius, rest length, stiffness, **max force** and visibility) may be edited in place.  Springs may also be converted between normal and variable types through this menu. A value of ``0`` for max force disables the limit. Use the Particle, Spring or Env buttons to reveal their respective sliders.
+Particles can be grabbed with the left mouse button.  When in spring mode, click two particles to connect them. Selecting the **Arm** tool lets you click a particle, drag out a direction and then hit *Create* to spawn a hook arm. The sidebar fields let you set the arm's mass, radius, stiffness, cycle speed, colours and adhesion factor before creation, and any number of arms may share the same cycle key. The **Inspect** tool can select a particle, spring or bending spring so their properties (colour, mass, radius, drag, rest length, stiffness, **max force** and visibility) may be edited in place. Springs and particles may also be converted between normal and variable types through this menu. A value of ``0`` for max force disables the limit. Use the Particle, Spring or Env buttons to reveal their respective sliders.
 
 ## Example demos
 

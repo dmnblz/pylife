@@ -3,6 +3,8 @@
 import math
 import pygame
 
+from particle import Particle
+from variable_particle import VariableParticle
 from spring import Spring
 from variable_spring import VariableSpring
 from ..fields import SliderField, ColorField, KeyField, ButtonField
@@ -36,6 +38,38 @@ class InspectTool(Tool):
         y += 40
         self.radius_field = SliderField(
             "P Radius", 1, 50, self._get_radius, self._set_radius, x, y, width
+        )
+        y += 40
+        self.drag_field = SliderField(
+            "P Drag", 1, 500, self._get_drag, self._set_drag, x, y, width
+        )
+        y += 40
+        self.alt_drag_field = SliderField(
+            "V Drag", 1, 500, self._get_alt_drag, self._set_alt_drag, x, y, width
+        )
+        y += 40
+        self.vspeed_field = SliderField(
+            "V Speed", 50, 1000, self._get_vspeed, self._set_vspeed, x, y, width
+        )
+        y += 40
+        self.vkey_field = KeyField("V Key", self._get_vkey, self._set_vkey, x, y, width)
+        y += 40
+        self.vmode_btn = ButtonField(
+            lambda: f"Mode: {self.particle.mode}" if isinstance(self.particle, VariableParticle) else "Mode",
+            self._toggle_vmode,
+            x,
+            y,
+            width,
+            active=lambda: isinstance(self.particle, VariableParticle) and self.particle.mode == "toggle",
+        )
+        y += 40
+        self.ptype_btn = ButtonField(
+            lambda: "Normal" if isinstance(self.particle, VariableParticle) else "Variable",
+            self._convert_particle,
+            x,
+            y,
+            width,
+            active=lambda: isinstance(self.particle, VariableParticle),
         )
 
         # spring fields
@@ -126,6 +160,112 @@ class InspectTool(Tool):
         """Set selected particle radius."""
         if self.particle:
             self.particle.radius = max(1, int(value))
+
+    def _get_drag(self) -> float:
+        """Return the base drag for the selected particle."""
+        if isinstance(self.particle, VariableParticle):
+            return self.particle.base_drag
+        return self.particle.drag if self.particle else 0
+
+    def _set_drag(self, value: float) -> None:
+        """Set the base drag for the selected particle."""
+        if isinstance(self.particle, VariableParticle):
+            self.particle.base_drag = max(1, value)
+        elif self.particle:
+            self.particle.drag = max(1, value)
+
+    def _get_alt_drag(self) -> float:
+        """Return alternate drag for variable particles."""
+        if isinstance(self.particle, VariableParticle):
+            return self.particle.alt_drag
+        return 0
+
+    def _set_alt_drag(self, value: float) -> None:
+        """Set alternate drag for variable particles."""
+        if isinstance(self.particle, VariableParticle):
+            self.particle.alt_drag = max(1, value)
+
+    def _get_vspeed(self) -> float:
+        """Return drag change speed for variable particles."""
+        if isinstance(self.particle, VariableParticle):
+            return self.particle.change_speed
+        return 0
+
+    def _set_vspeed(self, value: float) -> None:
+        """Set drag change speed for variable particles."""
+        if isinstance(self.particle, VariableParticle):
+            self.particle.change_speed = max(10, value)
+
+    def _get_vkey(self) -> int | None:
+        """Return control key for variable particles."""
+        if isinstance(self.particle, VariableParticle):
+            return self.particle.key
+        return None
+
+    def _set_vkey(self, value: int | None) -> None:
+        """Set control key for variable particles."""
+        if isinstance(self.particle, VariableParticle):
+            self.app.update_vparticle_key(self.particle, value)
+
+    def _toggle_vmode(self) -> None:
+        """Cycle the selected variable particle between hold and toggle."""
+        if isinstance(self.particle, VariableParticle):
+            self.particle.mode = "toggle" if self.particle.mode == "hold" else "hold"
+
+    def _convert_particle(self) -> None:
+        """Toggle the selected particle between variable and normal types."""
+        if not self.particle:
+            return
+        if isinstance(self.particle, VariableParticle):
+            old = self.particle
+            self.app.update_vparticle_key(old, None)
+            if old in self.app.variable_particles:
+                self.app.variable_particles.remove(old)
+            try:
+                del old.base_drag, old.alt_drag, old.change_speed, old.key, old.mode, old.active
+            except AttributeError:
+                pass
+            old.__class__ = Particle
+        else:
+            p = self.particle
+            cfg = self.app.vparticle
+            p.__class__ = VariableParticle
+            p.base_drag = p.drag
+            p.alt_drag = cfg.alt_drag
+            p.change_speed = cfg.speed
+            p.key = cfg.key
+            p.mode = cfg.mode
+            p.active = False
+            self.app.variable_particles.append(p)
+            self.app.register_variable_particle(p)
+
+    def _layout_particle_fields(self) -> None:
+        """Position particle widgets based on particle type."""
+        y = self.sidebar.extra_start_y
+        self.color_field.color_rect.y = y + 14
+        self.color_field.box_rect.y = y + 10
+        y += 40
+        self.mass_field.slider_rect.y = y + 18
+        self.mass_field.box_rect.y = y + 10
+        y += 40
+        self.radius_field.slider_rect.y = y + 18
+        self.radius_field.box_rect.y = y + 10
+        y += 40
+        self.drag_field.slider_rect.y = y + 18
+        self.drag_field.box_rect.y = y + 10
+        y += 40
+        if isinstance(self.particle, VariableParticle):
+            self.alt_drag_field.slider_rect.y = y + 18
+            self.alt_drag_field.box_rect.y = y + 10
+            y += 40
+            self.vspeed_field.slider_rect.y = y + 18
+            self.vspeed_field.box_rect.y = y + 10
+            y += 40
+            self.vkey_field.box_rect.y = y + 10
+            y += 40
+            self.vmode_btn.rect.y = y
+            y += 40
+        self.ptype_btn.rect.y = y
 
     def _get_rest(self) -> float:
         """Return spring rest length."""
@@ -306,9 +446,17 @@ class InspectTool(Tool):
         if not super().draw_ui(offset):
             return
         if self.particle:
+            self._layout_particle_fields()
             self.color_field.draw(self.sidebar.screen, offset)
             self.mass_field.draw(self.sidebar.screen, offset)
             self.radius_field.draw(self.sidebar.screen, offset)
+            self.drag_field.draw(self.sidebar.screen, offset)
+            if isinstance(self.particle, VariableParticle):
+                self.alt_drag_field.draw(self.sidebar.screen, offset)
+                self.vspeed_field.draw(self.sidebar.screen, offset)
+                self.vkey_field.draw(self.sidebar.screen, offset)
+                self.vmode_btn.draw(self.sidebar.screen, offset)
+            self.ptype_btn.draw(self.sidebar.screen, offset)
         elif self.spring:
             self._layout_spring_fields()
             self.rest_field.draw(self.sidebar.screen, offset)
@@ -367,11 +515,25 @@ class InspectTool(Tool):
         if not super().handle_event(event, offset):
             return False
         if self.particle:
+            self._layout_particle_fields()
             if self.color_field.handle_event(event, offset):
                 return True
             if self.mass_field.handle_event(event, offset):
                 return True
             if self.radius_field.handle_event(event, offset):
+                return True
+            if self.drag_field.handle_event(event, offset):
+                return True
+            if isinstance(self.particle, VariableParticle):
+                if self.alt_drag_field.handle_event(event, offset):
+                    return True
+                if self.vspeed_field.handle_event(event, offset):
+                    return True
+                if self.vkey_field.handle_event(event, offset):
+                    return True
+                if self.vmode_btn.handle_event(event, offset):
+                    return True
+            if self.ptype_btn.handle_event(event, offset):
                 return True
         elif self.spring:
             self._layout_spring_fields()
