@@ -426,3 +426,87 @@ class KeyField:
             self.editing = False
             return True
         return False
+
+
+class ButtonField:
+    """Simple clickable button with pressed and active states."""
+
+    HEIGHT = 28
+
+    def __init__(
+        self,
+        label: str | Callable[[], str],
+        action: Callable[[], None],
+        x: int,
+        y: int,
+        width: int,
+        active: Callable[[], bool] | bool = False,
+    ) -> None:
+        """Create a button field.
+
+        Parameters
+        ----------
+        label:
+            Text displayed on the button or a callable returning it.
+        action:
+            Callback executed when the button is clicked.
+        x, y, width:
+            Position and width of the button.
+        active:
+            Optional boolean or callable indicating whether the button is in
+            an active/toggled state.
+        """
+
+        self.label = label
+        self.action = action
+        self.active = active
+        self.rect = pygame.Rect(x, y, width, self.HEIGHT)
+        self.font = pygame.font.SysFont(None, 24)
+        self.pressed = 0
+
+    def draw(self, screen, offset: int = 0) -> None:
+        """Render the button.
+
+        Parameters
+        ----------
+        screen:
+            Surface on which to draw.
+        offset:
+            Vertical pixel offset applied for scrolling.
+        """
+
+        rect = self.rect.move(0, offset)
+        label = self.label() if callable(self.label) else self.label
+        color = (80, 80, 80)
+        active = self.active() if callable(self.active) else self.active
+        if active:
+            color = (120, 120, 120)
+        if pygame.time.get_ticks() - self.pressed < 150:
+            color = (60, 60, 60)
+        pygame.draw.rect(screen, color, rect)
+        img = self.font.render(label, True, (255, 255, 255))
+        screen.blit(img, img.get_rect(center=rect.center))
+
+    def handle_event(self, event, offset: int = 0) -> bool:
+        """Handle mouse clicks on the button.
+
+        Parameters
+        ----------
+        event:
+            Pygame event to process.
+        offset:
+            Vertical pixel offset applied for scrolling.
+
+        Returns
+        -------
+        bool
+            ``True`` if the event was consumed.
+        """
+
+        rect = self.rect.move(0, offset)
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if rect.collidepoint(event.pos):
+                self.action()
+                self.pressed = pygame.time.get_ticks()
+                return True
+        return False
