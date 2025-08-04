@@ -658,6 +658,7 @@ class BuilderApp:
             self.springs.append(s)
             new_springs.append(s)
 
+        new_bends: list[BendingSpring] = []
         for bd in data.get("bending", []):
             bs = BendingSpring(
                 new_particles[bd["p1"]],
@@ -667,8 +668,16 @@ class BuilderApp:
                 bd.get("stiff", 0),
             )
             self.bending_springs.append(bs)
+            new_bends.append(bs)
 
         # arms are ignored in substate appends for simplicity
+
+        if new_particles or new_springs or new_bends:
+            self.push_undo(
+                lambda parts=new_particles, sprs=new_springs, bends=new_bends: self.remove_entities(
+                    parts, sprs, bends
+                )
+            )
 
     # ------------------------------------------------------------------ circle creation
     def create_circle(

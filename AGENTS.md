@@ -106,3 +106,5 @@ feedback.
 - A **Select** tool lets users drag a rectangle to select multiple particles,
   springs or bends for group moves, bulk edits, copy/paste and saving or loading
   substructures without replacing the current scene.
+- Pasted or loaded substructures now record an undo step so additions can be
+  reverted with the sidebar's **Undo** button.

@@ -5,6 +5,9 @@ from __future__ import annotations
 import pygame
 
 import builder_io
+from bending_spring import BendingSpring
+from particle import Particle
+from spring import Spring
 from ..fields import ButtonField
 from .base import Tool
 
@@ -26,9 +29,9 @@ class SelectionTool(Tool):
         self.dragging_sel = False
         self.move_prev: pygame.Vector2 | None = None
 
-        self.selected_particles: list = []
-        self.selected_springs: list = []
-        self.selected_bends: list = []
+        self.selected_particles: list[Particle] = []
+        self.selected_springs: list[Spring] = []
+        self.selected_bends: list[BendingSpring] = []
         self.clipboard: dict | None = None
 
         x = sidebar.screen.get_width() - sidebar.WIDTH + 10
