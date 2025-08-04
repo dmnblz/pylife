@@ -96,3 +96,5 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - The sidebar supports mouse-wheel scrolling to access overflow options.
 - Scrolling now stops at the top and bottom of the content to avoid losing the
   sidebar's current context.
+- Tool menu buttons darken when clicked and highlight active toggles for clearer
+  feedback.

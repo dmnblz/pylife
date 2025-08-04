@@ -2,7 +2,7 @@
 
 import pygame
 
-from ..fields import SliderField, ColorField, KeyField
+from ..fields import SliderField, ColorField, KeyField, ButtonField
 from .base import Tool
 
 
@@ -72,7 +72,7 @@ class HookArmTool(Tool):
         y += 40
         self.key_field = KeyField("Cycle", self._get_key, self._set_key, x, y, width)
         y += 40
-        self.create_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
+        self.create_button = ButtonField("Create", self._create, x, y, width)
 
     # ---------------- value setters
     def _set_segments(self, value: float):
@@ -127,6 +127,27 @@ class HookArmTool(Tool):
         """Set keyboard key used to cycle the arm."""
         self.cycle_key = value
 
+    def _create(self) -> None:
+        """Spawn the configured hook arm if a base particle is selected."""
+        if not self.base:
+            return
+        self.app.create_hook_arm(
+            self.base,
+            self.direction,
+            self.segments,
+            self.spacing,
+            self.mass,
+            self.radius,
+            self.stiffness,
+            self.color,
+            self.high_drag_color,
+            self.adhesion_factor,
+            self.cycle_key,
+            self.cycle_speed,
+        )
+        self.cancel()
+        self.sidebar.app.set_mode("drag")
+
     # ---------------- control
     def start(self):
         """Activate the tool and clear base particle."""
@@ -166,11 +187,7 @@ class HookArmTool(Tool):
         self.high_field.draw(self.sidebar.screen, offset)
         self.adh_field.draw(self.sidebar.screen, offset)
         self.key_field.draw(self.sidebar.screen, offset)
-        create_rect = self.create_rect.move(0, offset)
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), create_rect)
-        txt = self.sidebar.font.render("Create", True, (255, 255, 255))
-        rect = txt.get_rect(center=create_rect.center)
-        self.sidebar.screen.blit(txt, rect)
+        self.create_button.draw(self.sidebar.screen, offset)
 
     def draw_preview(self):
         """Draw a preview of the prospective arm."""
@@ -209,26 +226,8 @@ class HookArmTool(Tool):
             return True
         if self.key_field.handle_event(event, offset):
             return True
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            create_rect = self.create_rect.move(0, offset)
-            if create_rect.collidepoint(event.pos) and self.base:
-                self.app.create_hook_arm(
-                    self.base,
-                    self.direction,
-                    self.segments,
-                    self.spacing,
-                    self.mass,
-                    self.radius,
-                    self.stiffness,
-                    self.color,
-                    self.high_drag_color,
-                    self.adhesion_factor,
-                    self.cycle_key,
-                    self.cycle_speed,
-                )
-                self.cancel()
-                self.sidebar.app.set_mode("drag")
-                return True
+        if self.create_button.handle_event(event, offset):
+            return True
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():

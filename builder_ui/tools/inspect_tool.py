@@ -5,7 +5,7 @@ import pygame
 
 from spring import Spring
 from variable_spring import VariableSpring
-from ..fields import SliderField, ColorField, KeyField
+from ..fields import SliderField, ColorField, KeyField, ButtonField
 from .base import Tool
 
 
@@ -62,11 +62,32 @@ class InspectTool(Tool):
         y += 40
         self.key_field = KeyField("V Key", self._get_key, self._set_key, x, y, width)
         y += 40
-        self.mode_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
+        self.mode_btn = ButtonField(
+            lambda: f"Mode: {self.spring.mode}" if isinstance(self.spring, VariableSpring) else "Mode",
+            self._toggle_mode,
+            x,
+            y,
+            width,
+            active=lambda: isinstance(self.spring, VariableSpring) and self.spring.mode == "toggle",
+        )
         y += 40
-        self.type_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
+        self.type_btn = ButtonField(
+            lambda: "Normal" if isinstance(self.spring, VariableSpring) else "Variable",
+            self._convert_spring,
+            x,
+            y,
+            width,
+            active=lambda: isinstance(self.spring, VariableSpring),
+        )
         y += 40
-        self.invis_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
+        self.invis_btn = ButtonField(
+            lambda: "Show" if self.spring and self.spring.invisible else "Hide",
+            self._toggle_invisible,
+            x,
+            y,
+            width,
+            active=lambda: bool(self.spring and self.spring.invisible),
+        )
 
         # bend fields
         y = base_y
@@ -161,6 +182,11 @@ class InspectTool(Tool):
         if isinstance(self.spring, VariableSpring):
             self.sidebar.app.update_vspring_key(self.spring, value)
 
+    def _toggle_mode(self) -> None:
+        """Cycle the selected variable spring between hold and toggle modes."""
+        if isinstance(self.spring, VariableSpring):
+            self.spring.mode = "toggle" if self.spring.mode == "hold" else "hold"
+
     def _convert_spring(self) -> None:
         """Toggle the selected spring between variable and normal types."""
         if not self.spring:
@@ -220,11 +246,11 @@ class InspectTool(Tool):
             y = place_slider(self.speed_field, y)
             self.key_field.box_rect.y = y + 10
             y += 40
-            self.mode_rect.y = y
+            self.mode_btn.rect.y = y
             y += 40
-        self.type_rect.y = y
+        self.type_btn.rect.y = y
         y += 40
-        self.invis_rect.y = y
+        self.invis_btn.rect.y = y
 
     def _get_bangle(self) -> float:
         """Return bend rest angle in degrees."""
@@ -292,29 +318,9 @@ class InspectTool(Tool):
                 self.alt_field.draw(self.sidebar.screen, offset)
                 self.speed_field.draw(self.sidebar.screen, offset)
                 self.key_field.draw(self.sidebar.screen, offset)
-                mode_rect = self.mode_rect.move(0, offset)
-                pygame.draw.rect(self.sidebar.screen, (80, 80, 80), mode_rect)
-                txt = self.sidebar.font.render(
-                    f"Mode: {self.spring.mode}", True, (255, 255, 255)
-                )
-                rect = txt.get_rect(center=mode_rect.center)
-                self.sidebar.screen.blit(txt, rect)
-            type_rect = self.type_rect.move(0, offset)
-            pygame.draw.rect(self.sidebar.screen, (80, 80, 80), type_rect)
-            txt = self.sidebar.font.render(
-                "Normal" if isinstance(self.spring, VariableSpring) else "Variable",
-                True,
-                (255, 255, 255),
-            )
-            rect = txt.get_rect(center=type_rect.center)
-            self.sidebar.screen.blit(txt, rect)
-            invis_rect = self.invis_rect.move(0, offset)
-            pygame.draw.rect(self.sidebar.screen, (80, 80, 80), invis_rect)
-            txt = self.sidebar.font.render(
-                "Hide" if not self.spring.invisible else "Show", True, (255, 255, 255)
-            )
-            rect = txt.get_rect(center=invis_rect.center)
-            self.sidebar.screen.blit(txt, rect)
+                self.mode_btn.draw(self.sidebar.screen, offset)
+            self.type_btn.draw(self.sidebar.screen, offset)
+            self.invis_btn.draw(self.sidebar.screen, offset)
         elif self.bend:
             self.bangle_field.draw(self.sidebar.screen, offset)
             self.bstiff_field.draw(self.sidebar.screen, offset)
@@ -382,29 +388,11 @@ class InspectTool(Tool):
                     return True
                 if self.key_field.handle_event(event, offset):
                     return True
-                mode_rect = self.mode_rect.move(0, offset)
-                if (
-                    event.type == pygame.MOUSEBUTTONDOWN
-                    and event.button == 1
-                    and mode_rect.collidepoint(event.pos)
-                ):
-                    self.spring.mode = "toggle" if self.spring.mode == "hold" else "hold"
+                if self.mode_btn.handle_event(event, offset):
                     return True
-            type_rect = self.type_rect.move(0, offset)
-            if (
-                event.type == pygame.MOUSEBUTTONDOWN
-                and event.button == 1
-                and type_rect.collidepoint(event.pos)
-            ):
-                self._convert_spring()
+            if self.type_btn.handle_event(event, offset):
                 return True
-            invis_rect = self.invis_rect.move(0, offset)
-            if (
-                event.type == pygame.MOUSEBUTTONDOWN
-                and event.button == 1
-                and invis_rect.collidepoint(event.pos)
-            ):
-                self._toggle_invisible()
+            if self.invis_btn.handle_event(event, offset):
                 return True
         elif self.bend:
             if self.bangle_field.handle_event(event, offset):

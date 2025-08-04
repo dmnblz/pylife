@@ -2,7 +2,7 @@
 
 import pygame
 
-from ..fields import SliderField, KeyField
+from ..fields import SliderField, KeyField, ButtonField
 from .base import Tool
 
 
@@ -59,7 +59,20 @@ class VariableSpringTool(Tool):
             width,
         )
         y += 40
-        self.mode_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
+        self.mode_button = ButtonField(
+            lambda: f"Mode: {self.app.vspring.mode}",
+            self._toggle_mode,
+            x,
+            y,
+            width,
+            active=lambda: self.app.vspring.mode == "toggle",
+        )
+
+    def _toggle_mode(self) -> None:
+        """Switch the default variable spring between hold and toggle."""
+        self.app.vspring.mode = (
+            "toggle" if self.app.vspring.mode == "hold" else "hold"
+        )
 
     def draw_ui(self, offset: int = 0):
         """Render the slider and key fields."""
@@ -69,11 +82,7 @@ class VariableSpringTool(Tool):
         self.alt_field.draw(self.sidebar.screen, offset)
         self.speed_field.draw(self.sidebar.screen, offset)
         self.key_field.draw(self.sidebar.screen, offset)
-        mode_rect = self.mode_rect.move(0, offset)
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), mode_rect)
-        txt = self.sidebar.font.render(f"Mode: {self.app.vspring.mode}", True, (255, 255, 255))
-        rect = txt.get_rect(center=mode_rect.center)
-        self.sidebar.screen.blit(txt, rect)
+        self.mode_button.draw(self.sidebar.screen, offset)
 
     def handle_event(self, event, offset: int = 0):
         """Forward events to sliders and handle mode toggling."""
@@ -87,9 +96,6 @@ class VariableSpringTool(Tool):
             return True
         if self.key_field.handle_event(event, offset):
             return True
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            mode_rect = self.mode_rect.move(0, offset)
-            if mode_rect.collidepoint(event.pos):
-                self.app.vspring.mode = "toggle" if self.app.vspring.mode == "hold" else "hold"
-                return True
+        if self.mode_button.handle_event(event, offset):
+            return True
         return False

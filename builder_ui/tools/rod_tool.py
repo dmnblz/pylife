@@ -3,7 +3,7 @@
 import math
 import pygame
 
-from ..fields import SliderField
+from ..fields import SliderField, ButtonField
 from .base import Tool
 
 
@@ -50,17 +50,38 @@ class RodTool(Tool):
             "Stiff", 10, 1000, lambda: self.stiffness, self._set_stiff, x, y, width
         )
         y += 40
-        self.bend_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
+        self.bend_button = ButtonField(
+            lambda: "Bend: On" if self.include_bend else "Bend: Off",
+            self._toggle_bend,
+            x,
+            y,
+            width,
+            active=lambda: self.include_bend,
+        )
         y += self.sidebar.BUTTON_HEIGHT + 4
         self.bstiff_field = SliderField(
             "BStiff", 10, 1000, lambda: self.bend_stiffness, self._set_bstiff, x, y, width
         )
         y += 40
-        self.cyto_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
+        self.cyto_button = ButtonField(
+            lambda: "Cytoskeleton" if self.include_cytoskeleton else "No Cytoskeleton",
+            self._toggle_cyto,
+            x,
+            y,
+            width,
+            active=lambda: self.include_cytoskeleton,
+        )
         y += self.sidebar.BUTTON_HEIGHT + 4
-        self.skeleton_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
+        self.skeleton_button = ButtonField(
+            lambda: "Skeleton" if self.include_skeleton else "No Skeleton",
+            self._toggle_skeleton,
+            x,
+            y,
+            width,
+            active=lambda: self.include_skeleton,
+        )
         y += self.sidebar.BUTTON_HEIGHT + 4
-        self.create_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
+        self.create_button = ButtonField("Create", self._create, x, y, width)
 
     # ---------------- value setters
     def _set_radius(self, value: float):
@@ -86,6 +107,37 @@ class RodTool(Tool):
     def _set_bstiff(self, value: float):
         """Set bending spring stiffness."""
         self.bend_stiffness = max(10, value)
+
+    def _toggle_bend(self) -> None:
+        """Toggle inclusion of bending springs along the rod."""
+        self.include_bend = not self.include_bend
+
+    def _toggle_cyto(self) -> None:
+        """Toggle creation of cytoskeleton links."""
+        self.include_cytoskeleton = not self.include_cytoskeleton
+
+    def _toggle_skeleton(self) -> None:
+        """Toggle creation of an internal skeleton."""
+        self.include_skeleton = not self.include_skeleton
+
+    def _create(self) -> None:
+        """Spawn the configured rod if a centre point was set."""
+        if not self.center:
+            return
+        self.app.create_rod(
+            self.center,
+            self.radius,
+            self.length,
+            self.segments,
+            self.include_cytoskeleton,
+            self.include_skeleton,
+            self.skeleton_count,
+            self.stiffness,
+            self.include_bend,
+            self.bend_stiffness,
+        )
+        self.cancel()
+        self.sidebar.app.set_mode("drag")
 
     # ---------------- control
     def start(self):
@@ -139,31 +191,12 @@ class RodTool(Tool):
         self.segments_field.draw(self.sidebar.screen, offset)
         self.skel_count_field.draw(self.sidebar.screen, offset)
         self.stiff_field.draw(self.sidebar.screen, offset)
-        bend_rect = self.bend_rect.move(0, offset)
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), bend_rect)
-        bend_txt = "Bend: On" if self.include_bend else "Bend: Off"
-        txt = self.sidebar.font.render(bend_txt, True, (255, 255, 255))
-        rect = txt.get_rect(center=bend_rect.center)
-        self.sidebar.screen.blit(txt, rect)
+        self.bend_button.draw(self.sidebar.screen, offset)
         if self.include_bend:
             self.bstiff_field.draw(self.sidebar.screen, offset)
-        cyto_rect = self.cyto_rect.move(0, offset)
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), cyto_rect)
-        cyto_txt = "Cytoskeleton" if self.include_cytoskeleton else "No Cytoskeleton"
-        txt = self.sidebar.font.render(cyto_txt, True, (255, 255, 255))
-        rect = txt.get_rect(center=cyto_rect.center)
-        self.sidebar.screen.blit(txt, rect)
-        skeleton_rect = self.skeleton_rect.move(0, offset)
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), skeleton_rect)
-        skel_txt = "Skeleton" if self.include_skeleton else "No Skeleton"
-        txt = self.sidebar.font.render(skel_txt, True, (255, 255, 255))
-        rect = txt.get_rect(center=skeleton_rect.center)
-        self.sidebar.screen.blit(txt, rect)
-        create_rect = self.create_rect.move(0, offset)
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), create_rect)
-        txt = self.sidebar.font.render("Create", True, (255, 255, 255))
-        rect = txt.get_rect(center=create_rect.center)
-        self.sidebar.screen.blit(txt, rect)
+        self.cyto_button.draw(self.sidebar.screen, offset)
+        self.skeleton_button.draw(self.sidebar.screen, offset)
+        self.create_button.draw(self.sidebar.screen, offset)
 
     def draw_preview(self):
         """Draw the rod preview at the current mouse position."""
@@ -264,36 +297,14 @@ class RodTool(Tool):
             return True
         if self.include_bend and self.bstiff_field.handle_event(event, offset):
             return True
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            bend_rect = self.bend_rect.move(0, offset)
-            if bend_rect.collidepoint(event.pos):
-                self.include_bend = not self.include_bend
-                return True
-            cyto_rect = self.cyto_rect.move(0, offset)
-            if cyto_rect.collidepoint(event.pos):
-                self.include_cytoskeleton = not self.include_cytoskeleton
-                return True
-            skeleton_rect = self.skeleton_rect.move(0, offset)
-            if skeleton_rect.collidepoint(event.pos):
-                self.include_skeleton = not self.include_skeleton
-                return True
-            create_rect = self.create_rect.move(0, offset)
-            if create_rect.collidepoint(event.pos) and self.center:
-                self.app.create_rod(
-                    self.center,
-                    self.radius,
-                    self.length,
-                    self.segments,
-                    self.include_cytoskeleton,
-                    self.include_skeleton,
-                    self.skeleton_count,
-                    self.stiffness,
-                    self.include_bend,
-                    self.bend_stiffness,
-                )
-                self.cancel()
-                self.sidebar.app.set_mode("drag")
-                return True
+        if self.bend_button.handle_event(event, offset):
+            return True
+        if self.cyto_button.handle_event(event, offset):
+            return True
+        if self.skeleton_button.handle_event(event, offset):
+            return True
+        if self.create_button.handle_event(event, offset):
+            return True
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():

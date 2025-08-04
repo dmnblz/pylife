@@ -2,7 +2,7 @@
 
 import pygame
 
-from ..fields import SliderField
+from ..fields import SliderField, ButtonField
 from .base import Tool
 
 
@@ -18,7 +18,14 @@ class GridTool(Tool):
         width = sidebar.WIDTH - 20
         y = sidebar.extra_start_y
 
-        self.toggle_rect = pygame.Rect(x, y, width, self.sidebar.BUTTON_HEIGHT)
+        self.toggle_button = ButtonField(
+            lambda: f"Grid: {'On' if self.app.grid_enabled else 'Off'}",
+            self.app.toggle_grid,
+            x,
+            y,
+            width,
+            active=lambda: self.app.grid_enabled,
+        )
         y += self.sidebar.BUTTON_HEIGHT + 12
         self.size_field = SliderField(
             "Spacing", 5, 200, lambda: self.app.grid_size, self.app.set_grid_size, x, y, width
@@ -29,12 +36,7 @@ class GridTool(Tool):
         """Render the grid toggle and spacing slider."""
         if not super().draw_ui(offset):
             return
-        toggle_rect = self.toggle_rect.move(0, offset)
-        pygame.draw.rect(self.sidebar.screen, (80, 80, 80), toggle_rect)
-        state = "On" if self.app.grid_enabled else "Off"
-        txt = self.sidebar.font.render(f"Grid: {state}", True, (255, 255, 255))
-        rect = txt.get_rect(center=toggle_rect.center)
-        self.sidebar.screen.blit(txt, rect)
+        self.toggle_button.draw(self.sidebar.screen, offset)
         self.size_field.draw(self.sidebar.screen, offset)
 
     # ---------------- event handling
@@ -42,11 +44,8 @@ class GridTool(Tool):
         """Handle mouse input for grid toggling and spacing."""
         if not super().handle_event(event, offset):
             return False
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            toggle_rect = self.toggle_rect.move(0, offset)
-            if toggle_rect.collidepoint(event.pos):
-                self.app.toggle_grid()
-                return True
+        if self.toggle_button.handle_event(event, offset):
+            return True
         if self.size_field.handle_event(event, offset):
             return True
         return False
