@@ -102,4 +102,7 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - Scrolling now stops at the top and bottom of the content to avoid losing the
   sidebar's current context.
 - Tool menu buttons darken when clicked and highlight active toggles for clearer
-  feedback.
+feedback.
+- A **Select** tool lets users drag a rectangle to select multiple particles,
+  springs or bends for group moves, bulk edits, copy/paste and saving or loading
+  substructures without replacing the current scene.

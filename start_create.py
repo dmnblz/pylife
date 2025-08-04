@@ -105,6 +105,8 @@ class BuilderApp:
             self.ui.env_tool.cancel()
         if self.mode == "grid" and mode != "grid":
             self.ui.grid_tool.cancel()
+        if self.mode == "select" and mode != "select":
+            self.ui.selection_tool.cancel()
 
         self.mode = mode
         if mode == "circle":
@@ -129,6 +131,8 @@ class BuilderApp:
             self.ui.env_tool.start()
         if mode == "grid":
             self.ui.grid_tool.start()
+        if mode == "select":
+            self.ui.selection_tool.start()
         if mode not in ("spring", "vspring"):
             self.spring_first = None
         if self.selected and mode != "drag":
@@ -312,13 +316,52 @@ class BuilderApp:
         if data:
             self._apply_state(data)
 
-    def _build_springs(self) -> list[dict]:
-        """Return serialisable data for all springs."""
+    def save_selection(self) -> None:
+        """Export the currently selected entities through a save dialog."""
+        tool = self.ui.selection_tool
+        state = self._build_state(
+            tool.selected_particles, tool.selected_springs, tool.selected_bends
+        )
+        if state["particles"] or state["springs"] or state["bending"]:
+            builder_io.save_state_dialog(state)
+
+    def load_structure(self) -> None:
+        """Load a structure from disk and append it at the mouse position."""
+        data = builder_io.load_state_dialog()
+        if data:
+            mouse = pygame.Vector2(pygame.mouse.get_pos())
+            parts = data.get("particles", [])
+            if parts:
+                min_x = min(p["pos"][0] for p in parts)
+                min_y = min(p["pos"][1] for p in parts)
+                offset = mouse - pygame.Vector2(min_x, min_y)
+            else:
+                offset = pygame.Vector2()
+            self._apply_substate(data, offset)
+
+    def _build_springs(self, springs=None, p_index=None) -> list[dict]:
+        """Return serialisable data for springs.
+
+        Parameters
+        ----------
+        springs:
+            Optional iterable of springs to serialise. Defaults to all springs.
+        p_index:
+            Mapping from particles to indices in the serialised particle list.
+        """
+
+        if springs is None:
+            springs = self.springs
+        if p_index is None:
+            p_index = {p: i for i, p in enumerate(self.particles)}
+
         data: list[dict] = []
-        for s in self.springs:
+        for s in springs:
+            if s.p1 not in p_index or s.p2 not in p_index:
+                continue
             sd = {
-                "p1": self.particles.index(s.p1),
-                "p2": self.particles.index(s.p2),
+                "p1": p_index[s.p1],
+                "p2": p_index[s.p2],
                 "rest": s.rest_length,
                 "stiff": s.stiffness,
                 "max": s.max_force,
@@ -340,8 +383,22 @@ class BuilderApp:
             data.append(sd)
         return data
 
-    def _build_state(self) -> dict:
-        """Return a serialisable representation of the scene."""
+    def _build_state(
+        self,
+        particles: list[Particle] | None = None,
+        springs: list[Spring] | None = None,
+        bends: list[BendingSpring] | None = None,
+        arms: list[HookArm] | None = None,
+    ) -> dict:
+        """Return a serialisable representation of the scene or subset."""
+
+        particles = particles if particles is not None else self.particles
+        springs = springs if springs is not None else self.springs
+        bends = bends if bends is not None else self.bending_springs
+        arms = arms if arms is not None else self.arms
+        p_index = {p: i for i, p in enumerate(particles)}
+        s_index = {s: i for i, s in enumerate(springs)}
+
         return {
             "particles": [
                 {
@@ -365,26 +422,27 @@ class BuilderApp:
                             "curr": p.drag,
                         }
                         if isinstance(p, VariableParticle)
-                        else {}
+                        else {},
                     ),
                 }
-                for p in self.particles
+                for p in particles
             ],
-            "springs": self._build_springs(),
+            "springs": self._build_springs(springs, p_index),
             "bending": [
                 {
-                    "p1": self.particles.index(bs.p1),
-                    "p2": self.particles.index(bs.p2),
-                    "p3": self.particles.index(bs.p3),
+                    "p1": p_index[bs.p1],
+                    "p2": p_index[bs.p2],
+                    "p3": p_index[bs.p3],
                     "angle": bs.rest_angle,
                     "stiff": bs.stiffness,
                 }
-                for bs in self.bending_springs
+                for bs in bends
+                if bs.p1 in p_index and bs.p2 in p_index and bs.p3 in p_index
             ],
             "arms": [
                 {
-                    "particles": [self.particles.index(p) for p in arm.particles],
-                    "springs": [self.springs.index(s) for s in arm.springs],
+                    "particles": [p_index[p] for p in arm.particles if p in p_index],
+                    "springs": [s_index[s] for s in arm.springs if s in s_index],
                     "rest_lengths": arm.rest_lengths,
                     "max_lengths": arm.max_lengths,
                     "cycle_speed": arm.cycle_speed,
@@ -396,7 +454,8 @@ class BuilderApp:
                     "orig_drag": arm._orig_drag,
                     "cycle_key": arm.cycle_key,
                 }
-                for arm in self.arms
+                for arm in arms
+                if all(p in p_index for p in arm.particles)
             ],
             "physics": {
                 "gravity": [self.physics.gravity.x, self.physics.gravity.y],
@@ -406,7 +465,6 @@ class BuilderApp:
                 "damping_coeff": self.physics.damping_coeff,
             },
         }
-
     def _apply_state(self, data: dict) -> None:
         """Rebuild the scene from a serialised *data* structure."""
         self.particles = []
@@ -529,6 +587,88 @@ class BuilderApp:
         self.physics.particles = self.particles
         self.physics.springs = self.springs
         self.physics.bending_springs = self.bending_springs
+
+    def _apply_substate(self, data: dict, offset: pygame.Vector2) -> None:
+        """Append a serialised subset ``data`` applying ``offset`` to positions."""
+
+        new_particles: list[Particle] = []
+        for pd in data.get("particles", []):
+            pos = pygame.Vector2(pd["pos"]) + offset
+            prev = pygame.Vector2(pd.get("prev", pd["pos"])) + offset
+            if pd.get("type") == "variable":
+                p = VariableParticle(
+                    pos,
+                    mass=pd.get("mass", 1.0),
+                    color=tuple(pd["color"]) if pd.get("color") else None,
+                    radius=pd.get("radius"),
+                    base_drag=pd.get("base", 1.0),
+                    alt_drag=pd.get("alt", 100.0),
+                    key=pd.get("key"),
+                    mode=pd.get("mode", "hold"),
+                    change_speed=pd.get("speed", 240.0),
+                )
+                p.active = pd.get("active", False)
+                p.drag = pd.get("curr", p.base_drag)
+                self.variable_particles.append(p)
+                self.register_variable_particle(p)
+            else:
+                p = Particle(
+                    pos,
+                    mass=pd.get("mass", 1.0),
+                    color=tuple(pd["color"]) if pd.get("color") else None,
+                    radius=pd.get("radius"),
+                    tag=pd.get("tag"),
+                    drag=pd.get("drag", 1.0),
+                )
+            p.prev_pos = prev
+            p.fixed = pd.get("fixed", False)
+            self.particles.append(p)
+            new_particles.append(p)
+
+        new_springs: list[Spring] = []
+        for sd in data.get("springs", []):
+            p1 = new_particles[sd["p1"]]
+            p2 = new_particles[sd["p2"]]
+            if sd.get("type") == "variable":
+                s = VariableSpring(
+                    p1,
+                    p2,
+                    sd.get("rest", 0),
+                    sd.get("alt", 0),
+                    sd.get("stiff", 200.0),
+                    key=sd.get("key"),
+                    mode=sd.get("mode", "hold"),
+                    change_speed=sd.get("speed", 240.0),
+                    max_force=sd.get("max"),
+                    invisible=sd.get("invis", False),
+                )
+                s.active = sd.get("active", False)
+                s.rest_length = sd.get("curr", s.base_rest_length)
+                self.variable_springs.append(s)
+                self.register_variable_spring(s)
+            else:
+                s = Spring(
+                    p1,
+                    p2,
+                    sd.get("rest", 0),
+                    stiffness=sd.get("stiff", 200.0),
+                    max_force=sd.get("max"),
+                    invisible=sd.get("invis", False),
+                )
+            self.springs.append(s)
+            new_springs.append(s)
+
+        for bd in data.get("bending", []):
+            bs = BendingSpring(
+                new_particles[bd["p1"]],
+                new_particles[bd["p2"]],
+                new_particles[bd["p3"]],
+                bd.get("angle", 0),
+                bd.get("stiff", 0),
+            )
+            self.bending_springs.append(bs)
+
+        # arms are ignored in substate appends for simplicity
 
     # ------------------------------------------------------------------ circle creation
     def create_circle(
@@ -863,8 +1003,11 @@ class BuilderApp:
                     continue
 
                 elif e.type == pygame.KEYDOWN:
-                    tool_keys = {
-                        pygame.K_1: "drag",
+                    if pygame.key.get_mods() & pygame.KMOD_CTRL:
+                        pass
+                    else:
+                        tool_keys = {
+                            pygame.K_1: "drag",
                         pygame.K_2: "particle",
                         pygame.K_3: "spring",
                         pygame.K_4: "bend",
@@ -877,39 +1020,39 @@ class BuilderApp:
                         pygame.K_BACKSPACE: "delete",
                         pygame.K_DELETE: "delete",
                     }
-                    mode = tool_keys.get(e.key)
-                    if mode:
-                        self.set_mode(mode)
-                    elif e.key == pygame.K_c:
-                        self.choose_color()
-                    elif e.key == pygame.K_z:
-                        self.adjust_mass(-0.1)
-                    elif e.key == pygame.K_x:
-                        self.adjust_mass(0.1)
-                    elif e.key == pygame.K_v:
-                        self.adjust_radius(-1)
-                    elif e.key == pygame.K_b:
-                        self.adjust_radius(1)
-                    elif e.key == pygame.K_k:
-                        self.adjust_stiffness(-10)
-                    elif e.key == pygame.K_l:
-                        self.adjust_stiffness(10)
-                    elif e.key == pygame.K_n:
-                        self.adjust_temperature(-10)
-                    elif e.key == pygame.K_m:
-                        self.adjust_temperature(10)
-                    elif e.key == pygame.K_p:
-                        self.toggle_pause()
-                    else:
-                        arms = self.cycle_keys.get(e.key, [])
-                        for arm in arms:
-                            arm.cycle_held = True
-                        vsprings = self.vspring_keys.get(e.key, [])
-                        for s in vsprings:
-                            s.on_keydown()
-                        vparts = self.vparticle_keys.get(e.key, [])
-                        for p in vparts:
-                            p.on_keydown()
+                        mode = tool_keys.get(e.key)
+                        if mode:
+                            self.set_mode(mode)
+                        elif e.key == pygame.K_c:
+                            self.choose_color()
+                        elif e.key == pygame.K_z:
+                            self.adjust_mass(-0.1)
+                        elif e.key == pygame.K_x:
+                            self.adjust_mass(0.1)
+                        elif e.key == pygame.K_v:
+                            self.adjust_radius(-1)
+                        elif e.key == pygame.K_b:
+                            self.adjust_radius(1)
+                        elif e.key == pygame.K_k:
+                            self.adjust_stiffness(-10)
+                        elif e.key == pygame.K_l:
+                            self.adjust_stiffness(10)
+                        elif e.key == pygame.K_n:
+                            self.adjust_temperature(-10)
+                        elif e.key == pygame.K_m:
+                            self.adjust_temperature(10)
+                        elif e.key == pygame.K_p:
+                            self.toggle_pause()
+                        else:
+                            arms = self.cycle_keys.get(e.key, [])
+                            for arm in arms:
+                                arm.cycle_held = True
+                            vsprings = self.vspring_keys.get(e.key, [])
+                            for s in vsprings:
+                                s.on_keydown()
+                            vparts = self.vparticle_keys.get(e.key, [])
+                            for p in vparts:
+                                p.on_keydown()
 
                 elif e.type == pygame.KEYUP:
                     arms = self.cycle_keys.get(e.key, [])

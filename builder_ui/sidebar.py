@@ -13,6 +13,7 @@ from .tools.circle_tool import CircleTool
 from .tools.rod_tool import RodTool
 from .tools.hook_arm_tool import HookArmTool
 from .tools.inspect_tool import InspectTool
+from .tools.selection_tool import SelectionTool
 
 
 class SidebarUI:
@@ -53,6 +54,7 @@ class SidebarUI:
         self.grid_tool = GridTool(self)
         self.env_tool = EnvironmentTool(self)
         self.inspect_tool = InspectTool(self)
+        self.selection_tool = SelectionTool(self)
 
     # ----------------------------------------------------------- setup
     def _setup_ui(self):
@@ -94,6 +96,7 @@ class SidebarUI:
             y += self.BUTTON_HEIGHT + self.BUTTON_MARGIN
 
         add_button("Drag", lambda: self.app.set_mode("drag"), "1", "drag")
+        add_button("Select", lambda: self.app.set_mode("select"), None, "select")
         add_button("Particle", lambda: self.app.set_mode("particle"), "2", "particle")
         add_button("VarPar", lambda: self.app.set_mode("vparticle"), mode="vparticle")
         add_button("Spring", lambda: self.app.set_mode("spring"), "3", "spring")
@@ -109,6 +112,8 @@ class SidebarUI:
         add_button("Undo", self.app.undo)
         add_button("Save", self.app.save_state_dialog)
         add_button("Load", self.app.load_state_dialog)
+        add_button("SaveSel", self.app.save_selection)
+        add_button("LoadStruct", self.app.load_structure)
         add_button(lambda: "Resume" if self.app.paused else "Pause", self.app.toggle_pause)
 
         y += 10
@@ -207,6 +212,7 @@ class SidebarUI:
             self.grid_tool.draw_ui(self.scroll_offset)
             self.env_tool.draw_ui(self.scroll_offset)
             self.inspect_tool.draw_ui(self.scroll_offset)
+            self.selection_tool.draw_ui(self.scroll_offset)
 
         # preview from tools (visible or not)
         self.particle_tool.draw_preview()
@@ -219,6 +225,7 @@ class SidebarUI:
         self.grid_tool.draw_preview()
         self.env_tool.draw_preview()
         self.inspect_tool.draw_preview()
+        self.selection_tool.draw_preview()
 
         # toggle button (always visible)
         pygame.draw.rect(self.screen, (100, 100, 100), self.toggle_rect)
@@ -293,6 +300,8 @@ class SidebarUI:
         if self.env_tool.handle_event(event, self.scroll_offset):
             return True
         if self.inspect_tool.handle_event(event, self.scroll_offset):
+            return True
+        if self.selection_tool.handle_event(event, self.scroll_offset):
             return True
 
         return False
