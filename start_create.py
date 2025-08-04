@@ -5,6 +5,7 @@ from typing import Callable, Iterable
 from particle import Particle
 from spring import Spring
 from variable_spring import VariableSpring
+from variable_particle import VariableParticle
 from physics import PhysicsEngine
 from bending_spring import BendingSpring
 from renderer import Renderer
@@ -13,6 +14,7 @@ from builder_ui.config import (
     ParticleParams,
     SpringParams,
     VariableSpringParams,
+    VariableParticleParams,
     EnvironmentParams,
 )
 import builder_io
@@ -35,10 +37,12 @@ class BuilderApp:
         self.particles: list[Particle] = []
         self.springs: list[Spring] = []
         self.variable_springs: list[VariableSpring] = []
+        self.variable_particles: list[VariableParticle] = []
         self.bending_springs: list[BendingSpring] = []
         self.arms: list[HookArm] = []
         self.cycle_keys: dict[int, list[HookArm]] = {}
         self.vspring_keys: dict[int, list[VariableSpring]] = {}
+        self.vparticle_keys: dict[int, list[VariableParticle]] = {}
         self.selected = None
         self.spring_first = None
         self.paused = False
@@ -48,6 +52,7 @@ class BuilderApp:
         self.particle = ParticleParams()
         self.spring = SpringParams()
         self.vspring = VariableSpringParams()
+        self.vparticle = VariableParticleParams()
         self.environment = EnvironmentParams()
         self.grid_enabled = False
         self.grid_size = 40.0
@@ -69,6 +74,7 @@ class BuilderApp:
         self.mode_handlers: dict[str, Callable[[pygame.event.Event], None]] = {
             "drag": self.handle_drag_event,
             "particle": self.handle_particle_event,
+            "vparticle": self.handle_variable_particle_event,
             "spring": self.handle_spring_event,
             "vspring": self.handle_variable_spring_event,
             "delete": self.handle_delete_event,
@@ -91,6 +97,8 @@ class BuilderApp:
             self.ui.spring_tool.cancel()
         if self.mode == "vspring" and mode != "vspring":
             self.ui.variable_spring_tool.cancel()
+        if self.mode == "vparticle" and mode != "vparticle":
+            self.ui.variable_particle_tool.cancel()
         if self.mode == "bend" and mode != "bend":
             self.ui.bend_tool.cancel()
         if self.mode == "env" and mode != "env":
@@ -113,6 +121,8 @@ class BuilderApp:
             self.ui.spring_tool.start()
         if mode == "vspring":
             self.ui.variable_spring_tool.start()
+        if mode == "vparticle":
+            self.ui.variable_particle_tool.start()
         if mode == "bend":
             self.ui.bend_tool.start()
         if mode == "env":
@@ -247,6 +257,14 @@ class BuilderApp:
         for p in parts_set:
             if p in self.particles:
                 self.particles.remove(p)
+            if isinstance(p, VariableParticle) and p in self.variable_particles:
+                self.variable_particles.remove(p)
+                if p.key is not None and p.key in self.vparticle_keys:
+                    lst = self.vparticle_keys[p.key]
+                    if p in lst:
+                        lst.remove(p)
+                    if not lst:
+                        del self.vparticle_keys[p.key]
 
     def _remove_arm(self, arm: HookArm):
         """Detach and delete ``arm`` along with its parts."""
@@ -272,6 +290,9 @@ class BuilderApp:
             if isinstance(s, VariableSpring):
                 self.variable_springs.append(s)
                 self.register_variable_spring(s)
+        if isinstance(p, VariableParticle):
+            self.variable_particles.append(p)
+            self.register_variable_particle(p)
 
     def _restore_spring(self, s: Spring):
         """Reinsert ``s`` into the simulation."""
@@ -331,6 +352,21 @@ class BuilderApp:
                     "color": list(p.color) if p.color else None,
                     "tag": p.tag,
                     "fixed": p.fixed,
+                    "drag": p.drag,
+                    **(
+                        {
+                            "type": "variable",
+                            "base": p.base_drag,
+                            "alt": p.alt_drag,
+                            "speed": p.change_speed,
+                            "key": p.key,
+                            "mode": p.mode,
+                            "active": p.active,
+                            "curr": p.drag,
+                        }
+                        if isinstance(p, VariableParticle)
+                        else {}
+                    ),
                 }
                 for p in self.particles
             ],
@@ -356,6 +392,8 @@ class BuilderApp:
                     "high_color": list(arm.high_drag_color),
                     "adhesion": arm.adhesion_mass_factor,
                     "orig_mass": arm._orig_mass,
+                    "adhesion_drag": arm.adhesion_drag,
+                    "orig_drag": arm._orig_drag,
                     "cycle_key": arm.cycle_key,
                 }
                 for arm in self.arms
@@ -372,14 +410,34 @@ class BuilderApp:
     def _apply_state(self, data: dict) -> None:
         """Rebuild the scene from a serialised *data* structure."""
         self.particles = []
+        self.variable_particles = []
+        self.vparticle_keys = {}
         for pd in data.get("particles", []):
-            p = Particle(
-                pd["pos"],
-                mass=pd.get("mass", 1.0),
-                color=tuple(pd["color"]) if pd.get("color") else None,
-                radius=pd.get("radius"),
-                tag=pd.get("tag"),
-            )
+            if pd.get("type") == "variable":
+                p = VariableParticle(
+                    pd["pos"],
+                    mass=pd.get("mass", 1.0),
+                    color=tuple(pd["color"]) if pd.get("color") else None,
+                    radius=pd.get("radius"),
+                    base_drag=pd.get("base", 1.0),
+                    alt_drag=pd.get("alt", 100.0),
+                    key=pd.get("key"),
+                    mode=pd.get("mode", "hold"),
+                    change_speed=pd.get("speed", 240.0),
+                )
+                p.active = pd.get("active", False)
+                p.drag = pd.get("curr", p.base_drag)
+                self.variable_particles.append(p)
+                self.register_variable_particle(p)
+            else:
+                p = Particle(
+                    pd["pos"],
+                    mass=pd.get("mass", 1.0),
+                    color=tuple(pd["color"]) if pd.get("color") else None,
+                    radius=pd.get("radius"),
+                    tag=pd.get("tag"),
+                    drag=pd.get("drag", 1.0),
+                )
             p.prev_pos = pygame.Vector2(pd.get("prev", pd["pos"]))
             p.fixed = pd.get("fixed", False)
             self.particles.append(p)
@@ -437,11 +495,13 @@ class BuilderApp:
             arm.color = tuple(ad["color"])
             arm.high_drag_color = tuple(ad["high_color"])
             arm.adhesion_mass_factor = ad.get("adhesion", 10.0)
+            arm.adhesion_drag = ad.get("adhesion_drag", 100.0)
             arm.cycle_speed = ad.get("cycle_speed", 240.0)
             arm.rest_lengths = ad.get("rest_lengths", [s.rest_length for s in arm.springs])
             arm.max_lengths = ad.get("max_lengths", [r * 4 for r in arm.rest_lengths])
             arm.tip = arm.particles[-1]
             arm._orig_mass = ad.get("orig_mass", arm.tip.mass)
+            arm._orig_drag = ad.get("orig_drag", arm.tip.drag)
             arm.extend_held = False
             arm.contract_held = False
             arm.cycle_held = False
@@ -450,6 +510,7 @@ class BuilderApp:
             arm.cycle_key = ad.get("cycle_key")
             if arm.cycle_key is not None:
                 self.cycle_keys.setdefault(arm.cycle_key, []).append(arm)
+            arm._set_high_drag(False)
             self.arms.append(arm)
 
         phys = data.get("physics", {})
@@ -545,6 +606,27 @@ class BuilderApp:
                 radius=self.particle.radius,
             )
             self.particles.append(p)
+            self.push_undo(lambda p=p: self.remove_entities([p]))
+
+    def handle_variable_particle_event(self, event: pygame.event.Event):
+        """Spawn a variable particle that can change drag via a key."""
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mouse = pygame.Vector2(event.pos)
+            snap_mouse = self.snap_to_grid(mouse)
+            p = VariableParticle(
+                snap_mouse,
+                mass=self.particle.mass,
+                color=self.particle.color,
+                radius=self.particle.radius,
+                base_drag=1.0,
+                alt_drag=self.vparticle.alt_drag,
+                key=self.vparticle.key,
+                mode=self.vparticle.mode,
+                change_speed=self.vparticle.speed,
+            )
+            self.particles.append(p)
+            self.variable_particles.append(p)
+            self.register_variable_particle(p)
             self.push_undo(lambda p=p: self.remove_entities([p]))
 
     def handle_spring_event(self, event: pygame.event.Event):
@@ -646,6 +728,24 @@ class BuilderApp:
         spring.key = key
         if key is not None:
             self.vspring_keys.setdefault(key, []).append(spring)
+
+    def register_variable_particle(self, part: VariableParticle) -> None:
+        """Register ``part`` under its control key if any."""
+        if part.key is not None:
+            self.vparticle_keys.setdefault(part.key, []).append(part)
+
+    def update_vparticle_key(self, part: VariableParticle, key: int | None) -> None:
+        """Update the control key mapping for ``part``."""
+        old = part.key
+        if old is not None:
+            lst = self.vparticle_keys.get(old, [])
+            if part in lst:
+                lst.remove(part)
+            if not lst and old in self.vparticle_keys:
+                del self.vparticle_keys[old]
+        part.key = key
+        if key is not None:
+            self.vparticle_keys.setdefault(key, []).append(part)
 
     def create_hook_arm(
         self,
@@ -807,6 +907,9 @@ class BuilderApp:
                         vsprings = self.vspring_keys.get(e.key, [])
                         for s in vsprings:
                             s.on_keydown()
+                        vparts = self.vparticle_keys.get(e.key, [])
+                        for p in vparts:
+                            p.on_keydown()
 
                 elif e.type == pygame.KEYUP:
                     arms = self.cycle_keys.get(e.key, [])
@@ -816,6 +919,9 @@ class BuilderApp:
                     vsprings = self.vspring_keys.get(e.key, [])
                     for s in vsprings:
                         s.on_keyup()
+                    vparts = self.vparticle_keys.get(e.key, [])
+                    for p in vparts:
+                        p.on_keyup()
 
                 elif e.type == pygame.MOUSEBUTTONUP and e.button == 1:
                     if self.selected:
@@ -836,6 +942,8 @@ class BuilderApp:
                       arm.update(dt)
                   for s in self.variable_springs:
                       s.update(dt)
+                  for p in self.variable_particles:
+                      p.update(dt)
 
             # keep particles inside the window and out of the sidebar
             max_x = self.screen.get_width() - self.ui.visible_width()

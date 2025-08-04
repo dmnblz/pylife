@@ -35,11 +35,11 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 
 ## Recent updates
 
-- High-drag particles render with a red outline to indicate adhesion.
+- Particles with ``drag`` > 1 render with a red outline to indicate adhesion.
 - `hook_arm.py` defines a reusable `HookArm` helper class.
 - `start_hook_arm.py` now features four arms; hold **W**, **A**, **S** or **D** to
   run a continuous extend/adhere/contract cycle on the corresponding arm.
-- The hook arm's tip becomes heavier while ``"high_drag"`` is active.
+- The hook arm's tip becomes heavier while high drag is active.
 - `start_create.py` and the `builder_ui` package now let you attach hook arms and assign a
   key for cycling them.
 - Multiple hook arms can listen to the same cycle key.
@@ -79,6 +79,9 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
   removing duplicate logic from individual tools.
 - Sidebar field callbacks now use explicit ``Callable`` type hints for more
   reliable static checking.
+- Particles now carry an individual ``drag`` coefficient. A new
+  ``VariableParticle`` subclass toggles between two drag values via a key,
+  and the builder supports creating and saving these particles.
 - `snap_to_grid` now leaves already aligned coordinates unchanged and is used
   throughout `start_create.py` for grid snapping.
 - Number keys 1–0 now select sidebar tools in order, and button labels display

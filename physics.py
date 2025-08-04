@@ -53,9 +53,9 @@ class PhysicsEngine:
         """Advance the simulation by ``dt`` seconds.
 
         The update applies global gravity, spring and bending forces,
-        short-range repulsion, and viscous drag.  Particles tagged
-        ``"high_drag"`` experience additional drag to simulate sticking to
-        boundaries.  Brownian noise scaled by ``temperature`` is added to each
+        short-range repulsion, and viscous drag.  Each particle carries a
+        ``drag`` multiplier which scales the damping force allowing selective
+        adhesion effects.  Brownian noise scaled by ``temperature`` is added to each
         movable particle before the positions are integrated using a Verlet
         step.
         """
@@ -101,10 +101,7 @@ class PhysicsEngine:
         for p in self.particles:
             if p.fixed:
                 continue
-            if getattr(p, "tag", "") == "high_drag":
-                drag_multiplier = 100.0  # or any large factor to simulate strong adhesion
-            else:
-                drag_multiplier = 1.0
+            drag_multiplier = getattr(p, "drag", 1.0)
             # estimate velocity from Verlet history
             vel = (p.pos - p.prev_pos) / dt
             # viscous drag: F_drag = -γ·m·v

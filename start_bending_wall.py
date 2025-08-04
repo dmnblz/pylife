@@ -170,9 +170,9 @@ class CellWallApp:
             for key, index in drag_keys.items():
                 if index < len(self.particles):
                     if drag_held[key]:
-                        self.particles[index].tag = "high_drag"
+                        self.particles[index].drag = 100.0
                     else:
-                        self.particles[index].tag = "none"
+                        self.particles[index].drag = 1.0
 
             if self.selected:
                 self.selected.pos = pygame.Vector2(pygame.mouse.get_pos())

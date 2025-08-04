@@ -13,7 +13,7 @@ Number keys **1–0** switch between the first ten sidebar tools in order and ea
   * `bending_spring.py` – maintains an angle between three particles.
   * `physics.py` – contains ``PhysicsEngine`` which integrates particles each
     frame.  The engine applies gravity, spring forces, short range repulsion,
-    viscous drag (with extra drag for particles tagged ``"high_drag"``) and
+    viscous drag scaled by each particle's ``drag`` multiplier and
     Brownian noise.
   * `renderer.py` – draws particles and springs to the pygame window.
   * `structures.py` – helper functions to build shapes like circular walls or rods.
@@ -22,12 +22,14 @@ Number keys **1–0** switch between the first ten sidebar tools in order and ea
     default lifecycle, drawing and event hooks, including a shared
     active/visibility check for event handling.
   * `builder_io.py` – save/load helpers for the interactive builder.
-  * **High-drag adhesion** – set a particle's ``tag`` to ``"high_drag"`` and the
-    physics engine multiplies its viscous drag, causing it to stick in place.
+  * **High-drag adhesion** – increase a particle's ``drag`` attribute to make it
+    stick in place. Values above ``1`` apply proportionally stronger damping.
   * **Weighted adhesion** – a ``HookArm`` tip also increases in mass when stuck
     for extra grip.
   * **Variable springs** – springs can switch between two rest lengths via a
     user-defined key.
+  * **Variable particles** – particles can switch between two drag values via a
+    key in hold or toggle mode.
   * **Developer-friendly** – comprehensive docstrings document the builder UI
     and creation script.
   * **Typed callbacks** – sidebar widgets declare explicit ``Callable``
@@ -35,14 +37,14 @@ Number keys **1–0** switch between the first ten sidebar tools in order and ea
 
 ### Using high-drag particles
 
-Setting the ``tag`` attribute of a ``Particle`` to ``"high_drag"`` increases
-the drag force in ``PhysicsEngine.update``.  These particles are drawn with a
-red outline so their state is obvious. ``HookArm`` also makes its tip heavier
-whenever high drag is enabled. Demo scripts use this to simulate
-particles adhering to their surroundings—press **B/N/M** in
-``start_bending_wall.py`` or **H** in ``start_hook_arm.py`` to toggle the
-behaviour. Holding **W**, **A**, **S** or **D** in ``start_hook_arm.py`` runs a
-loop that extends, sticks and retracts an arm.
+Increasing a particle's ``drag`` attribute amplifies the damping force in
+``PhysicsEngine.update``. Values greater than ``1`` make the particle stick and
+are rendered with a red outline. ``HookArm`` also makes its tip heavier whenever
+high drag is enabled. Demo scripts use this to simulate particles adhering to
+their surroundings—press **B/N/M** in ``start_bending_wall.py`` or **H** in
+``start_hook_arm.py`` to toggle the behaviour. Holding **W**, **A**, **S** or
+**D** in ``start_hook_arm.py`` runs a loop that extends, sticks and retracts an
+arm.
 
 ## Requirements
 
@@ -64,6 +66,8 @@ Mouse and keyboard controls allow you to switch modes and modify properties:
 
 * **1** – drag existing particles
 * **2** – place new particles
+* Use the **VarPar** button to create a particle with a controllable drag
+  multiplier
 * **3** – connect two particles with a spring
 * Use the **VarSpr** button to link particles with a spring that can expand or
   contract when a chosen key is pressed

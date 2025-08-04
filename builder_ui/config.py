@@ -68,6 +68,29 @@ class VariableSpringParams:
 
 
 @dataclass
+class VariableParticleParams:
+    """Parameters for creating :class:`variable_particle.VariableParticle`.
+
+    Attributes
+    ----------
+    alt_drag:
+        Drag multiplier applied when the particle is activated.
+    speed:
+        Rate at which the drag moves toward the target value.
+    key:
+        Keyboard key controlling the particle. ``None`` disables control.
+    mode:
+        ``"hold"`` requires the key to be held, while ``"toggle"`` switches
+        state on each press.
+    """
+
+    alt_drag: float = 100.0
+    speed: float = 240.0
+    key: int | None = pygame.K_g
+    mode: str = "hold"
+
+
+@dataclass
 class EnvironmentParams:
     """Global simulation values exposed in the environment tool.
 
@@ -96,5 +119,6 @@ __all__ = [
     "ParticleParams",
     "SpringParams",
     "VariableSpringParams",
+    "VariableParticleParams",
     "EnvironmentParams",
 ]

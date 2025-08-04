@@ -60,7 +60,7 @@ class Renderer:
             color = p.color if p.color else (0, 0, 255)
             radius = p.radius if p.radius else 10
             pygame.draw.circle(self.screen, color, (int(p.pos.x), int(p.pos.y)), radius=radius)
-            if getattr(p, "tag", "") == "high_drag":
+            if getattr(p, "drag", 1.0) > 1.0:
                 pygame.draw.circle(
                     self.screen,
                     (255, 50, 50),
