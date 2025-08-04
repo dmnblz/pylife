@@ -82,6 +82,8 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 - Particles now carry an individual ``drag`` coefficient. A new
   ``VariableParticle`` subclass toggles between two drag values via a key,
   and the builder supports creating and saving these particles.
+- Inspect mode recognises variable particles and can convert particles
+  between normal and variable drag types.
 - `snap_to_grid` now leaves already aligned coordinates unchanged and is used
   throughout `start_create.py` for grid snapping.
 - Number keys 1–0 now select sidebar tools in order, and button labels display
