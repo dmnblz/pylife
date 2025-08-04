@@ -2,9 +2,26 @@
 import pygame
 
 class Particle:
-    """Point mass used in the Verlet based physics simulation."""
+    """Point mass used in the Verlet based physics simulation.
 
-    def __init__(self, position, mass=1.0, color=None, radius=None, tag=None):
+    Parameters
+    ----------
+    position:
+        Initial particle coordinates.
+    mass:
+        Particle mass in arbitrary units.
+    color:
+        Optional RGB colour for rendering.
+    radius:
+        Optional drawing radius.
+    tag:
+        Optional label used by higher level helpers.
+    drag:
+        Multiplier applied to the global damping coefficient. ``1``
+        represents normal drag while higher values increase resistance.
+    """
+
+    def __init__(self, position, mass=1.0, color=None, radius=None, tag=None, drag=1.0):
         self.pos = pygame.Vector2(position)
         self.prev_pos = self.pos.copy()
         self.acc = pygame.Vector2(0, 0)
@@ -13,6 +30,7 @@ class Particle:
         self.color = color
         self.radius = radius
         self.tag = tag
+        self.drag = drag
 
     def apply_force(self, force):
         if not self.fixed:

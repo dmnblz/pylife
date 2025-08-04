@@ -94,7 +94,7 @@ class HookArmApp:
                             arm.contract_held = True
                     elif e.key == pygame.K_h:
                         for arm in self.arms:
-                            arm._set_high_drag(getattr(arm.tip, "tag", "") != "high_drag")
+                            arm._set_high_drag(arm.tip.drag <= arm._orig_drag)
                     elif e.key in self.cycle_keys:
                         self.cycle_keys[e.key].cycle_held = True
                 elif e.type == pygame.KEYUP:

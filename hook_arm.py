@@ -25,6 +25,7 @@ class HookArm:
         color=(0, 150, 255),
         high_drag_color=(255, 50, 50),
         adhesion_mass_factor: float = 10.0,
+        adhesion_drag: float = 100.0,
         mass: float = 0.5,
         radius: float = 8,
         cycle_speed: float = 240.0,
@@ -49,6 +50,8 @@ class HookArm:
             Colour used when the tip enters the high-drag state.
         adhesion_mass_factor:
             Multiplier applied to the tip's mass while adhesion is active.
+        adhesion_drag:
+            Drag multiplier used while the tip is in the high-drag state.
         mass:
             Particle mass for each link in the arm.
         radius:
@@ -61,6 +64,7 @@ class HookArm:
         self.color = color
         self.high_drag_color = high_drag_color
         self.adhesion_mass_factor = adhesion_mass_factor
+        self.adhesion_drag = adhesion_drag
         self.cycle_speed = cycle_speed
 
         direction = direction.normalize()
@@ -74,6 +78,7 @@ class HookArm:
             prev = p
         self.tip = prev
         self._orig_mass = self.tip.mass
+        self._orig_drag = self.tip.drag
         self._set_high_drag(False)
 
         self.rest_lengths = [s.rest_length for s in self.springs]
@@ -87,11 +92,11 @@ class HookArm:
 
     def _set_high_drag(self, enabled: bool):
         if enabled:
-            self.tip.tag = "high_drag"
+            self.tip.drag = self.adhesion_drag
             self.tip.color = self.high_drag_color
             self.tip.mass = self._orig_mass * self.adhesion_mass_factor
         else:
-            self.tip.tag = "arm"
+            self.tip.drag = self._orig_drag
             self.tip.color = self.color
             self.tip.mass = self._orig_mass
 

@@ -5,6 +5,7 @@ import pygame
 from .tools.particle_tool import ParticleTool
 from .tools.spring_tool import SpringTool
 from .tools.variable_spring_tool import VariableSpringTool
+from .tools.variable_particle_tool import VariableParticleTool
 from .tools.bending_spring_tool import BendingSpringTool
 from .tools.grid_tool import GridTool
 from .tools.environment_tool import EnvironmentTool
@@ -42,6 +43,7 @@ class SidebarUI:
         self._setup_ui()
         # setup circle tool after computing layout
         self.particle_tool = ParticleTool(self)
+        self.variable_particle_tool = VariableParticleTool(self)
         self.spring_tool = SpringTool(self)
         self.variable_spring_tool = VariableSpringTool(self)
         self.bend_tool = BendingSpringTool(self)
@@ -93,6 +95,7 @@ class SidebarUI:
 
         add_button("Drag", lambda: self.app.set_mode("drag"), "1", "drag")
         add_button("Particle", lambda: self.app.set_mode("particle"), "2", "particle")
+        add_button("VarPar", lambda: self.app.set_mode("vparticle"), mode="vparticle")
         add_button("Spring", lambda: self.app.set_mode("spring"), "3", "spring")
         add_button("VarSpr", lambda: self.app.set_mode("vspring"), mode="vspring")
         add_button("Bend", lambda: self.app.set_mode("bend"), "4", "bend")
@@ -141,6 +144,7 @@ class SidebarUI:
         bottoms += [self._rect_bottom(f) for f in self.fields]
         tools = [
             self.particle_tool,
+            self.variable_particle_tool,
             self.spring_tool,
             self.variable_spring_tool,
             self.bend_tool,
@@ -193,6 +197,7 @@ class SidebarUI:
 
             # extra UI from tools
             self.particle_tool.draw_ui(self.scroll_offset)
+            self.variable_particle_tool.draw_ui(self.scroll_offset)
             self.spring_tool.draw_ui(self.scroll_offset)
             self.variable_spring_tool.draw_ui(self.scroll_offset)
             self.bend_tool.draw_ui(self.scroll_offset)
@@ -268,6 +273,8 @@ class SidebarUI:
                     return True
 
         if self.particle_tool.handle_event(event, self.scroll_offset):
+            return True
+        if self.variable_particle_tool.handle_event(event, self.scroll_offset):
             return True
         if self.spring_tool.handle_event(event, self.scroll_offset):
             return True
