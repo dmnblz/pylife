@@ -15,6 +15,8 @@ This repository contains small pygame demos for 2D particle-based physics simula
 - `color_picker.py` – colour picker helper using Tkinter.
 - `file_dialog.py` – opens save/load dialogs in a separate process.
 - `builder_io.py` – helper functions to save or load builder scenes.
+- `builder_core.py` – non-graphical scene building helpers shared by the UI and CLI.
+- `builder_cli.py` – command line interface for constructing scenes without the GUI.
 - `start_create.py` – interactive builder for constructing scenes.
 - `start.py` – demo of a soft cell made from three circular walls.
 - `start_basic.py` – minimal ring of particles demo.
@@ -35,6 +37,8 @@ There are no automated tests; run the demo scripts manually to verify behaviour.
 
 ## Recent updates
 
+- Added ``builder_core`` module and ``builder_cli`` command line interface
+  enabling headless scene construction and simulation.
 - Particles with ``drag`` > 1 render with a red outline to indicate adhesion.
 - `hook_arm.py` defines a reusable `HookArm` helper class.
 - `start_hook_arm.py` now features four arms; hold **W**, **A**, **S** or **D** to

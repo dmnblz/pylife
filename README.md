@@ -92,6 +92,23 @@ Mouse and keyboard controls allow you to switch modes and modify properties:
 
 Particles can be grabbed with the left mouse button.  When in spring mode, click two particles to connect them. Selecting the **Arm** tool lets you click a particle, drag out a direction and then hit *Create* to spawn a hook arm. The sidebar fields let you set the arm's mass, radius, stiffness, cycle speed, colours and adhesion factor before creation, and any number of arms may share the same cycle key. The **Inspect** tool can select a particle, spring or bending spring so their properties (colour, mass, radius, drag, rest length, stiffness, **max force** and visibility) may be edited in place. Springs and particles may also be converted between normal and variable types through this menu. A value of ``0`` for max force disables the limit. Use the Particle, Spring or Env buttons to reveal their respective sliders.
 
+## Command-line builder
+
+A small command line interface mirrors many of the builder features without opening a window. Operations are provided as subcommands; the example below creates a particle and saves the result to ``scene.json``:
+
+```bash
+python builder_cli.py add-particle 100 100 --color 255 0 0 --output scene.json
+```
+
+Scenes can later be loaded and extended, for example adding a spring between two particles and advancing the simulation for a few steps:
+
+```bash
+python builder_cli.py --input scene.json add-spring 0 1 --output scene.json
+python builder_cli.py --input scene.json run --steps 120 --output scene.json
+```
+
+Run ``python builder_cli.py --help`` for a full list of commands.
+
 ## Example demos
 
 Other start files demonstrate specific setups and each window supports simple
