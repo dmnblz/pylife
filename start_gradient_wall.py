@@ -99,6 +99,8 @@ class CellWallApp:
             repulsion_radius=30, repulsion_strength=10000,
             temperature=500, damping_coeff=1
         )
+        # Fixed timestep for consistency
+        self.physics.set_fixed_timestep(1.0 / FPS, substeps=2)
 
         self.renderer = Renderer(self.screen)
         self.clamp_to_window = True

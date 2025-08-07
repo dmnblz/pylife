@@ -68,6 +68,8 @@ class BuilderApp:
             temperature=self.environment.temperature,
             damping_coeff=self.environment.damping,
         )
+        # Use a fixed timestep with substeps for stability across variable framerates
+        self.physics.set_fixed_timestep(1.0 / FPS, substeps=2)
         self.renderer = Renderer(self.screen)
         self.ui = SidebarUI(self.screen, self)
         # camera / play area

@@ -58,6 +58,8 @@ class HookArmApp:
             temperature=0,
             damping_coeff=1,
         )
+        # Fixed timestep keeps arms stable at variable frame times
+        self.physics.set_fixed_timestep(1.0 / FPS, substeps=2)
         self.renderer = Renderer(self.screen)
 
         self.clamp_to_window = True

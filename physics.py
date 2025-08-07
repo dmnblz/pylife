@@ -52,6 +52,41 @@ class PhysicsEngine:
         self._screen_size: tuple[int, int] | None = None
         # Optional world-space playable area used for boundary proximity
         self._play_area: pygame.Rect | None = None
+        # Fixed timestep controls
+        self._accumulator: float = 0.0
+        self._fixed_dt: float | None = None
+        self._substeps: int = 1
+        self._max_catchup_steps: int = 8
+        self._max_frame_dt: float = 0.1  # clamp very large frame times
+
+    def set_fixed_timestep(
+        self,
+        fixed_dt: float | None,
+        *,
+        substeps: int = 1,
+        max_catchup_steps: int = 8,
+        max_frame_dt: float = 0.1,
+    ) -> None:
+        """Configure a fixed integration timestep with optional substeps.
+
+        Parameters
+        ----------
+        fixed_dt:
+            The outer fixed step in seconds. ``None`` disables fixed stepping and
+            uses the variable ``dt`` passed to :meth:`update`.
+        substeps:
+            Number of inner solver substeps per fixed step (>= 1).
+        max_catchup_steps:
+            Maximum number of fixed steps processed per frame to avoid a spiral
+            of death on stalls. Remaining accumulator is preserved.
+        max_frame_dt:
+            Clamp for the per-frame input ``dt`` used to fill the accumulator.
+        """
+
+        self._fixed_dt = fixed_dt if fixed_dt and fixed_dt > 0 else None
+        self._substeps = max(1, int(substeps))
+        self._max_catchup_steps = max(1, int(max_catchup_steps))
+        self._max_frame_dt = max(1e-5, float(max_frame_dt))
 
     def set_screen_size(self, width: int, height: int) -> None:
         """Provide the current window size so boundary effects can adapt."""
@@ -62,16 +97,34 @@ class PhysicsEngine:
         # store a copy to avoid outside mutation surprises
         self._play_area = pygame.Rect(rect)
 
-    def update(self, dt):
+    def update(self, dt: float) -> None:
         """Advance the simulation by ``dt`` seconds.
 
-        The update applies global gravity, spring and bending forces,
-        short-range repulsion, and viscous drag.  Each particle carries a
-        ``drag`` multiplier which scales the damping force allowing selective
-        adhesion effects.  Brownian noise scaled by ``temperature`` is added to each
-        movable particle before the positions are integrated using a Verlet
-        step.
+        If a fixed timestep is configured via :meth:`set_fixed_timestep`, this
+        method fills an internal accumulator and executes a number of fixed
+        steps, each split into optional substeps. Otherwise, a single variable
+        step of duration ``dt`` is executed.
         """
+
+        if self._fixed_dt is not None:
+            frame_dt = min(self._max_frame_dt, max(0.0, float(dt)))
+            self._accumulator += frame_dt
+            steps_done = 0
+            while self._accumulator >= self._fixed_dt and steps_done < self._max_catchup_steps:
+                h = self._fixed_dt / self._substeps
+                for _ in range(self._substeps):
+                    self._step(h)
+                self._accumulator -= self._fixed_dt
+                steps_done += 1
+            # If we still have a lot accumulated, keep a bounded remainder
+            max_remainder = self._fixed_dt * self._max_catchup_steps
+            if self._accumulator > max_remainder:
+                self._accumulator = max_remainder
+        else:
+            self._step(max(1e-6, float(dt)))
+
+    def _step(self, dt: float) -> None:
+        """Execute one physics step of duration ``dt`` (seconds)."""
 
         # apply gravity
         for p in self.particles:
@@ -87,7 +140,7 @@ class PhysicsEngine:
 
         # apply repulsion forces between particles to prevent overlap
         for i, p1 in enumerate(self.particles):
-            for p2 in self.particles[i+1:]:
+            for p2 in self.particles[i + 1 :]:
                 delta = p2.pos - p1.pos
                 dist = delta.length()
                 if dist > 0 and dist < self.repulsion_radius:
@@ -106,10 +159,10 @@ class PhysicsEngine:
             for q in self.particles:
                 q.near_boundary = False
                 if (
-                    q.pos.x <= left + wall_threshold or
-                    q.pos.x >= right - wall_threshold or
-                    q.pos.y <= top + wall_threshold or
-                    q.pos.y >= bottom - wall_threshold
+                    q.pos.x <= left + wall_threshold
+                    or q.pos.x >= right - wall_threshold
+                    or q.pos.y <= top + wall_threshold
+                    or q.pos.y >= bottom - wall_threshold
                 ):
                     q.near_boundary = True
         elif self._screen_size is not None:
@@ -117,10 +170,10 @@ class PhysicsEngine:
             for q in self.particles:
                 q.near_boundary = False
                 if (
-                    q.pos.x <= wall_threshold or
-                    q.pos.x >= screen_width - wall_threshold or
-                    q.pos.y <= wall_threshold or
-                    q.pos.y >= screen_height - wall_threshold
+                    q.pos.x <= wall_threshold
+                    or q.pos.x >= screen_width - wall_threshold
+                    or q.pos.y <= wall_threshold
+                    or q.pos.y >= screen_height - wall_threshold
                 ):
                     q.near_boundary = True
         else:

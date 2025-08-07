@@ -67,6 +67,8 @@ class CellWallApp:
             temperature=0,
             damping_coeff=1
         )
+        # Fixed timestep for stability across variable framerates
+        self.physics.set_fixed_timestep(1.0 / FPS, substeps=2)
 
         self.renderer = Renderer(self.screen)
 

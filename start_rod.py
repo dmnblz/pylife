@@ -65,6 +65,8 @@ class CellWallApp:
                                      temperature=500, damping_coeff=1)
                                      # temperature=0, damping_coeff=1)
                                      # temperature=0, damping_coeff=0)
+        # Fixed timestep for stability
+        self.physics.set_fixed_timestep(1.0 / FPS, substeps=2)
         self.renderer = Renderer(self.screen)
         self.clamp_to_window = True
         self.bouncy_clamp = False

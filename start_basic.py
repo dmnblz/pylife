@@ -28,6 +28,8 @@ class CellWallApp:
         self._create_wall()
         self.physics = PhysicsEngine(self.particles, self.springs, gravity=(0, 0),
                                      repulsion_radius=100, repulsion_strength=500)
+        # Fixed timestep for consistent behavior
+        self.physics.set_fixed_timestep(1.0 / FPS, substeps=2)
         self.renderer = Renderer(self.screen)
 
     def _create_wall(self):
