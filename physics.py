@@ -58,6 +58,13 @@ class PhysicsEngine:
         self._substeps: int = 1
         self._max_catchup_steps: int = 8
         self._max_frame_dt: float = 0.1  # clamp very large frame times
+        # Neighbor search (spatial hash) for repulsion
+        self._use_spatial_hash: bool = True
+        self._repulsion_rebuild_interval_steps: int = 1
+        self._repulsion_steps_since_rebuild: int = 0
+        self._repulsion_buckets: dict[tuple[int, int], list[int]] = {}
+        self._repulsion_bucket_size: float = max(1e-6, float(self.repulsion_radius))
+        self._last_repulsion_radius: float = float(self.repulsion_radius)
 
     def set_fixed_timestep(
         self,
@@ -138,17 +145,8 @@ class PhysicsEngine:
             for bs in self.bending_springs:
                 bs.apply()
 
-        # apply repulsion forces between particles to prevent overlap
-        for i, p1 in enumerate(self.particles):
-            for p2 in self.particles[i + 1 :]:
-                delta = p2.pos - p1.pos
-                dist = delta.length()
-                if dist > 0 and dist < self.repulsion_radius:
-                    direction = delta / dist
-                    force_magnitude = self.repulsion_strength * (self.repulsion_radius - dist) / self.repulsion_radius
-                    force = direction * force_magnitude
-                    p1.apply_force(-force)
-                    p2.apply_force(force)
+        # apply repulsion forces using neighbor search
+        self._apply_repulsion()
 
         # tag particles near the simulation wall (if window size is known)
         wall_threshold = 5  # distance from the boundary
@@ -207,3 +205,89 @@ class PhysicsEngine:
                 friction_coeff = 0.7  # adjust as needed
                 v *= friction_coeff
                 p.prev_pos = p.pos - v
+
+    def configure_neighbor_search(self, *, enabled: bool = True, rebuild_interval_steps: int = 1) -> None:
+        """Enable/disable spatial-hash neighbor search for repulsion and set rebuild cadence.
+
+        Parameters
+        ----------
+        enabled:
+            If ``True`` (default) use a uniform grid spatial hash to find neighbors.
+        rebuild_interval_steps:
+            Rebuild the spatial hash every N integration steps (default 1 = each step).
+        """
+        self._use_spatial_hash = bool(enabled)
+        self._repulsion_rebuild_interval_steps = max(1, int(rebuild_interval_steps))
+        self._repulsion_steps_since_rebuild = 0
+        self._repulsion_buckets.clear()
+
+    def _build_repulsion_buckets(self) -> None:
+        bs = max(1e-6, float(self.repulsion_radius))
+        self._repulsion_bucket_size = bs
+        self._last_repulsion_radius = float(self.repulsion_radius)
+        buckets: dict[tuple[int, int], list[int]] = {}
+        for i, p in enumerate(self.particles):
+            cx = int(math.floor(p.pos.x / bs))
+            cy = int(math.floor(p.pos.y / bs))
+            buckets.setdefault((cx, cy), []).append(i)
+        self._repulsion_buckets = buckets
+
+    def _apply_repulsion(self) -> None:
+        # Fast exits
+        if self.repulsion_radius <= 0 or self.repulsion_strength == 0 or len(self.particles) < 2:
+            return
+        if not self._use_spatial_hash:
+            # fallback O(n^2)
+            for i, p1 in enumerate(self.particles):
+                for j in range(i + 1, len(self.particles)):
+                    p2 = self.particles[j]
+                    delta = p2.pos - p1.pos
+                    dist = delta.length()
+                    if dist > 0 and dist < self.repulsion_radius:
+                        direction = delta / dist
+                        force_magnitude = self.repulsion_strength * (self.repulsion_radius - dist) / self.repulsion_radius
+                        force = direction * force_magnitude
+                        p1.apply_force(-force)
+                        p2.apply_force(force)
+            return
+
+        # Rebuild buckets if needed (radius changed or interval elapsed)
+        if (
+            not self._repulsion_buckets
+            or self._repulsion_steps_since_rebuild % self._repulsion_rebuild_interval_steps == 0
+            or self._last_repulsion_radius != float(self.repulsion_radius)
+        ):
+            self._build_repulsion_buckets()
+            self._repulsion_steps_since_rebuild = 0
+        else:
+            self._repulsion_steps_since_rebuild += 1
+
+        bs = self._repulsion_bucket_size
+        buckets = self._repulsion_buckets
+        neighbor_offsets = (
+            (-1, -1), (-1, 0), (-1, 1),
+            (0, -1),  (0, 0),  (0, 1),
+            (1, -1),  (1, 0),  (1, 1),
+        )
+
+        # For each particle, check neighbors in 3x3 surrounding cells; only pairs with j > i
+        for i, p1 in enumerate(self.particles):
+            cx = int(math.floor(p1.pos.x / bs))
+            cy = int(math.floor(p1.pos.y / bs))
+            for dx, dy in neighbor_offsets:
+                cell = (cx + dx, cy + dy)
+                lst = buckets.get(cell)
+                if not lst:
+                    continue
+                for j in lst:
+                    if j <= i:
+                        continue
+                    p2 = self.particles[j]
+                    delta = p2.pos - p1.pos
+                    dist = delta.length()
+                    if dist > 0 and dist < self.repulsion_radius:
+                        direction = delta / dist
+                        force_magnitude = self.repulsion_strength * (self.repulsion_radius - dist) / self.repulsion_radius
+                        force = direction * force_magnitude
+                        p1.apply_force(-force)
+                        p2.apply_force(force)
