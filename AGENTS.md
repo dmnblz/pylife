@@ -1,105 +1,239 @@
-# Agent Guidelines
+# Pylife: Agent Handbook
 
-This repository contains small pygame demos for 2D particle-based physics simulations. Each script showcases a particular setup built from particles and springs.
+This document is the definitive guide for future agents working on this codebase. It explains the project’s purpose, architecture, module responsibilities, UI/UX flows, persistence format, extension points, coding standards, and maintenance expectations. Keep this file and `README.md` in sync with changes.
 
-## File overview
+---
 
-- `particle.py` – Particle class using Verlet integration.
-- `spring.py` – linear spring connecting two particles.
-- `variable_spring.py` – spring variant with a user-controlled second rest length.
-- `bending_spring.py` – bending constraint that keeps an angle between three particles.
-- `physics.py` – `PhysicsEngine` that applies forces, drag and Brownian noise.
-- `renderer.py` – draws particles and springs to the screen.
-- `structures.py` – helper routines for building walls, rods and other shapes.
-- `builder_ui/` – sidebar UI widgets used by the interactive builder.
-- `color_picker.py` – colour picker helper using Tkinter.
-- `file_dialog.py` – opens save/load dialogs in a separate process.
-- `builder_io.py` – helper functions to save or load builder scenes.
-- `start_create.py` – interactive builder for constructing scenes.
-- `start.py` – demo of a soft cell made from three circular walls.
-- `start_basic.py` – minimal ring of particles demo.
-- `start_rod.py` – capsule-like rod demonstration.
-- `start_bending_wall.py` – triangular wall with bending springs.
-- `start_hook_arm.py` – cell with a flexible hook arm.
-- `start_four_rods.py` – four rod structures positioned around the centre.
-- `start_gradient_wall.py` – four rods coloured with a gradient.
+## What this project is
 
-## Maintaining the project
+Pylife is a compact 2D soft‑body sandbox using pygame. It simulates point‑mass particles connected by linear and angular constraints and includes:
 
-- Provide clear docstrings for all modules, classes and functions.
-- After **every** change, update both `README.md` and `AGENTS.md` so they remain accurate.
-- Summarise new files or features here for future agents.
-- Keep the README up to date with instructions on running the demos and any changed controls or dependencies.
+- An interactive builder (`start_create.py`) with a sidebar of tools to create/edit particles, springs, bending springs, rods, circles, and flexible hook arms; adjust environment; save/load; undo; and use a grid for snapping.
+- A set of demo scenes (`start_*.py`) showcasing common configurations.
+- A small, readable physics/rendering core designed to be extended.
 
-There are no automated tests; run the demo scripts manually to verify behaviour.
+---
 
-## Recent updates
+## Quick start for agents
 
-- Particles with ``drag`` > 1 render with a red outline to indicate adhesion.
-- `hook_arm.py` defines a reusable `HookArm` helper class.
-- `start_hook_arm.py` now features four arms; hold **W**, **A**, **S** or **D** to
-  run a continuous extend/adhere/contract cycle on the corresponding arm.
-- The hook arm's tip becomes heavier while high drag is active.
-- `start_create.py` and the `builder_ui` package now let you attach hook arms and assign a
-  key for cycling them.
-- Multiple hook arms can listen to the same cycle key.
-- A new **Inspect** mode lets you click a particle and modify its mass, radius
-  and colour through the sidebar.
-- Inspect mode can now select springs to edit rest length, stiffness,
-  max force and visibility.
-- The hook arm builder exposes fields for mass, radius, stiffness, colours and
-  adhesion factor per arm.
-- Inspect tool uses ``0`` for spring max force to disable the limit and avoid errors.
-- Particle colour/mass/radius sliders and the spring stiffness slider only appear when their creation modes are active.
-- Particle, spring and environment controls now live behind separate sidebar buttons.
-- Hook arm creation now has a cycle speed slider controlling how fast the arm extends and retracts.
-- The environment tool exposes sliders for gravity, repulsion and damping in addition to temperature.
-- Bending springs can now be created in the builder by selecting three particles.
-  They render as yellow dashed hinges and their rest angle and stiffness are editable.
-- A toggle lets bending springs use the current angle of the selected particles
-  or a manual value. Inspect mode can modify their angle and stiffness later.
-- Builder sidebar now has **Save** and **Load** buttons for exporting and
-  importing scene states.
-- Loading a saved scene now refreshes the physics engine so simulations resume.
-- Save/load logic now lives in a new ``builder_io`` module.
-- Circle and rod tools now expose spring stiffness sliders and can add bending springs along their outline.
-- A new **Grid** tool can overlay a configurable grid; enabling it snaps new particles to the nearest intersection.
-- Sidebar includes an **Undo** button to revert the most recent change.
-- Rod tool preview now renders correctly through a dedicated `draw_preview` method.
-- Builder tools now share a common `Tool` base class providing default
-  `start`, `cancel`, drawing and event hooks to reduce boilerplate.
-- Builder event handling uses per-mode handler methods looked up from a dispatch dictionary, simplifying `start_create.py`.
-- Particle, spring and environment parameters now reside in ``builder_ui/config.py``
-  dataclasses, and the builder updates these structures directly instead of
-  using individual setter methods.
-- Comprehensive docstrings added across builder tools and the main builder app.
-- Unified ``remove_entities`` helper deletes particles, springs, bending springs
-  and arms without breaking subsequent undo operations.
-- Tool base class now performs active/visibility checks in ``handle_event``,
-  removing duplicate logic from individual tools.
-- Sidebar field callbacks now use explicit ``Callable`` type hints for more
-  reliable static checking.
-- Particles now carry an individual ``drag`` coefficient. A new
-  ``VariableParticle`` subclass toggles between two drag values via a key,
-  and the builder supports creating and saving these particles.
-- Inspect mode recognises variable particles and can convert particles
-  between normal and variable drag types.
-- `snap_to_grid` now leaves already aligned coordinates unchanged and is used
-  throughout `start_create.py` for grid snapping.
-- Number keys 1–0 now select sidebar tools in order, and button labels display
-  the corresponding shortcut.
-- Variable springs provide two rest lengths controlled by a user key in hold
-  or toggle mode. Inspect mode can modify their lengths, speed, key and mode.
-- Delete tool no longer crashes when removing springs.
-- Saving and loading scenes now keep variable spring parameters and key bindings.
-- Inspect mode can convert normal springs to variable springs and back, and
-  spring fields in the sidebar align correctly. Inspecting springs no longer
-  crashes after fixing slider positioning.
-- Converting a normal spring to a variable spring through the Inspect tool no
-  longer raises an exception.
-- Sidebar buttons darken briefly when clicked and highlight the active tool.
-- The sidebar supports mouse-wheel scrolling to access overflow options.
-- Scrolling now stops at the top and bottom of the content to avoid losing the
-  sidebar's current context.
-- Tool menu buttons darken when clicked and highlight active toggles for clearer
-  feedback.
+- Ensure Python 3.10+ and `pygame` are installed. Optional: Tkinter for color/file pickers.
+- Run the interactive builder:
+  - `python start_create.py`
+- Try the demos in parallel to verify invariants:
+  - `python start.py`, `python start_basic.py`, `python start_rod.py`, `python start_bending_wall.py`, `python start_hook_arm.py`, `python start_four_rods.py`, `python start_gradient_wall.py`
+
+---
+
+## Architecture overview
+
+### High‑level flow
+
+```mermaid
+graph TD
+  A[pygame loop] --> B[BuilderApp/start_* App]
+  B --> C[PhysicsEngine.update]
+  B --> D[Renderer.draw]
+  B --> E[SidebarUI + Tools]
+  E -->|create/edit| F[Particles, Springs, BendingSprings, HookArms]
+  F --> C
+  F --> D
+  B --> G[builder_io save/load]
+```
+
+### Module map
+
+- Core simulation
+  - `particle.py`: Verlet‑integrated point mass with per‑particle drag.
+  - `spring.py`: Linear springs with Hooke’s law, optional break force, color coded by stretch/compression.
+  - `bending_spring.py`: Angular constraint maintaining an angle p1–p2–p3.
+  - `physics.py`: `PhysicsEngine` orchestrating gravity, springs, bends, short‑range repulsion, viscous drag scaled by per‑particle drag, Brownian noise, wall proximity friction, and integration.
+  - `renderer.py`: World/screen transforms, camera zoom, drawing springs, bends (dashed), particles (with red outline for high‑drag).
+
+- Structures and helpers
+  - `structures.py`: Factories for walls, rods (capsules), and walls with bends.
+  - `hook_arm.py`: `HookArm` helper (chain with extend/adhere/contract cycle, high‑drag tip state).
+
+- Builder UI and persistence
+  - `start_create.py`: `BuilderApp` main loop, camera, play area, history/undo, mode handlers, and integration of tools.
+  - `builder_ui/`: Sidebar, fields (sliders, color picker, key selector, buttons), and tools (particle, spring, variable variants, bend, circle, rod, arm, grid, environment, inspect, delete shortcuts).
+  - `builder_io.py`: JSON save/load helpers; `color_picker.py`, `file_dialog.py` use Tk in a subprocess.
+
+- Demos
+  - `start.py`, `start_basic.py`, `start_rod.py`, `start_bending_wall.py`, `start_hook_arm.py`, `start_four_rods.py`, `start_gradient_wall.py`.
+
+---
+
+## Core simulation details
+
+### Particles
+
+- Verlet integration with state: `pos`, `prev_pos`, `acc`, `mass`, `fixed`, `color`, `radius`, `tag`, `drag`.
+- High drag (drag > 1) simulates adhesion; rendered with a red outline.
+
+### Springs
+
+- Hooke’s law applied per frame, with optional `max_force` breakage and `invisible` flag.
+- `get_color()` maps compression/extension to blue/white/red for visual feedback.
+
+### Bending springs
+
+- Maintain a rest angle at the middle particle; apply torque‑like corrective forces around the vertex.
+
+### PhysicsEngine.update(dt)
+
+- Applies: gravity; spring forces; bending forces; O(n^2) short‑range repulsion; viscous drag scaled by per‑particle `drag`; Brownian random force; Verlet integration; increased friction near boundaries based on either window size or a configured play area.
+
+---
+
+## Rendering and camera
+
+- World/screen transforms live in `renderer.py` with `set_camera`, `world_to_screen`, `screen_to_world`.
+- The builder zooms with mouse wheel when the cursor is over the world area, anchoring the zoom at the mouse position.
+- Play area is rendered as a rectangle; simulation boundary clamping uses either the play area or the screen size.
+
+---
+
+## Interactive Builder (start_create.py)
+
+### Modes and keybindings
+
+- Number keys select tools (shown on buttons):
+  - 1 Drag, 2 Particle, 3 Spring, 4 Bend, 5 Circle, 6 Rod, 7 Arm, 8 Inspect, 9 Grid, 0 Env
+- Other controls:
+  - C color picker; Z/X mass −/+; V/B radius −/+; K/L stiffness −/+; N/M temperature −/+; P pause/resume
+  - Backspace/Delete Delete tool
+  - Sidebar: Save, Load, Undo buttons; mouse‑wheel scroll within sidebar
+
+### Tools (sidebar)
+
+- Drag: Grab/release nearest particle.
+- Particle / VarPar: Place new particles; variable particles can toggle to a second drag value under a key (hold/toggle modes).
+- Spring / VarSpr: Connect nearest pairs; variable springs switch between base and alternate rest lengths under a key (hold/toggle modes).
+- Bend: Select 3 particles; angle can be manual or auto from current geometry.
+- Circle: Preview ring with segments, stiffness, optional bend springs (with separate stiffness).
+- Rod: Preview capsule with segments; options for cytoskeleton, internal skeleton, and optional bend springs.
+- Arm: Attach `HookArm` to a base particle; control segments, spacing, mass, radius, stiffness, cycle speed, colors, adhesion factor, cycle key.
+- Inspect: Click an existing particle, spring, or bend to edit properties in place; convert between normal/variable spring/particle types; toggle spring visibility; set `max_force` (0 means unlimited/None).
+- Grid: Toggle overlay and spacing; new placements snap to intersections. `snap_to_grid` leaves aligned coords unchanged.
+- Env: Adjust gravity, repulsion radius/strength, damping, temperature.
+
+### Undo and deletion
+
+- `Undo` reverts the most recent structural change. `remove_entities` removes particles, springs, bends, and arms safely and keeps key‑registrations in sync.
+
+---
+
+## Persistence (save/load)
+
+Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and re‑registers key‑controlled elements.
+
+### Schema (conceptual)
+
+- `particles`: list of
+  - `pos`, `prev`: [x, y]
+  - `mass`, `radius`, `color` (RGB or null), `tag`, `fixed`, `drag`
+  - variable particle extras (when `type == "variable"`): `base`, `alt`, `speed`, `key`, `mode` ("hold"|"toggle"), `active`, `curr`
+- `springs`: list of
+  - `p1`, `p2` (indices into particles), `rest`, `stiff`, `max`, `invis`
+  - variable spring extras (when `type == "variable"`): `alt`, `speed`, `key`, `mode`, `active`, `curr`
+- `bending`: list of `{ p1, p2, p3, angle, stiff }`
+- `arms`: list of
+  - `particles` (indices), `springs` (indices into global springs), `rest_lengths`, `max_lengths`, `cycle_speed`, `color`, `high_color`, `adhesion` (mass factor), `orig_mass`, `adhesion_drag`, `orig_drag`, `cycle_key`
+- `physics`: `{ gravity: [gx, gy], repulsion_radius, repulsion_strength, temperature, damping_coeff }`
+
+### Example
+
+```json
+{
+  "particles": [
+    {"pos": [100, 200], "prev": [100, 200], "mass": 1.0, "radius": 10, "color": [255, 0, 0], "tag": null, "fixed": false, "drag": 1.0},
+    {"pos": [160, 200], "prev": [160, 200], "mass": 1.0, "radius": 10, "color": [255, 0, 0], "tag": null, "fixed": false, "drag": 1.0}
+  ],
+  "springs": [
+    {"p1": 0, "p2": 1, "rest": 60.0, "stiff": 200.0, "max": null, "invis": false}
+  ],
+  "bending": [],
+  "arms": [],
+  "physics": {"gravity": [0, 0], "repulsion_radius": 30, "repulsion_strength": 1000, "temperature": 0, "damping_coeff": 1}
+}
+```
+
+---
+
+## Extending the system
+
+### New forces/constraints
+
+- Create a module implementing an object with an `apply()` method. Instantiate and add to app‑level collections; have `PhysicsEngine.update` call it each step (mirroring springs/bends).
+
+### New shapes/structures
+
+- Add a `create_*` function to `structures.py` returning `(particles, springs)` and optionally bends. Use inside a new or existing tool for previews.
+
+### New sidebar tools
+
+- Subclass `builder_ui.tools.base.Tool`.
+- Render controls using `builder_ui/fields.py` components.
+- Implement `draw_ui`, `draw_preview`, and `handle_event` using world coordinates for world interactions. Wire into `builder_ui/sidebar.py` and `BuilderApp.set_mode`.
+
+### New variable elements or key‑driven behavior
+
+- Follow `variable_spring.py` and `variable_particle.py` patterns. Ensure registration maps (`vspring_keys`, `vparticle_keys`, `cycle_keys`) are updated in create/convert/save/load paths.
+
+---
+
+## Coding standards for agents
+
+- Keep code small, focused, and well‑named. Prefer dataclasses for shared configuration (see `builder_ui/config.py`).
+- Type hints for public APIs; avoid `any`‑style typing.
+- Clear docstrings on modules/classes/functions explaining intent.
+- Control flow with early returns; avoid deep nesting.
+- No inline commentary inside code; place comments above complex logic blocks.
+- Match existing formatting; wrap long lines; don’t reformat unrelated code.
+
+---
+
+## Performance and stability
+
+- Reduce particle count and spring density for heavier scenes.
+- Tune stiffness and damping to avoid instability; consider `max_force` to prevent runaway springs.
+- Repulsion is O(n^2); keep radius/particle count in check or disable where not needed.
+- For sticky effects prefer raising `drag` over `fixed=True` during motion.
+
+---
+
+## Manual QA checklist (pre‑PR)
+
+- Builder (`start_create.py`):
+  - Place particle, spring, var‑particle, var‑spring, bend; create circle/rod; attach arm; use inspect to edit/convert; delete; undo works across all; grid snapping; env sliders; pause.
+  - Save → Load roundtrip maintains: positions, prev positions, types, keys/modes, active flags, arm data, physics globals.
+  - Zoom near sidebar vs world behaves as expected; sidebar scroll clamps to bounds.
+- Demos: Run all `start_*.py` and verify documented keybindings.
+
+---
+
+## Maintenance expectations
+
+- After any change, update both `README.md` and `AGENTS.md`.
+- Add/update docstrings for new or modified modules/classes/functions.
+- Keep defaults in `builder_ui/config.py` aligned with UI controls and serialization.
+- When changing persistence fields, update both save and load paths and this document’s schema.
+
+---
+
+## Release note template
+
+- Feature: <what changed> and why
+- UI: new/changed tools, fields, keybindings
+- Physics: new forces/behaviors; tuning/shaping changes
+- Persistence: schema additions/changes (compat notes)
+- Demos: updates/new scripts
+- Dev notes: refactors, base classes, performance/stability fixes
+
+---
+
+## Pointers to read next
+
+- `README.md` for end‑user overview and controls.
+- `DOCS.md` for a narrative architecture and API quick reference.
+- `start_create.py` for the builder application loop and integration points.
