@@ -9,6 +9,7 @@ from particle import Particle
 from spring import Spring
 from physics import PhysicsEngine
 from renderer import Renderer
+from builder_ui import theme
 
 SCREEN_SIZE = (800, 600)
 FPS = 60
@@ -89,7 +90,8 @@ class CellWallApp:
                 self.selected.prev_pos = self.selected.pos.copy()
 
             self.physics.update(dt)
-            self.screen.fill((30, 30, 30))
+            # themed background
+            self.renderer.draw_background(pygame.Rect(0, 0, *self.screen.get_size()))
             self.renderer.draw(self.particles, self.springs)
             pygame.display.flip()
 

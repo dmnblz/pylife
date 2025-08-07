@@ -13,6 +13,7 @@ from .tools.circle_tool import CircleTool
 from .tools.rod_tool import RodTool
 from .tools.hook_arm_tool import HookArmTool
 from .tools.inspect_tool import InspectTool
+from . import theme
 
 
 class SidebarUI:
@@ -173,24 +174,32 @@ class SidebarUI:
 
         # background
         if self.visible:
-            pygame.draw.rect(self.screen, (50, 50, 50), sidebar_rect)
+            # panel background
+            pygame.draw.rect(self.screen, theme.BG_SIDEBAR, sidebar_rect, border_radius=theme.RADIUS)
 
             now = pygame.time.get_ticks()
+            mouse_pos = pygame.mouse.get_pos()
             for btn in self.buttons:
                 rect = btn["rect"].move(0, self.scroll_offset)
                 label = btn["label"]() if callable(btn["label"]) else btn["label"]
                 hint = btn.get("key")
-                if hint:
-                    label = f"{label} [{hint}]"
-                color = (80, 80, 80)
+                base = theme.BG_BUTTON
                 if btn.get("mode") == self.app.mode:
-                    color = (120, 120, 120)
+                    base = theme.BG_BUTTON_ACTIVE
+                if rect.collidepoint(mouse_pos):
+                    base = theme.BG_BUTTON_HOVER
                 if now - btn.get("pressed", 0) < 150:
-                    color = (60, 60, 60)
-                pygame.draw.rect(self.screen, color, rect)
-                text_img = self.font.render(label, True, (255, 255, 255))
-                text_rect = text_img.get_rect(center=rect.center)
-                self.screen.blit(text_img, text_rect)
+                    base = theme.BG_BUTTON_HOVER
+                pygame.draw.rect(self.screen, base, rect, border_radius=theme.RADIUS)
+                # label left
+                text_img = self.font.render(str(label), True, theme.TEXT)
+                self.screen.blit(text_img, text_img.get_rect(midleft=(rect.x + 10, rect.centery)))
+                # keycap right
+                if hint:
+                    cap_img = self.font.render(hint, True, theme.TEXT)
+                    cap_rect = cap_img.get_rect(midright=(rect.right - 8, rect.centery))
+                    pygame.draw.rect(self.screen, (80, 85, 100), cap_rect.inflate(12, 6), border_radius=6)
+                    self.screen.blit(cap_img, cap_rect)
 
             for field in self.fields:
                 field.draw(self.screen, self.scroll_offset)
@@ -221,7 +230,7 @@ class SidebarUI:
         self.inspect_tool.draw_preview()
 
         # toggle button (always visible)
-        pygame.draw.rect(self.screen, (100, 100, 100), self.toggle_rect)
+        pygame.draw.rect(self.screen, (100, 100, 100), self.toggle_rect, border_radius=theme.RADIUS)
         arrow = "<" if self.visible else ">"
         img = self.font.render(arrow, True, (255, 255, 255))
         rect = img.get_rect(center=self.toggle_rect.center)

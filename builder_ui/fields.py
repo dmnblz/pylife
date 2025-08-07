@@ -4,6 +4,7 @@ from typing import Callable
 
 import pygame
 from color_picker import choose_color
+from . import theme
 
 
 class SliderField:
@@ -105,18 +106,22 @@ class SliderField:
         box_rect = self.box_rect.move(0, offset)
 
         # label
-        lbl = self.font.render(self.label, True, (255, 255, 255))
+        lbl = self.font.render(self.label, True, theme.TEXT)
         screen.blit(lbl, (slider_rect.x, slider_rect.y - 18))
 
-        # slider track
-        pygame.draw.rect(screen, (80, 80, 80), slider_rect)
+        # slider track + knob
+        hovered = slider_rect.collidepoint(pygame.mouse.get_pos())
+        track_color = theme.BG_BUTTON_HOVER if hovered else theme.BG_BUTTON
+        pygame.draw.rect(screen, track_color, slider_rect, border_radius=theme.RADIUS)
         knob_x = int(slider_rect.x + self._value_to_ratio(value) * slider_rect.width)
-        pygame.draw.rect(screen, (180, 180, 180), (knob_x - 3, slider_rect.y - 4, 6, slider_rect.height + 8))
+        knob_rect = pygame.Rect(knob_x - 4, slider_rect.y - 6, 8, slider_rect.height + 12)
+        pygame.draw.rect(screen, theme.ACCENT, knob_rect, border_radius=theme.RADIUS)
 
         # textbox
-        pygame.draw.rect(screen, (255, 255, 255), box_rect, 1)
+        pygame.draw.rect(screen, theme.BG_INPUT, box_rect, border_radius=theme.RADIUS)
+        pygame.draw.rect(screen, theme.BORDER, box_rect, 1, border_radius=theme.RADIUS)
         txt = self.text if self.editing else f"{value:.2f}"
-        img = self.font.render(txt, True, (255, 255, 255))
+        img = self.font.render(txt, True, theme.TEXT)
         rect = img.get_rect(center=box_rect.center)
         screen.blit(img, rect)
 
@@ -249,15 +254,16 @@ class ColorField:
         color = self.get_color()
         color_rect = self.color_rect.move(0, offset)
         box_rect = self.box_rect.move(0, offset)
-        lbl = self.font.render(self.label, True, (255, 255, 255))
+        lbl = self.font.render(self.label, True, theme.TEXT)
         screen.blit(lbl, (color_rect.x, color_rect.y - 18))
 
-        pygame.draw.rect(screen, color, color_rect)
-        pygame.draw.rect(screen, (255, 255, 255), color_rect, 1)
+        pygame.draw.rect(screen, color, color_rect, border_radius=theme.RADIUS)
+        pygame.draw.rect(screen, theme.BORDER, color_rect, 1, border_radius=theme.RADIUS)
 
-        pygame.draw.rect(screen, (255, 255, 255), box_rect, 1)
+        pygame.draw.rect(screen, theme.BG_INPUT, box_rect, border_radius=theme.RADIUS)
+        pygame.draw.rect(screen, theme.BORDER, box_rect, 1, border_radius=theme.RADIUS)
         txt = self.text if self.editing else "#%02X%02X%02X" % color
-        img = self.font.render(txt, True, (255, 255, 255))
+        img = self.font.render(txt, True, theme.TEXT)
         rect = img.get_rect(center=box_rect.center)
         screen.blit(img, rect)
 
@@ -389,10 +395,11 @@ class KeyField:
             text = f"[{text}]"
 
         box_rect = self.box_rect.move(0, offset)
-        lbl = self.font.render(self.label, True, (255, 255, 255))
+        lbl = self.font.render(self.label, True, theme.TEXT)
         screen.blit(lbl, (box_rect.x, box_rect.y - 18))
-        pygame.draw.rect(screen, (255, 255, 255), box_rect, 1)
-        img = self.font.render(text, True, (255, 255, 255))
+        pygame.draw.rect(screen, theme.BG_INPUT, box_rect, border_radius=theme.RADIUS)
+        pygame.draw.rect(screen, theme.BORDER, box_rect, 1, border_radius=theme.RADIUS)
+        img = self.font.render(text, True, theme.TEXT)
         rect = img.get_rect(center=box_rect.center)
         screen.blit(img, rect)
 
@@ -477,14 +484,14 @@ class ButtonField:
 
         rect = self.rect.move(0, offset)
         label = self.label() if callable(self.label) else self.label
-        color = (80, 80, 80)
+        base = theme.BG_BUTTON
         active = self.active() if callable(self.active) else self.active
         if active:
-            color = (120, 120, 120)
-        if pygame.time.get_ticks() - self.pressed < 150:
-            color = (60, 60, 60)
-        pygame.draw.rect(screen, color, rect)
-        img = self.font.render(label, True, (255, 255, 255))
+            base = theme.BG_BUTTON_ACTIVE
+        if pygame.time.get_ticks() - self.pressed < 150 or rect.collidepoint(pygame.mouse.get_pos()):
+            base = theme.BG_BUTTON_HOVER
+        pygame.draw.rect(screen, base, rect, border_radius=theme.RADIUS)
+        img = self.font.render(label, True, theme.TEXT)
         screen.blit(img, img.get_rect(center=rect.center))
 
     def handle_event(self, event, offset: int = 0) -> bool:

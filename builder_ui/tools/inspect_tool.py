@@ -478,14 +478,20 @@ class InspectTool(Tool):
         if not super().draw_preview():
             return
         if self.particle:
-            c = self.app.world_to_screen(self.particle.pos)
-            pygame.draw.circle(
-                self.sidebar.screen,
-                (255, 255, 0),
-                (int(c.x), int(c.y)),
-                int(max(1, (self.particle.radius or 10) * self.app.camera_zoom)) + 4,
-                2,
-            )
+            # Mirror renderer coordinate and radius computation
+            c = self.app.renderer.world_to_screen(self.particle.pos)
+            cx, cy = int(c.x), int(c.y)
+            base_r = (self.particle.radius or 10)
+            rr = max(1, int(base_r * self.app.renderer.zoom))
+            # Draw a slightly larger AA double ring to avoid perceived offset from rasterization
+            from builder_ui import theme
+            ring_color = theme.ACCENT
+            try:
+                import pygame.gfxdraw as gfx
+                gfx.aacircle(self.sidebar.screen, cx, cy, rr + 6, ring_color)
+                gfx.aacircle(self.sidebar.screen, cx, cy, rr + 7, ring_color)
+            except Exception:
+                pygame.draw.circle(self.sidebar.screen, ring_color, (cx, cy), rr + 7, 2)
         elif self.spring:
             p1 = self.app.world_to_screen(self.spring.p1.pos)
             p2 = self.app.world_to_screen(self.spring.p2.pos)

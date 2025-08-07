@@ -12,6 +12,7 @@ import pygame
 from particle import Particle
 from physics import PhysicsEngine
 from renderer import Renderer
+from builder_ui import theme
 from spring import Spring
 from structures import create_wall, create_wall_rod, create_rod
 
@@ -194,7 +195,8 @@ class CellWallApp:
                             p.pos.y = H;
                             p.prev_pos.y = p.pos.y
 
-            self.screen.fill((30, 30, 30))
+            # themed background
+            self.renderer.draw_background(pygame.Rect(0, 0, *self.screen.get_size()))
             self.renderer.draw(self.particles, self.springs)
             pygame.display.flip()
 

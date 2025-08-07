@@ -217,7 +217,7 @@ while running:
         selected.pos = pos; selected.prev_pos = pos
 
     engine.update(dt)
-    screen.fill((30,30,30))
+    renderer.draw_background(pygame.Rect(0, 0, *screen.get_size()))
     renderer.draw(particles, springs)
     pygame.display.flip()
 

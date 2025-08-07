@@ -10,6 +10,7 @@ from physics import PhysicsEngine
 from bending_spring import BendingSpring
 from renderer import Renderer
 from builder_ui.sidebar import SidebarUI
+from builder_ui import theme
 from builder_ui.config import (
     ParticleParams,
     SpringParams,
@@ -80,6 +81,14 @@ class BuilderApp:
         # inform physics of current window size for boundary effects
         self.physics.set_screen_size(*self.screen.get_size())
         self.physics.set_play_area(self.play_area)
+
+        # theme toggle UI state
+        self.theme_name = theme.get_theme_name()
+
+        # hover highlights
+        self.hover_particle: Particle | None = None
+        self.hover_spring: Spring | None = None
+        self.hover_bend: BendingSpring | None = None
 
         # initialise undo/history and mode handlers
         self.history: list[callable] = []
@@ -208,6 +217,114 @@ class BuilderApp:
             return vec
 
         return pygame.Vector2(x, y)
+
+    # ------------------------------------------------------------------ hover helpers
+    def _screen_segment_distance(self, a_world: pygame.Vector2, b_world: pygame.Vector2, mouse_screen: tuple[int, int]) -> float:
+        """Return distance in pixels from mouse to segment AB rendered on screen."""
+        a = self.world_to_screen(a_world)
+        b = self.world_to_screen(b_world)
+        ax, ay = a.x, a.y
+        bx, by = b.x, b.y
+        mx, my = float(mouse_screen[0]), float(mouse_screen[1])
+        vx, vy = bx - ax, by - ay
+        seg_len2 = vx * vx + vy * vy
+        if seg_len2 == 0:
+            dx, dy = mx - ax, my - ay
+            return (dx * dx + dy * dy) ** 0.5
+        t = ((mx - ax) * vx + (my - ay) * vy) / seg_len2
+        t = max(0.0, min(1.0, t))
+        px, py = ax + t * vx, ay + t * vy
+        dx, dy = mx - px, my - py
+        return (dx * dx + dy * dy) ** 0.5
+
+    def _update_hover_targets(self) -> None:
+        """Update hover highlights based on current mode and mouse position."""
+        # default clear
+        self.hover_particle = None
+        self.hover_spring = None
+        self.hover_bend = None
+        # ignore when mouse over sidebar
+        mx, my = pygame.mouse.get_pos()
+        if mx >= self.screen.get_width() - self.ui.visible_width():
+            return
+        mouse_screen = (mx, my)
+
+        # allowed targets per mode
+        allowed: set[str]
+        if self.mode in ("drag",):
+            allowed = {"particle"}
+        elif self.mode in ("spring", "vspring", "bend"):
+            allowed = {"particle"}
+        elif self.mode in ("delete", "inspect"):
+            allowed = {"particle", "spring", "bend"}
+        else:
+            allowed = set()
+
+        if not allowed:
+            return
+
+        # thresholds in pixels
+        particle_threshold_px = 30
+        spring_threshold_px = 12
+
+        # compute nearest particle
+        nearest_p = None
+        best_dp = float("inf")
+        r_px = 0
+        if "particle" in allowed and self.particles:
+            for p in self.particles:
+                ps = self.world_to_screen(p.pos)
+                dp = ((ps.x - mx) ** 2 + (ps.y - my) ** 2) ** 0.5
+                if dp < best_dp:
+                    best_dp = dp
+                    nearest_p = p
+                    r_px = int((p.radius or 10) * self.camera_zoom)
+
+        # compute nearest spring segment
+        nearest_s = None
+        best_ds = float("inf")
+        if "spring" in allowed and self.springs:
+            for s in self.springs:
+                ds = self._screen_segment_distance(s.p1.pos, s.p2.pos, mouse_screen)
+                if ds < best_ds:
+                    best_ds = ds
+                    nearest_s = s
+
+        # compute nearest bend segment pair
+        nearest_b = None
+        best_db = float("inf")
+        if "bend" in allowed and self.bending_springs:
+            for bs in self.bending_springs:
+                d1 = self._screen_segment_distance(bs.p1.pos, bs.p2.pos, mouse_screen)
+                d2 = self._screen_segment_distance(bs.p2.pos, bs.p3.pos, mouse_screen)
+                db = min(d1, d2)
+                if db < best_db:
+                    best_db = db
+                    nearest_b = bs
+
+        # filter by thresholds
+        p_ok = nearest_p is not None and best_dp <= max(particle_threshold_px, r_px + 10)
+        s_ok = nearest_s is not None and best_ds <= spring_threshold_px
+        b_ok = nearest_b is not None and best_db <= spring_threshold_px
+
+        # choose one target based on smallest distance among allowed and within threshold
+        choice = None
+        if p_ok:
+            choice = ("particle", best_dp, nearest_p)
+        if s_ok and (choice is None or best_ds < choice[1]):
+            choice = ("spring", best_ds, nearest_s)
+        if b_ok and (choice is None or best_db < choice[1]):
+            choice = ("bend", best_db, nearest_b)
+
+        if choice is None:
+            return
+        kind, _, obj = choice
+        if kind == "particle":
+            self.hover_particle = obj  # type: ignore[assignment]
+        elif kind == "spring":
+            self.hover_spring = obj  # type: ignore[assignment]
+        elif kind == "bend":
+            self.hover_bend = obj  # type: ignore[assignment]
 
     # ------------------------------------------------------------------ undo support
     def push_undo(self, action: Callable[[], None]):
@@ -958,6 +1075,10 @@ class BuilderApp:
                         self.adjust_temperature(10)
                     elif e.key == pygame.K_p:
                         self.toggle_pause()
+                    elif e.key == pygame.K_t:
+                        # toggle theme
+                        self.theme_name = "light" if theme.get_theme_name() == "dark" else "dark"
+                        theme.set_theme(self.theme_name)
                     else:
                         arms = self.cycle_keys.get(e.key, [])
                         for arm in arms:
@@ -1024,14 +1145,13 @@ class BuilderApp:
                     p.pos.y = bottom
                     p.prev_pos.y = p.pos.y
 
-            self.screen.fill((30, 30, 30))
+            self.renderer.draw_background(self.play_area)
             # draw play area boundary
-            self.renderer.draw_play_area(self.play_area)
+            self.renderer.draw_play_area(self.play_area, color=(70, 75, 90))
             if self.grid_enabled:
-                max_x = self.screen.get_width() - self.ui.visible_width()
-                max_y = self.screen.get_height()
                 # draw grid in world space so it zooms/pans with camera
-                color = (60, 60, 60)
+                minor = (50, 52, 60)
+                major = (70, 72, 82)
                 left = self.play_area.left
                 right = self.play_area.right
                 top = self.play_area.top
@@ -1042,6 +1162,8 @@ class BuilderApp:
                 while x <= right:
                     p1 = self.renderer.world_to_screen((x, top))
                     p2 = self.renderer.world_to_screen((x, bottom))
+                    n = round(x / step)
+                    color = major if n % 5 == 0 else minor
                     pygame.draw.line(self.screen, color, p1, p2)
                     x += step
                 # horizontal lines
@@ -1049,14 +1171,35 @@ class BuilderApp:
                 while y <= bottom:
                     p1 = self.renderer.world_to_screen((left, y))
                     p2 = self.renderer.world_to_screen((right, y))
+                    n = round(y / step)
+                    color = major if n % 5 == 0 else minor
                     pygame.draw.line(self.screen, color, p1, p2)
                     y += step
-            self.renderer.draw(self.particles, self.springs, self.bending_springs)
+            # update hover highlights each frame
+            self._update_hover_targets()
+            self.renderer.draw(
+                self.particles,
+                self.springs,
+                self.bending_springs,
+                hover_particle=self.hover_particle,
+                hover_spring=self.hover_spring,
+                hover_bend=self.hover_bend,
+            )
             self.ui.draw()
-            # highlight first spring particle
+            # highlight first spring particle (accent)
             if self.spring_first is not None and self.mode in ("spring", "vspring"):
                 c = self.world_to_screen(self.spring_first.pos)
-                pygame.draw.circle(self.screen, (255, 255, 0), (int(c.x), int(c.y)), int(self.spring_first.radius * self.camera_zoom) + 4, 2)
+                from builder_ui import theme as _theme
+                pygame.draw.circle(self.screen, _theme.ACCENT, (int(c.x), int(c.y)), int(self.spring_first.radius * self.camera_zoom) + 6, 2)
+            # HUD
+            hud = pygame.Surface((260, 60), pygame.SRCALPHA)
+            pygame.draw.rect(hud, (20, 25, 35, 170), hud.get_rect(), border_radius=8)
+            fps = self.clock.get_fps()
+            txt = self.font.render(f"{fps:5.1f} FPS  |  {len(self.particles)} P  {len(self.springs)} S", True, (220, 230, 240))
+            hud.blit(txt, (10, 10))
+            mode_txt = self.font.render(f"Mode: {self.mode}", True, (150, 200, 255))
+            hud.blit(mode_txt, (10, 32))
+            self.screen.blit(hud, (10, 10))
             pygame.display.flip()
 
         pygame.quit()
