@@ -24,7 +24,7 @@ class CellWallApp:
 
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode(SCREEN_SIZE)
+        self.screen = pygame.display.set_mode(SCREEN_SIZE, pygame.RESIZABLE)
         self.clock = pygame.time.Clock()
         self.particles = []
         self.springs = []
@@ -111,9 +111,17 @@ class CellWallApp:
 
     def run(self):
         running = True
+        # inform physics of current window size
+        self.physics.set_screen_size(*self.screen.get_size())
+
         while running:
             dt = self.clock.tick(FPS) / 1000
             for e in pygame.event.get():
+                if e.type == pygame.VIDEORESIZE:
+                    self.screen = pygame.display.set_mode((e.w, e.h), pygame.RESIZABLE)
+                    self.renderer.screen = self.screen
+                    self.physics.set_screen_size(e.w, e.h)
+                    continue
                 if e.type == pygame.QUIT:
                     running = False
                 elif e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
@@ -172,7 +180,7 @@ class CellWallApp:
             self.physics.update(dt)
             
             # handle window boundaries
-            W, H = SCREEN_SIZE
+            W, H = self.screen.get_size()
             if self.periodic_boundary:
                 # wrap-around
                 for p in self.particles:

@@ -48,6 +48,12 @@ class PhysicsEngine:
         self.repulsion_strength = repulsion_strength
         self.temperature = temperature
         self.damping_coeff = damping_coeff
+        # Updated dynamically by the app when the window resizes
+        self._screen_size: tuple[int, int] | None = None
+
+    def set_screen_size(self, width: int, height: int) -> None:
+        """Provide the current window size so boundary effects can adapt."""
+        self._screen_size = (int(width), int(height))
 
     def update(self, dt):
         """Advance the simulation by ``dt`` seconds.
@@ -84,18 +90,23 @@ class PhysicsEngine:
                     p1.apply_force(-force)
                     p2.apply_force(force)
 
-        # tag particles near the simulation wall
+        # tag particles near the simulation wall (if window size is known)
         wall_threshold = 5  # distance from the screen edge
-        screen_width, screen_height = 1300, 900  # should match SCREEN_SIZE
-        for q in self.particles:
-            q.near_boundary = False
-            if (
-                q.pos.x <= wall_threshold or
-                q.pos.x >= screen_width - wall_threshold or
-                q.pos.y <= wall_threshold or
-                q.pos.y >= screen_height - wall_threshold
-            ):
-                q.near_boundary = True
+        if self._screen_size is not None:
+            screen_width, screen_height = self._screen_size
+            for q in self.particles:
+                q.near_boundary = False
+                if (
+                    q.pos.x <= wall_threshold or
+                    q.pos.x >= screen_width - wall_threshold or
+                    q.pos.y <= wall_threshold or
+                    q.pos.y >= screen_height - wall_threshold
+                ):
+                    q.near_boundary = True
+        else:
+            # if unknown, ensure the flag is consistently absent/False
+            for q in self.particles:
+                q.near_boundary = False
 
         # apply viscous damping and Brownian random forces
         for p in self.particles:

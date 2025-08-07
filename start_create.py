@@ -31,7 +31,7 @@ class BuilderApp:
         """Initialise pygame, state containers and helper objects."""
 
         pygame.init()
-        self.screen = pygame.display.set_mode(SCREEN_SIZE)
+        self.screen = pygame.display.set_mode(SCREEN_SIZE, pygame.RESIZABLE)
         pygame.display.set_caption("Particle Builder")
         self.clock = pygame.time.Clock()
         self.particles: list[Particle] = []
@@ -70,6 +70,8 @@ class BuilderApp:
         )
         self.renderer = Renderer(self.screen)
         self.ui = SidebarUI(self.screen, self)
+        # inform physics of current window size for boundary effects
+        self.physics.set_screen_size(*self.screen.get_size())
         self.history: list[callable] = []
         self.mode_handlers: dict[str, Callable[[pygame.event.Event], None]] = {
             "drag": self.handle_drag_event,
@@ -855,6 +857,16 @@ class BuilderApp:
             dt = self.clock.tick(FPS) / 1000
 
             for e in pygame.event.get():
+                # handle window resize
+                if e.type == pygame.VIDEORESIZE:
+                    self.screen = pygame.display.set_mode((e.w, e.h), pygame.RESIZABLE)
+                    self.renderer.screen = self.screen
+                    # rebuild the sidebar UI to recompute layout against new width
+                    self.ui = SidebarUI(self.screen, self)
+                    # update physics boundary size
+                    self.physics.set_screen_size(e.w, e.h)
+                    continue
+
                 if self.ui.handle_event(e):
                     continue
 
