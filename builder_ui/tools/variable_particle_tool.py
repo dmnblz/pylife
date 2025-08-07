@@ -1,5 +1,7 @@
 """Tool configuring new :class:`variable_particle.VariableParticle` instances."""
 
+import pygame
+
 from ..fields import SliderField, ColorField, KeyField, ButtonField
 from .base import Tool
 
