@@ -111,11 +111,16 @@ class BendingSpringTool(Tool):
         screen = self.sidebar.screen
         color = (150, 150, 150)
         for p in self.selected:
-            pygame.draw.circle(screen, color, (int(p.pos.x), int(p.pos.y)), int(p.radius) + 4, 1)
+            c = self.app.world_to_screen(p.pos)
+            pygame.draw.circle(screen, color, (int(c.x), int(c.y)), int(max(1, (p.radius or 10) * self.app.camera_zoom)) + 4, 1)
         if len(self.selected) >= 2:
-            pygame.draw.line(screen, color, self.selected[0].pos, self.selected[1].pos, 1)
+            p1 = self.app.world_to_screen(self.selected[0].pos)
+            p2 = self.app.world_to_screen(self.selected[1].pos)
+            pygame.draw.line(screen, color, p1, p2, 1)
         if len(self.selected) == 3:
-            pygame.draw.line(screen, color, self.selected[1].pos, self.selected[2].pos, 1)
+            p2 = self.app.world_to_screen(self.selected[1].pos)
+            p3 = self.app.world_to_screen(self.selected[2].pos)
+            pygame.draw.line(screen, color, p2, p3, 1)
 
     # ---------------- event handling
     def handle_event(self, event, offset: int = 0):
@@ -135,7 +140,7 @@ class BendingSpringTool(Tool):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
                 if self.app.particles:
-                    mouse = pygame.Vector2(event.pos)
+                    mouse = self.app.screen_to_world(event.pos)
                     particle = min(self.app.particles, key=lambda p: (p.pos - mouse).length())
                     if particle not in self.selected:
                         if len(self.selected) < 3:

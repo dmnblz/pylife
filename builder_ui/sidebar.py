@@ -247,16 +247,21 @@ class SidebarUI:
                 self.visible = not self.visible
                 return True
 
+        # Only scroll sidebar if the mouse is over the sidebar area
         if event.type == pygame.MOUSEWHEEL:
             if self.visible:
-                self.scroll_offset += event.y * 20
-                self._clamp_scroll()
-                return True
+                mx, my = pygame.mouse.get_pos()
+                if mx >= self.screen.get_width() - self.visible_width():
+                    self.scroll_offset += event.y * 20
+                    self._clamp_scroll()
+                    return True
         if event.type == pygame.MOUSEBUTTONDOWN and event.button in (4, 5):
             if self.visible:
-                self.scroll_offset += 20 if event.button == 4 else -20
-                self._clamp_scroll()
-                return True
+                mx, my = event.pos
+                if mx >= self.screen.get_width() - self.visible_width():
+                    self.scroll_offset += 20 if event.button == 4 else -20
+                    self._clamp_scroll()
+                    return True
 
         if self.visible:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:

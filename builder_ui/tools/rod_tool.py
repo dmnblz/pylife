@@ -205,7 +205,8 @@ class RodTool(Tool):
 
         screen = self.sidebar.screen
         color = (150, 150, 150)
-        pts = self._generate_points()
+        ptsw = self._generate_points()
+        pts = [self.app.world_to_screen(p) for p in ptsw]
         for i in range(len(pts)):
             p1 = pts[i]
             p2 = pts[(i + 1) % len(pts)]
@@ -214,7 +215,7 @@ class RodTool(Tool):
                 screen,
                 color,
                 (int(p1.x), int(p1.y)),
-                self.app.particle.radius,
+                max(1, int(self.app.particle.radius * self.app.camera_zoom)),
                 1,
             )
 
@@ -228,27 +229,27 @@ class RodTool(Tool):
             top_y = self.center.y + self.radius
             bottom_nodes = [
                 p
-                for p in pts
+                for p in ptsw
                 if abs(p.y - bottom_y) < 1e-6
                 and (self.center.x - self.length / 2) < p.x < (self.center.x + self.length / 2)
             ]
             top_nodes = [
                 p
-                for p in pts
+                for p in ptsw
                 if abs(p.y - top_y) < 1e-6
                 and (self.center.x - self.length / 2) < p.x < (self.center.x + self.length / 2)
             ]
             bottom_nodes.sort(key=lambda p: p.x)
             top_nodes.sort(key=lambda p: p.x)
             for b, t in zip(bottom_nodes, top_nodes):
-                pygame.draw.line(screen, color, b, t, 1)
+                pygame.draw.line(screen, color, self.app.world_to_screen(b), self.app.world_to_screen(t), 1)
 
             for i in range(n_arc // 2):
-                pygame.draw.line(screen, color, pts[i], pts[n_arc - 1 - i], 1)
+                pygame.draw.line(screen, color, self.app.world_to_screen(ptsw[i]), self.app.world_to_screen(ptsw[n_arc - 1 - i]), 1)
 
             start = n_arc + n_side
             for i in range(n_arc // 2):
-                pygame.draw.line(screen, color, pts[start + i], pts[start + n_arc - 1 - i], 1)
+                pygame.draw.line(screen, color, self.app.world_to_screen(ptsw[start + i]), self.app.world_to_screen(ptsw[start + n_arc - 1 - i]), 1)
 
         if self.include_skeleton:
             skeleton_pts = []
@@ -259,24 +260,24 @@ class RodTool(Tool):
                 skeleton_pts.append(pos)
 
             for i in range(len(skeleton_pts) - 1):
-                pygame.draw.line(screen, color, skeleton_pts[i], skeleton_pts[i + 1], 1)
+                pygame.draw.line(screen, color, self.app.world_to_screen(skeleton_pts[i]), self.app.world_to_screen(skeleton_pts[i + 1]), 1)
 
             eps = 1e-6
-            for p in pts:
+            for p in ptsw:
                 if abs(p.y - (self.center.y - self.radius)) < eps or abs(p.y - (self.center.y + self.radius)) < eps:
                     dists = sorted(((sp - p).length(), sp) for sp in skeleton_pts)
                     for _, sp in dists[:2]:
-                        pygame.draw.line(screen, color, p, sp, 1)
+                        pygame.draw.line(screen, color, self.app.world_to_screen(p), self.app.world_to_screen(sp), 1)
                 else:
                     sp = min(skeleton_pts, key=lambda sp: (sp - p).length())
-                    pygame.draw.line(screen, color, p, sp, 1)
+                    pygame.draw.line(screen, color, self.app.world_to_screen(p), self.app.world_to_screen(sp), 1)
 
             for sp in skeleton_pts:
                 pygame.draw.circle(
                     screen,
                     color,
-                    (int(sp.x), int(sp.y)),
-                    self.app.particle.radius,
+                    (int(self.app.world_to_screen(sp).x), int(self.app.world_to_screen(sp).y)),
+                    max(1, int(self.app.particle.radius * self.app.camera_zoom)),
                     1,
                 )
 
@@ -308,11 +309,11 @@ class RodTool(Tool):
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
-                self.center = self.app.snap_to_grid(pygame.Vector2(event.pos))
+                self.center = self.app.snap_to_grid(self.app.screen_to_world(event.pos))
                 self.dragging = True
                 return True
         elif event.type == pygame.MOUSEMOTION and self.dragging:
-            mouse = self.app.snap_to_grid(pygame.Vector2(event.pos))
+            mouse = self.app.snap_to_grid(self.app.screen_to_world(event.pos))
             self.length = abs(mouse.x - self.center.x) * 2
             return True
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.dragging:

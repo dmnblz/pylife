@@ -98,4 +98,33 @@ class VariableSpringTool(Tool):
             return True
         if self.mode_button.handle_event(event, offset):
             return True
+        # Use world coordinates for selecting and connecting particles
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
+                app = self.sidebar.app
+                if app.particles:
+                    mouse = app.screen_to_world(event.pos)
+                    particle = min(app.particles, key=lambda p: (p.pos - mouse).length())
+                    if app.spring_first is None:
+                        app.spring_first = particle
+                    else:
+                        rest = (particle.pos - app.spring_first.pos).length()
+                        alt = rest * app.vspring.alt_factor
+                        from variable_spring import VariableSpring
+                        s = VariableSpring(
+                            app.spring_first,
+                            particle,
+                            rest_length=rest,
+                            alt_rest_length=alt,
+                            stiffness=app.vspring.stiffness,
+                            key=app.vspring.key,
+                            mode=app.vspring.mode,
+                            change_speed=app.vspring.speed,
+                        )
+                        app.springs.append(s)
+                        app.variable_springs.append(s)
+                        app.register_variable_spring(s)
+                        app.push_undo(lambda s=s: app.remove_entities(springs=[s]))
+                        app.spring_first = None
+                    return True
         return False

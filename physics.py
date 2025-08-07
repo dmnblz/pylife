@@ -50,10 +50,17 @@ class PhysicsEngine:
         self.damping_coeff = damping_coeff
         # Updated dynamically by the app when the window resizes
         self._screen_size: tuple[int, int] | None = None
+        # Optional world-space playable area used for boundary proximity
+        self._play_area: pygame.Rect | None = None
 
     def set_screen_size(self, width: int, height: int) -> None:
         """Provide the current window size so boundary effects can adapt."""
         self._screen_size = (int(width), int(height))
+
+    def set_play_area(self, rect: pygame.Rect) -> None:
+        """Set the world-space playable area rectangle used for boundary effects."""
+        # store a copy to avoid outside mutation surprises
+        self._play_area = pygame.Rect(rect)
 
     def update(self, dt):
         """Advance the simulation by ``dt`` seconds.
@@ -91,8 +98,21 @@ class PhysicsEngine:
                     p2.apply_force(force)
 
         # tag particles near the simulation wall (if window size is known)
-        wall_threshold = 5  # distance from the screen edge
-        if self._screen_size is not None:
+        wall_threshold = 5  # distance from the boundary
+        if self._play_area is not None:
+            left, top, width, height = self._play_area
+            right = left + width
+            bottom = top + height
+            for q in self.particles:
+                q.near_boundary = False
+                if (
+                    q.pos.x <= left + wall_threshold or
+                    q.pos.x >= right - wall_threshold or
+                    q.pos.y <= top + wall_threshold or
+                    q.pos.y >= bottom - wall_threshold
+                ):
+                    q.near_boundary = True
+        elif self._screen_size is not None:
             screen_width, screen_height = self._screen_size
             for q in self.particles:
                 q.near_boundary = False

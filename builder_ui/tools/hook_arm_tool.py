@@ -195,10 +195,11 @@ class HookArmTool(Tool):
             return
         screen = self.sidebar.screen
         color = (150, 150, 150)
-        last = self.base.pos
-        for p in self._preview_points():
+        last = self.app.world_to_screen(self.base.pos)
+        for pw in self._preview_points():
+            p = self.app.world_to_screen(pw)
             pygame.draw.line(screen, color, last, p, 1)
-            pygame.draw.circle(screen, color, (int(p.x), int(p.y)), int(self.radius), 1)
+            pygame.draw.circle(screen, color, (int(p.x), int(p.y)), max(1, int(self.radius * self.app.camera_zoom)), 1)
             last = p
 
     # ---------------- event handling
@@ -231,7 +232,7 @@ class HookArmTool(Tool):
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
-                mouse = pygame.Vector2(event.pos)
+                mouse = self.app.screen_to_world(event.pos)
                 if not self.base:
                     if self.app.particles:
                         self.base = min(self.app.particles, key=lambda p: (p.pos - mouse).length())
@@ -242,7 +243,7 @@ class HookArmTool(Tool):
                     self.dragging = True
                     return True
         elif event.type == pygame.MOUSEMOTION and self.dragging:
-            mouse = self.app.snap_to_grid(pygame.Vector2(event.pos))
+            mouse = self.app.snap_to_grid(self.app.screen_to_world(event.pos))
             self.direction = mouse - self.base.pos
             return True
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.dragging:

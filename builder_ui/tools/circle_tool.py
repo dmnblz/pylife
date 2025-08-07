@@ -122,24 +122,17 @@ class CircleTool(Tool):
         screen = self.sidebar.screen
         color = (150, 150, 150)
         center = self.app.snap_to_grid(self.center)
-        pygame.draw.circle(screen, color, (int(center.x), int(center.y)), int(self.radius), 1)
+        c = self.app.world_to_screen(center)
+        pygame.draw.circle(screen, color, (int(c.x), int(c.y)), max(1, int(self.radius * self.app.camera_zoom)), 1)
         for i in range(self.segments):
             theta1 = (i / self.segments) * 2 * math.pi
             theta2 = ((i + 1) % self.segments) / self.segments * 2 * math.pi
-            p1 = self.app.snap_to_grid(
-                self.center + pygame.Vector2(math.cos(theta1), math.sin(theta1)) * self.radius
-            )
-            p2 = self.app.snap_to_grid(
-                self.center + pygame.Vector2(math.cos(theta2), math.sin(theta2)) * self.radius
-            )
+            p1w = self.app.snap_to_grid(self.center + pygame.Vector2(math.cos(theta1), math.sin(theta1)) * self.radius)
+            p2w = self.app.snap_to_grid(self.center + pygame.Vector2(math.cos(theta2), math.sin(theta2)) * self.radius)
+            p1 = self.app.world_to_screen(p1w)
+            p2 = self.app.world_to_screen(p2w)
             pygame.draw.line(screen, color, p1, p2, 1)
-            pygame.draw.circle(
-                screen,
-                color,
-                (int(p1.x), int(p1.y)),
-                self.app.particle.radius,
-                1,
-            )
+            pygame.draw.circle(screen, color, (int(p1.x), int(p1.y)), max(1, int(self.app.particle.radius * self.app.camera_zoom)), 1)
 
     # ---------------- event handling
     def handle_event(self, event, offset: int = 0):
@@ -163,11 +156,12 @@ class CircleTool(Tool):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             # click in world area to set center
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
-                self.center = self.app.snap_to_grid(pygame.Vector2(event.pos))
+                world = self.app.screen_to_world(event.pos)
+                self.center = self.app.snap_to_grid(world)
                 self.dragging = True
                 return True
         elif event.type == pygame.MOUSEMOTION and self.dragging:
-            mouse = self.app.snap_to_grid(pygame.Vector2(event.pos))
+            mouse = self.app.snap_to_grid(self.app.screen_to_world(event.pos))
             self.radius = (mouse - self.center).length()
             return True
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.dragging:

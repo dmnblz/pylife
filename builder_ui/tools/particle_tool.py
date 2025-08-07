@@ -1,6 +1,7 @@
 """Tool handling options for creating new particles."""
 
 import pygame
+from particle import Particle
 
 from ..fields import SliderField, ColorField
 from .base import Tool
@@ -69,6 +70,19 @@ class ParticleTool(Tool):
             return True
         if self.radius_field.handle_event(event, offset):
             return True
+        # left click on world area to place a particle at world position
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
+                world = self.sidebar.app.screen_to_world(event.pos)
+                p = Particle(
+                    world,
+                    mass=self.sidebar.app.particle.mass,
+                    color=self.sidebar.app.particle.color,
+                    radius=self.sidebar.app.particle.radius,
+                )
+                self.sidebar.app.particles.append(p)
+                self.sidebar.app.push_undo(lambda p=p: self.sidebar.app.remove_entities([p]))
+                return True
         return False
 
     # ---------------- value helpers

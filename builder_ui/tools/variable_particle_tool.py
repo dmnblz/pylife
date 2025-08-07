@@ -141,4 +141,26 @@ class VariableParticleTool(Tool):
             return True
         if self.mode_button.handle_event(event, offset):
             return True
+        # world click to place a variable particle at correct world position
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
+                world = self.sidebar.app.screen_to_world(event.pos)
+                from variable_particle import VariableParticle
+                app = self.sidebar.app
+                p = VariableParticle(
+                    world,
+                    mass=app.particle.mass,
+                    color=app.particle.color,
+                    radius=app.particle.radius,
+                    base_drag=1.0,
+                    alt_drag=app.vparticle.alt_drag,
+                    key=app.vparticle.key,
+                    mode=app.vparticle.mode,
+                    change_speed=app.vparticle.speed,
+                )
+                app.particles.append(p)
+                app.variable_particles.append(p)
+                app.register_variable_particle(p)
+                app.push_undo(lambda p=p: app.remove_entities([p]))
+                return True
         return False

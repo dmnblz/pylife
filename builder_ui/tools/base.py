@@ -81,4 +81,14 @@ class Tool:
         sidebar is visible.
         """
 
-        return self.active and getattr(self.sidebar, "visible", True)
+        # If not active/visible, ignore
+        if not (self.active and getattr(self.sidebar, "visible", True)):
+            return False
+        # Redirect scroll inputs to world zoom when pointer is over world area
+        # This prevents sidebar scrolling while zooming with mouse wheel in the world.
+        import pygame  # local to avoid circulars
+        if event.type in (pygame.MOUSEWHEEL, pygame.MOUSEBUTTONDOWN) and getattr(event, "button", None) in (4, 5) or event.type == pygame.MOUSEWHEEL:
+            mouse_x = pygame.mouse.get_pos()[0]
+            if mouse_x < self.sidebar.screen.get_width() - self.sidebar.visible_width():
+                return False
+        return True

@@ -478,36 +478,24 @@ class InspectTool(Tool):
         if not super().draw_preview():
             return
         if self.particle:
+            c = self.app.world_to_screen(self.particle.pos)
             pygame.draw.circle(
                 self.sidebar.screen,
                 (255, 255, 0),
-                (int(self.particle.pos.x), int(self.particle.pos.y)),
-                int(self.particle.radius) + 4,
+                (int(c.x), int(c.y)),
+                int(max(1, (self.particle.radius or 10) * self.app.camera_zoom)) + 4,
                 2,
             )
         elif self.spring:
-            pygame.draw.line(
-                self.sidebar.screen,
-                (255, 255, 0),
-                self.spring.p1.pos,
-                self.spring.p2.pos,
-                3,
-            )
+            p1 = self.app.world_to_screen(self.spring.p1.pos)
+            p2 = self.app.world_to_screen(self.spring.p2.pos)
+            pygame.draw.line(self.sidebar.screen, (255, 255, 0), p1, p2, 3)
         elif self.bend:
-            pygame.draw.line(
-                self.sidebar.screen,
-                (255, 255, 0),
-                self.bend.p1.pos,
-                self.bend.p2.pos,
-                3,
-            )
-            pygame.draw.line(
-                self.sidebar.screen,
-                (255, 255, 0),
-                self.bend.p2.pos,
-                self.bend.p3.pos,
-                3,
-            )
+            p1 = self.app.world_to_screen(self.bend.p1.pos)
+            p2 = self.app.world_to_screen(self.bend.p2.pos)
+            p3 = self.app.world_to_screen(self.bend.p3.pos)
+            pygame.draw.line(self.sidebar.screen, (255, 255, 0), p1, p2, 3)
+            pygame.draw.line(self.sidebar.screen, (255, 255, 0), p2, p3, 3)
 
     # ---------------- event handling
     def handle_event(self, event, offset: int = 0):
@@ -564,7 +552,7 @@ class InspectTool(Tool):
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
-                mouse = pygame.Vector2(event.pos)
+                mouse = self.app.screen_to_world(event.pos)
                 dist_p = float("inf")
                 dist_s = float("inf")
                 dist_b = float("inf")

@@ -43,4 +43,21 @@ class SpringTool(Tool):
             return False
         if self.stiff_field.handle_event(event, offset):
             return True
+        # World click selection logic for connecting two particles should use world coords
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
+                app = self.sidebar.app
+                if app.particles:
+                    mouse = app.screen_to_world(event.pos)
+                    particle = min(app.particles, key=lambda p: (p.pos - mouse).length())
+                    if app.spring_first is None:
+                        app.spring_first = particle
+                    else:
+                        rest = (particle.pos - app.spring_first.pos).length()
+                        from spring import Spring
+                        s = Spring(app.spring_first, particle, rest_length=rest, stiffness=app.spring.stiffness)
+                        app.springs.append(s)
+                        app.push_undo(lambda s=s: app.remove_entities(springs=[s]))
+                        app.spring_first = None
+                    return True
         return False

@@ -70,8 +70,16 @@ class BuilderApp:
         )
         self.renderer = Renderer(self.screen)
         self.ui = SidebarUI(self.screen, self)
+        # camera / play area
+        self.play_area = pygame.Rect(0, 0, SCREEN_SIZE[0], SCREEN_SIZE[1])
+        self.camera_offset = pygame.Vector2(0, 0)
+        self.camera_zoom = 1.0
+        self.renderer.set_camera(self.camera_offset, self.camera_zoom)
         # inform physics of current window size for boundary effects
         self.physics.set_screen_size(*self.screen.get_size())
+        self.physics.set_play_area(self.play_area)
+
+        # initialise undo/history and mode handlers
         self.history: list[callable] = []
         self.mode_handlers: dict[str, Callable[[pygame.event.Event], None]] = {
             "drag": self.handle_drag_event,
@@ -81,6 +89,13 @@ class BuilderApp:
             "vspring": self.handle_variable_spring_event,
             "delete": self.handle_delete_event,
         }
+
+    # ------------------------------------------------------------------ camera helpers
+    def screen_to_world(self, pos: tuple[float, float] | pygame.Vector2) -> pygame.Vector2:
+        return self.renderer.screen_to_world(pos)
+
+    def world_to_screen(self, pos: tuple[float, float] | pygame.Vector2) -> pygame.Vector2:
+        return self.renderer.world_to_screen(pos)
 
     # ------------------------------------------------------------------ parameter helpers
     def set_mode(self, mode: str):
@@ -589,11 +604,12 @@ class BuilderApp:
     def handle_drag_event(self, event: pygame.event.Event):
         """Handle interactions while in *drag* mode."""
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            mouse = pygame.Vector2(event.pos)
+            # ignore clicks on the sidebar area
+            if event.pos[0] >= self.screen.get_width() - self.ui.visible_width():
+                return
+            mouse = self.screen_to_world(event.pos)
             if self.particles:
-                self.selected = min(
-                    self.particles, key=lambda p: (p.pos - mouse).length()
-                )
+                self.selected = min(self.particles, key=lambda p: (p.pos - mouse).length())
                 self.selected.fixed = True
 
     def handle_particle_event(self, event: pygame.event.Event):
@@ -866,6 +882,34 @@ class BuilderApp:
                     # update physics boundary size
                     self.physics.set_screen_size(e.w, e.h)
                     continue
+                # zoom with mouse wheel when not over sidebar
+                if e.type == pygame.MOUSEWHEEL:
+                    mouse_pos = pygame.mouse.get_pos()
+                    # ignore zoom if over sidebar toggle/area
+                    if mouse_pos[0] < self.screen.get_width() - self.ui.visible_width():
+                        # zoom around mouse position
+                        zoom_factor = 1.1 if e.y > 0 else 1/1.1
+                        old_zoom = self.camera_zoom
+                        self.camera_zoom = max(0.1, min(10.0, self.camera_zoom * zoom_factor))
+                        # keep mouse position anchored in world coordinates
+                        mouse_world_before = self.renderer.screen_to_world(mouse_pos)
+                        self.renderer.set_camera(self.camera_offset, self.camera_zoom)
+                        mouse_world_after = self.renderer.screen_to_world(mouse_pos)
+                        self.camera_offset += (mouse_world_before - mouse_world_after)
+                        self.renderer.set_camera(self.camera_offset, self.camera_zoom)
+                        continue
+                # legacy scroll buttons 4/5 -> zoom world if cursor over world; otherwise pass to UI
+                if e.type == pygame.MOUSEBUTTONDOWN and e.button in (4, 5):
+                    mouse_pos = e.pos
+                    if mouse_pos[0] < self.screen.get_width() - self.ui.visible_width():
+                        zoom_factor = 1.1 if e.button == 4 else 1/1.1
+                        self.camera_zoom = max(0.1, min(10.0, self.camera_zoom * zoom_factor))
+                        mouse_world_before = self.renderer.screen_to_world(mouse_pos)
+                        self.renderer.set_camera(self.camera_offset, self.camera_zoom)
+                        mouse_world_after = self.renderer.screen_to_world(mouse_pos)
+                        self.camera_offset += (mouse_world_before - mouse_world_after)
+                        self.renderer.set_camera(self.camera_offset, self.camera_zoom)
+                        continue
 
                 if self.ui.handle_event(e):
                     continue
@@ -942,57 +986,75 @@ class BuilderApp:
 
                 handler = self.mode_handlers.get(self.mode)
                 if handler:
+                    # Adapt world interactions to use world coordinates inside handlers
                     handler(e)
 
             if self.selected:
-                self.selected.pos = pygame.Vector2(pygame.mouse.get_pos())
+                # move directly to mouse in world coordinates to avoid velocity injection
+                mouse_world = self.screen_to_world(pygame.mouse.get_pos())
+                self.selected.pos = mouse_world
                 self.selected.prev_pos = self.selected.pos.copy()
 
             if not self.paused:
-                  self.physics.update(dt)
-                  for arm in self.arms:
-                      arm.update(dt)
-                  for s in self.variable_springs:
-                      s.update(dt)
-                  for p in self.variable_particles:
-                      p.update(dt)
+                self.physics.update(dt)
+                for arm in self.arms:
+                    arm.update(dt)
+                for s in self.variable_springs:
+                    s.update(dt)
+                for p in self.variable_particles:
+                    p.update(dt)
 
-            # keep particles inside the window and out of the sidebar
-            max_x = self.screen.get_width() - self.ui.visible_width()
-            max_y = self.screen.get_height()
+            # keep particles inside the world play area (independent of screen size)
+            left, top, width, height = self.play_area
+            right = left + width
+            bottom = top + height
             for p in self.particles:
-                if p.pos.x < 0:
-                    p.pos.x = 0
+                if p.pos.x < left:
+                    p.pos.x = left
                     p.prev_pos.x = p.pos.x
-                elif p.pos.x > max_x:
-                    p.pos.x = max_x
+                elif p.pos.x > right:
+                    p.pos.x = right
                     p.prev_pos.x = p.pos.x
-                if p.pos.y < 0:
-                    p.pos.y = 0
+                if p.pos.y < top:
+                    p.pos.y = top
                     p.prev_pos.y = p.pos.y
-                elif p.pos.y > max_y:
-                    p.pos.y = max_y
+                elif p.pos.y > bottom:
+                    p.pos.y = bottom
                     p.prev_pos.y = p.pos.y
 
             self.screen.fill((30, 30, 30))
+            # draw play area boundary
+            self.renderer.draw_play_area(self.play_area)
             if self.grid_enabled:
                 max_x = self.screen.get_width() - self.ui.visible_width()
                 max_y = self.screen.get_height()
-                for gx in range(0, int(max_x) + 1, int(self.grid_size)):
-                    pygame.draw.line(self.screen, (60, 60, 60), (gx, 0), (gx, max_y))
-                for gy in range(0, int(max_y) + 1, int(self.grid_size)):
-                    pygame.draw.line(self.screen, (60, 60, 60), (0, gy), (max_x, gy))
+                # draw grid in world space so it zooms/pans with camera
+                color = (60, 60, 60)
+                left = self.play_area.left
+                right = self.play_area.right
+                top = self.play_area.top
+                bottom = self.play_area.bottom
+                step = max(5.0, self.grid_size)
+                # vertical lines
+                x = left - (left % step)
+                while x <= right:
+                    p1 = self.renderer.world_to_screen((x, top))
+                    p2 = self.renderer.world_to_screen((x, bottom))
+                    pygame.draw.line(self.screen, color, p1, p2)
+                    x += step
+                # horizontal lines
+                y = top - (top % step)
+                while y <= bottom:
+                    p1 = self.renderer.world_to_screen((left, y))
+                    p2 = self.renderer.world_to_screen((right, y))
+                    pygame.draw.line(self.screen, color, p1, p2)
+                    y += step
             self.renderer.draw(self.particles, self.springs, self.bending_springs)
             self.ui.draw()
             # highlight first spring particle
             if self.spring_first is not None and self.mode in ("spring", "vspring"):
-                pygame.draw.circle(
-                    self.screen,
-                    (255, 255, 0),
-                    (int(self.spring_first.pos.x), int(self.spring_first.pos.y)),
-                    self.spring_first.radius + 4,
-                    2,
-                )
+                c = self.world_to_screen(self.spring_first.pos)
+                pygame.draw.circle(self.screen, (255, 255, 0), (int(c.x), int(c.y)), int(self.spring_first.radius * self.camera_zoom) + 4, 2)
             pygame.display.flip()
 
         pygame.quit()
