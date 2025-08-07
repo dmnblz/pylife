@@ -186,6 +186,15 @@ class CellWallApp:
             # themed background
             self.renderer.draw_background(pygame.Rect(0, 0, *self.screen.get_size()))
             self.renderer.draw(self.particles, self.springs)
+            # HUD card (no heavy shadow)
+            fps = self.clock.get_fps()
+            hud_w, hud_h = 280, 62
+            hud = pygame.Surface((hud_w, hud_h), pygame.SRCALPHA)
+            pygame.draw.rect(hud, (30, 36, 48, 170), hud.get_rect(), border_radius=10)
+            pygame.draw.rect(hud, (255, 255, 255, 40), hud.get_rect().inflate(-2, -2), width=1, border_radius=8)
+            txt = self.font.render(f"{fps:5.1f} FPS  |  {len(self.particles)} P  {len(self.springs)} S", True, (220, 230, 240))
+            hud.blit(txt, (12, 18))
+            self.screen.blit(hud, (12, 12))
             pygame.display.flip()
 
         pygame.quit()

@@ -2,6 +2,7 @@
 
 import math
 import pygame
+from .. import theme
 
 from ..fields import SliderField, ButtonField
 from .base import Tool
@@ -123,6 +124,13 @@ class CircleTool(Tool):
         color = (150, 150, 150)
         center = self.app.snap_to_grid(self.center)
         c = self.app.world_to_screen(center)
+        # accent glow at center
+        glow_r = max(6, int(self.app.particle.radius * self.app.camera_zoom) + 8)
+        glow = pygame.Surface((glow_r * 2 + 4, glow_r * 2 + 4), pygame.SRCALPHA)
+        pygame.draw.circle(glow, (*theme.ACCENT, 70), (glow_r + 2, glow_r + 2), glow_r)
+        screen.blit(glow, (int(c.x) - glow_r - 2, int(c.y) - glow_r - 2))
+        pygame.draw.circle(screen, theme.ACCENT, (int(c.x), int(c.y)), glow_r - 6, 2)
+        # perimeter preview
         pygame.draw.circle(screen, color, (int(c.x), int(c.y)), max(1, int(self.radius * self.app.camera_zoom)), 1)
         for i in range(self.segments):
             theta1 = (i / self.segments) * 2 * math.pi
@@ -132,7 +140,13 @@ class CircleTool(Tool):
             p1 = self.app.world_to_screen(p1w)
             p2 = self.app.world_to_screen(p2w)
             pygame.draw.line(screen, color, p1, p2, 1)
-            pygame.draw.circle(screen, color, (int(p1.x), int(p1.y)), max(1, int(self.app.particle.radius * self.app.camera_zoom)), 1)
+            # point with accent ring similar to selection
+            rr = max(1, int(self.app.particle.radius * self.app.camera_zoom))
+            try:
+                import pygame.gfxdraw as gfx
+                gfx.aacircle(screen, int(p1.x), int(p1.y), rr + 4, theme.ACCENT)
+            except Exception:
+                pygame.draw.circle(screen, theme.ACCENT, (int(p1.x), int(p1.y)), rr + 4, 1)
 
     # ---------------- event handling
     def handle_event(self, event, offset: int = 0):

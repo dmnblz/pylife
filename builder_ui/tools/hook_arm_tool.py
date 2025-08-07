@@ -1,6 +1,7 @@
 """Tool for previewing and creating HookArm instances."""
 
 import pygame
+from .. import theme
 
 from ..fields import SliderField, ColorField, KeyField, ButtonField
 from .base import Tool
@@ -196,10 +197,23 @@ class HookArmTool(Tool):
         screen = self.sidebar.screen
         color = (150, 150, 150)
         last = self.app.world_to_screen(self.base.pos)
+        # accent ring at base selection
+        base_rr = max(1, int((self.app.particle.radius or 10) * self.app.camera_zoom))
+        try:
+            import pygame.gfxdraw as gfx
+            gfx.aacircle(screen, int(last.x), int(last.y), base_rr + 6, theme.ACCENT)
+            gfx.aacircle(screen, int(last.x), int(last.y), base_rr + 7, theme.ACCENT)
+        except Exception:
+            pygame.draw.circle(screen, theme.ACCENT, (int(last.x), int(last.y)), base_rr + 7, 2)
         for pw in self._preview_points():
             p = self.app.world_to_screen(pw)
             pygame.draw.line(screen, color, last, p, 1)
-            pygame.draw.circle(screen, color, (int(p.x), int(p.y)), max(1, int(self.radius * self.app.camera_zoom)), 1)
+            rr = max(1, int(self.radius * self.app.camera_zoom))
+            try:
+                import pygame.gfxdraw as gfx
+                gfx.aacircle(screen, int(p.x), int(p.y), rr + 4, theme.ACCENT)
+            except Exception:
+                pygame.draw.circle(screen, theme.ACCENT, (int(p.x), int(p.y)), rr + 4, 1)
             last = p
 
     # ---------------- event handling

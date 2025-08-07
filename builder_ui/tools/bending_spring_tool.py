@@ -2,6 +2,7 @@
 
 import math
 import pygame
+from .. import theme
 
 from bending_spring import BendingSpring
 from ..fields import SliderField, ButtonField
@@ -105,22 +106,40 @@ class BendingSpringTool(Tool):
         self.create_button.draw(self.sidebar.screen, offset)
 
     def draw_preview(self):
-        """Highlight selected particles and preview links."""
+        """Highlight selected particles and preview links with accent styling."""
         if not super().draw_preview():
             return
         screen = self.sidebar.screen
-        color = (150, 150, 150)
+        # draw selected particles with accent glow + AA rings
         for p in self.selected:
             c = self.app.world_to_screen(p.pos)
-            pygame.draw.circle(screen, color, (int(c.x), int(c.y)), int(max(1, (p.radius or 10) * self.app.camera_zoom)) + 4, 1)
+            cx, cy = int(c.x), int(c.y)
+            base_r = (p.radius or 10)
+            rr = max(1, int(base_r * self.app.camera_zoom))
+            # halo
+            glow_r = rr + 10
+            glow_surf = pygame.Surface((glow_r * 2 + 4, glow_r * 2 + 4), pygame.SRCALPHA)
+            pygame.draw.circle(glow_surf, (*theme.ACCENT, 70), (glow_r + 2, glow_r + 2), glow_r)
+            screen.blit(glow_surf, (cx - glow_r - 2, cy - glow_r - 2))
+            # rings
+            try:
+                import pygame.gfxdraw as gfx
+                gfx.aacircle(screen, cx, cy, rr + 6, theme.ACCENT)
+                gfx.aacircle(screen, cx, cy, rr + 7, theme.ACCENT)
+            except Exception:
+                pygame.draw.circle(screen, theme.ACCENT, (cx, cy), rr + 7, 2)
+
+        # accent lines between selected points (match renderer hover style)
         if len(self.selected) >= 2:
             p1 = self.app.world_to_screen(self.selected[0].pos)
             p2 = self.app.world_to_screen(self.selected[1].pos)
-            pygame.draw.line(screen, color, p1, p2, 1)
+            pygame.draw.line(screen, theme.ACCENT, p1, p2, 8)
+            pygame.draw.line(screen, (255, 255, 255), p1, p2, 2)
         if len(self.selected) == 3:
             p2 = self.app.world_to_screen(self.selected[1].pos)
             p3 = self.app.world_to_screen(self.selected[2].pos)
-            pygame.draw.line(screen, color, p2, p3, 1)
+            pygame.draw.line(screen, theme.ACCENT, p2, p3, 8)
+            pygame.draw.line(screen, (255, 255, 255), p2, p3, 2)
 
     # ---------------- event handling
     def handle_event(self, event, offset: int = 0):

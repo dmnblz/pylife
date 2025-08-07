@@ -1150,8 +1150,16 @@ class BuilderApp:
             self.renderer.draw_play_area(self.play_area, color=(70, 75, 90))
             if self.grid_enabled:
                 # draw grid in world space so it zooms/pans with camera
-                minor = (50, 52, 60)
-                major = (70, 72, 82)
+                # fade with zoom for subtlety
+                z = self.camera_zoom
+                fade = max(0.15, min(1.0, (z - 0.4) / 0.8))
+                def with_alpha(rgb: tuple[int, int, int], a: float) -> tuple[int, int, int, int]:
+                    return (rgb[0], rgb[1], rgb[2], int(255 * max(0.0, min(1.0, a))))
+                minor_rgb = (50, 52, 60)
+                major_rgb = (70, 72, 82)
+                minor = with_alpha(minor_rgb, 0.35 * fade)
+                major = with_alpha(major_rgb, 0.6 * fade)
+                grid_surf = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
                 left = self.play_area.left
                 right = self.play_area.right
                 top = self.play_area.top
@@ -1164,7 +1172,7 @@ class BuilderApp:
                     p2 = self.renderer.world_to_screen((x, bottom))
                     n = round(x / step)
                     color = major if n % 5 == 0 else minor
-                    pygame.draw.line(self.screen, color, p1, p2)
+                    pygame.draw.line(grid_surf, color, p1, p2)
                     x += step
                 # horizontal lines
                 y = top - (top % step)
@@ -1173,8 +1181,9 @@ class BuilderApp:
                     p2 = self.renderer.world_to_screen((right, y))
                     n = round(y / step)
                     color = major if n % 5 == 0 else minor
-                    pygame.draw.line(self.screen, color, p1, p2)
+                    pygame.draw.line(grid_surf, color, p1, p2)
                     y += step
+                self.screen.blit(grid_surf, (0, 0))
             # update hover highlights each frame
             self._update_hover_targets()
             self.renderer.draw(
@@ -1191,15 +1200,24 @@ class BuilderApp:
                 c = self.world_to_screen(self.spring_first.pos)
                 from builder_ui import theme as _theme
                 pygame.draw.circle(self.screen, _theme.ACCENT, (int(c.x), int(c.y)), int(self.spring_first.radius * self.camera_zoom) + 6, 2)
-            # HUD
-            hud = pygame.Surface((260, 60), pygame.SRCALPHA)
-            pygame.draw.rect(hud, (20, 25, 35, 170), hud.get_rect(), border_radius=8)
+            # HUD card (no heavy shadow)
             fps = self.clock.get_fps()
-            txt = self.font.render(f"{fps:5.1f} FPS  |  {len(self.particles)} P  {len(self.springs)} S", True, (220, 230, 240))
-            hud.blit(txt, (10, 10))
+            hud_w, hud_h = 320, 72
+            hud = pygame.Surface((hud_w, hud_h), pygame.SRCALPHA)
+            # glass panel
+            pygame.draw.rect(hud, (30, 36, 48, 170), hud.get_rect(), border_radius=10)
+            # inner light stroke
+            pygame.draw.rect(hud, (255, 255, 255, 40), hud.get_rect().inflate(-2, -2), width=1, border_radius=8)
+            # text
+            stat_txt = self.font.render(
+                f"{fps:5.1f} FPS  |  {len(self.particles)} P  {len(self.springs)} S",
+                True,
+                (220, 230, 240),
+            )
             mode_txt = self.font.render(f"Mode: {self.mode}", True, (150, 200, 255))
-            hud.blit(mode_txt, (10, 32))
-            self.screen.blit(hud, (10, 10))
+            hud.blit(stat_txt, (12, 10))
+            hud.blit(mode_txt, (12, 36))
+            self.screen.blit(hud, (12, 12))
             pygame.display.flip()
 
         pygame.quit()

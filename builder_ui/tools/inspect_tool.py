@@ -2,6 +2,7 @@
 
 import math
 import pygame
+from .. import theme
 
 from particle import Particle
 from variable_particle import VariableParticle
@@ -478,30 +479,34 @@ class InspectTool(Tool):
         if not super().draw_preview():
             return
         if self.particle:
-            # Mirror renderer coordinate and radius computation
+            # Accent glow + AA ring to match renderer selection
             c = self.app.renderer.world_to_screen(self.particle.pos)
             cx, cy = int(c.x), int(c.y)
             base_r = (self.particle.radius or 10)
             rr = max(1, int(base_r * self.app.renderer.zoom))
-            # Draw a slightly larger AA double ring to avoid perceived offset from rasterization
-            from builder_ui import theme
-            ring_color = theme.ACCENT
+            glow_r = rr + 10
+            glow = pygame.Surface((glow_r * 2 + 4, glow_r * 2 + 4), pygame.SRCALPHA)
+            pygame.draw.circle(glow, (*theme.ACCENT, 70), (glow_r + 2, glow_r + 2), glow_r)
+            self.sidebar.screen.blit(glow, (cx - glow_r - 2, cy - glow_r - 2))
             try:
                 import pygame.gfxdraw as gfx
-                gfx.aacircle(self.sidebar.screen, cx, cy, rr + 6, ring_color)
-                gfx.aacircle(self.sidebar.screen, cx, cy, rr + 7, ring_color)
+                gfx.aacircle(self.sidebar.screen, cx, cy, rr + 6, theme.ACCENT)
+                gfx.aacircle(self.sidebar.screen, cx, cy, rr + 7, theme.ACCENT)
             except Exception:
-                pygame.draw.circle(self.sidebar.screen, ring_color, (cx, cy), rr + 7, 2)
+                pygame.draw.circle(self.sidebar.screen, theme.ACCENT, (cx, cy), rr + 7, 2)
         elif self.spring:
             p1 = self.app.world_to_screen(self.spring.p1.pos)
             p2 = self.app.world_to_screen(self.spring.p2.pos)
-            pygame.draw.line(self.sidebar.screen, (255, 255, 0), p1, p2, 3)
+            pygame.draw.line(self.sidebar.screen, theme.ACCENT, p1, p2, 8)
+            pygame.draw.line(self.sidebar.screen, (255, 255, 255), p1, p2, 2)
         elif self.bend:
             p1 = self.app.world_to_screen(self.bend.p1.pos)
             p2 = self.app.world_to_screen(self.bend.p2.pos)
             p3 = self.app.world_to_screen(self.bend.p3.pos)
-            pygame.draw.line(self.sidebar.screen, (255, 255, 0), p1, p2, 3)
-            pygame.draw.line(self.sidebar.screen, (255, 255, 0), p2, p3, 3)
+            pygame.draw.line(self.sidebar.screen, theme.ACCENT, p1, p2, 8)
+            pygame.draw.line(self.sidebar.screen, (255, 255, 255), p1, p2, 2)
+            pygame.draw.line(self.sidebar.screen, theme.ACCENT, p2, p3, 8)
+            pygame.draw.line(self.sidebar.screen, (255, 255, 255), p2, p3, 2)
 
     # ---------------- event handling
     def handle_event(self, event, offset: int = 0):

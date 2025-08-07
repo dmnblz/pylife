@@ -2,6 +2,7 @@
 
 import math
 import pygame
+from .. import theme
 
 from ..fields import SliderField, ButtonField
 from .base import Tool
@@ -211,13 +212,13 @@ class RodTool(Tool):
             p1 = pts[i]
             p2 = pts[(i + 1) % len(pts)]
             pygame.draw.line(screen, color, p1, p2, 1)
-            pygame.draw.circle(
-                screen,
-                color,
-                (int(p1.x), int(p1.y)),
-                max(1, int(self.app.particle.radius * self.app.camera_zoom)),
-                1,
-            )
+            # accent ring at points
+            rr = max(1, int(self.app.particle.radius * self.app.camera_zoom))
+            try:
+                import pygame.gfxdraw as gfx
+                gfx.aacircle(screen, int(p1.x), int(p1.y), rr + 4, theme.ACCENT)
+            except Exception:
+                pygame.draw.circle(screen, theme.ACCENT, (int(p1.x), int(p1.y)), rr + 4, 1)
 
         if self.include_cytoskeleton:
             total_length = 2 * self.length + 2 * math.pi * self.radius
@@ -273,13 +274,14 @@ class RodTool(Tool):
                     pygame.draw.line(screen, color, self.app.world_to_screen(p), self.app.world_to_screen(sp), 1)
 
             for sp in skeleton_pts:
-                pygame.draw.circle(
-                    screen,
-                    color,
-                    (int(self.app.world_to_screen(sp).x), int(self.app.world_to_screen(sp).y)),
-                    max(1, int(self.app.particle.radius * self.app.camera_zoom)),
-                    1,
-                )
+                rr = max(1, int(self.app.particle.radius * self.app.camera_zoom))
+                try:
+                    import pygame.gfxdraw as gfx
+                    pt = self.app.world_to_screen(sp)
+                    gfx.aacircle(screen, int(pt.x), int(pt.y), rr + 4, theme.ACCENT)
+                except Exception:
+                    pt = self.app.world_to_screen(sp)
+                    pygame.draw.circle(screen, theme.ACCENT, (int(pt.x), int(pt.y)), rr + 4, 1)
 
     # ---------------- event handling
     def handle_event(self, event, offset: int = 0):
