@@ -102,13 +102,13 @@ graph TD
   - S Select
 - Other controls:
   - C color picker; Z/X mass −/+; V/B radius −/+; K/L stiffness −/+; N/M temperature −/+; P pause/resume
-  - Backspace/Delete Delete tool
+  - Backspace/Delete delete selection or switch to Delete tool
   - Sidebar: Save, Load, Undo buttons; mouse‑wheel scroll within sidebar
 
 ### Tools (sidebar)
 
 - Drag: Grab/release nearest particle.
-- Select: Drag a rectangle to highlight particles and springs.
+- Select: Drag a rectangle to highlight particles and springs; Backspace/Delete removes the selection.
 - Particle / VarPar: Place new particles; variable particles can toggle to a second drag value under a key (hold/toggle modes).
 - Spring / VarSpr: Connect nearest pairs; variable springs switch between base and alternate rest lengths under a key (hold/toggle modes).
 - Bend: Select 3 particles; angle can be manual or auto from current geometry.
