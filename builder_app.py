@@ -14,6 +14,7 @@ from bending_spring import BendingSpring
 from renderer import Renderer
 from builder_ui.sidebar import SidebarUI
 from builder_ui import theme
+from builder_ui.selection_menu import SelectionMenu
 from builder_ui.config import (
     ParticleParams,
     SpringParams,
@@ -53,6 +54,7 @@ class BuilderApp:
         self.selected_particles: list[Particle] = []
         self.selected_springs: list[Spring] = []
         self.selected_bends: list[BendingSpring] = []
+        self.selection_menu: SelectionMenu | None = None
         self.clipboard: dict[str, list] = {
             "particles": [],
             "springs": [],
@@ -400,6 +402,7 @@ class BuilderApp:
         self.selected_particles.clear()
         self.selected_springs.clear()
         self.selected_bends.clear()
+        self.selection_menu = None
 
     def delete_selection(self) -> None:
         """Delete all currently selected particles, springs and bends."""
@@ -1101,6 +1104,7 @@ class BuilderApp:
                 return
             self.selection_start = pygame.Vector2(event.pos)
             self.selection_rect = pygame.Rect(self.selection_start, (0, 0))
+            self.selection_menu = None
         elif event.type == pygame.MOUSEMOTION and self.selection_start:
             end = pygame.Vector2(event.pos)
             rect = pygame.Rect(self.selection_start, (end.x - self.selection_start.x, end.y - self.selection_start.y))
@@ -1136,6 +1140,14 @@ class BuilderApp:
                     self.selected_bends.append(b)
             self.selection_rect = None
             self.selection_start = None
+            total = len(self.selected_particles) + len(self.selected_springs) + len(self.selected_bends)
+            if total > 1:
+                self.selection_menu = SelectionMenu(
+                    self,
+                    self.selected_particles,
+                    self.selected_springs,
+                    self.selected_bends,
+                )
 
     def handle_drag_event(self, event: pygame.event.Event):
         """Handle interactions while in *drag* mode."""
@@ -1449,6 +1461,9 @@ class BuilderApp:
                         self.renderer.set_camera(self.camera_offset, self.camera_zoom)
                         continue
 
+                if self.selection_menu and self.selection_menu.handle_event(e):
+                    continue
+
                 if self.ui.handle_event(e):
                     continue
 
@@ -1625,6 +1640,8 @@ class BuilderApp:
             if self.selection_rect:
                 pygame.draw.rect(self.screen, theme.ACCENT, self.selection_rect, width=1)
             self.ui.draw()
+            if self.selection_menu:
+                self.selection_menu.draw(self.screen)
             # highlight first spring particle (accent)
             if self.spring_first is not None and self.mode in ("spring", "vspring"):
                 c = self.world_to_screen(self.spring_first.pos)

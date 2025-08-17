@@ -55,7 +55,7 @@ graph TD
 
 - Builder UI and persistence
   - `start_create.py`: `BuilderApp` main loop, camera, play area, history/undo, mode handlers, and integration of tools.
-  - `builder_ui/`: Sidebar, fields (sliders, color picker, key selector, buttons), and tools (particle, spring, variable variants, bend, circle, rod, arm, grid, environment, inspect, delete shortcuts).
+  - `builder_ui/`: Sidebar, fields (sliders, color picker, key selector, buttons), tools (particle, spring, variable variants, bend, circle, rod, arm, grid, environment, inspect, delete shortcuts), and a `SelectionMenu` popup for choosing an item from a multi-selection.
   - `builder_io.py`: JSON save/load helpers; `color_picker.py`, `file_dialog.py` use Tk in a subprocess.
 
 - Demos
@@ -112,7 +112,7 @@ Other controls:
 ### Tools (sidebar)
 
 - Drag: Grab/release nearest particle.
-- Select: Drag a rectangle to highlight particles, springs, bends and hook arms; Backspace/Delete removes the selection, Ctrl+C copies it and Ctrl+V pastes it.
+- Select: Drag a rectangle to highlight particles, springs, bends and hook arms; Backspace/Delete removes the selection, Ctrl+C copies it and Ctrl+V pastes it. When multiple items are highlighted, a SelectionMenu popup lets you choose one to inspect.
 - Particle / VarPar: Place new particles; variable particles can toggle to a second drag value under a key (hold/toggle modes).
 - Spring / VarSpr: Connect nearest pairs; variable springs switch between base and alternate rest lengths under a key (hold/toggle modes).
 - Bend: Select 3 particles; angle can be manual or auto from current geometry. A preview arc inside the bend shows orientation before creation, highlights on hover and remains clickable for inspection even when overlapped.
