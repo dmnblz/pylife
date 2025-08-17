@@ -152,18 +152,19 @@ class InspectTool(Tool):
             lines.append(f"P Drag: {obj.drag:.2f}")
             if isinstance(obj, VariableParticle):
                 lines.append(f"V Drag: {obj.alt_drag:.2f}")
-                lines.append(f"V Speed: {obj.speed:.0f}")
+                lines.append(f"V Speed: {obj.change_speed:.0f}")
                 key = pygame.key.name(obj.key) if obj.key else "-"
                 lines.append(f"V Key: {key}")
                 lines.append(f"Mode: {obj.mode}")
         elif isinstance(obj, Spring):
-            lines.append(f"S Rest: {obj.rest:.1f}")
-            lines.append(f"S Stiff: {obj.stiff:.1f}")
+            rest = obj.base_rest_length if isinstance(obj, VariableSpring) else obj.rest_length
+            lines.append(f"S Rest: {rest:.1f}")
+            lines.append(f"S Stiff: {obj.stiffness:.1f}")
             if obj.max_force is not None:
                 lines.append(f"S MaxF: {obj.max_force:.1f}")
             if isinstance(obj, VariableSpring):
-                lines.append(f"V Rest2: {obj.alt_rest:.1f}")
-                lines.append(f"V Speed: {obj.speed:.1f}")
+                lines.append(f"V Rest2: {obj.alt_rest_length:.1f}")
+                lines.append(f"V Speed: {obj.change_speed:.1f}")
                 key = pygame.key.name(obj.key) if obj.key else "-"
                 lines.append(f"V Key: {key}")
                 lines.append(f"Mode: {obj.mode}")
