@@ -17,6 +17,11 @@ class VariableParticle(Particle):
         The key must remain pressed for the alternate drag to apply.
     ``toggle``
         Pressing the key toggles between the base and alternate drags.
+
+    Parameters are identical to :class:`~particle.Particle` with the
+    addition of ``base_drag``, ``alt_drag`` and ``change_speed``. The
+    ``trail_length`` sets the maximum history stored when trails are
+    enabled.
     """
 
     def __init__(
@@ -32,6 +37,7 @@ class VariableParticle(Particle):
         mode: str = "hold",
         change_speed: float = 240.0,
         elasticity: float = 1.0,
+        trail_length: int = 40,
     ):
         super().__init__(
             position,
@@ -40,6 +46,7 @@ class VariableParticle(Particle):
             radius=radius,
             drag=base_drag,
             elasticity=elasticity,
+            trail_length=trail_length,
         )
         self.base_drag = base_drag
         self.alt_drag = alt_drag
