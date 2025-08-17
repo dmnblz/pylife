@@ -49,6 +49,17 @@ class ParticleTool(Tool):
             y,
             width,
         )
+        y += 40
+        self.elasticity_field = SliderField(
+            "Elastic",
+            0,
+            1,
+            self._get_elasticity,
+            self._set_elasticity,
+            x,
+            y,
+            width,
+        )
 
     # ---------------- drawing
     def draw_ui(self, offset: int = 0):
@@ -58,6 +69,7 @@ class ParticleTool(Tool):
         self.color_field.draw(self.sidebar.screen, offset)
         self.mass_field.draw(self.sidebar.screen, offset)
         self.radius_field.draw(self.sidebar.screen, offset)
+        self.elasticity_field.draw(self.sidebar.screen, offset)
 
     # ---------------- event handling
     def handle_event(self, event, offset: int = 0):
@@ -70,6 +82,8 @@ class ParticleTool(Tool):
             return True
         if self.radius_field.handle_event(event, offset):
             return True
+        if self.elasticity_field.handle_event(event, offset):
+            return True
         # left click on world area to place a particle at world position
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
@@ -79,6 +93,7 @@ class ParticleTool(Tool):
                     mass=self.sidebar.app.particle.mass,
                     color=self.sidebar.app.particle.color,
                     radius=self.sidebar.app.particle.radius,
+                    elasticity=self.sidebar.app.particle.elasticity,
                 )
                 self.sidebar.app.particles.append(p)
                 self.sidebar.app.push_undo(lambda p=p: self.sidebar.app.remove_entities([p]))
@@ -109,3 +124,11 @@ class ParticleTool(Tool):
     def _set_radius(self, value: float) -> None:
         """Set the default particle radius."""
         self.app.particle.radius = max(1, int(value))
+
+    def _get_elasticity(self) -> float:
+        """Return the default collision elasticity."""
+        return self.app.particle.elasticity
+
+    def _set_elasticity(self, value: float) -> None:
+        """Set the default collision elasticity."""
+        self.app.particle.elasticity = max(0.0, min(1.0, value))

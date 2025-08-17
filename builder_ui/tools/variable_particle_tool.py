@@ -48,6 +48,17 @@ class VariableParticleTool(Tool):
             width,
         )
         y += 40
+        self.elasticity_field = SliderField(
+            "Elastic",
+            0,
+            1,
+            self._get_elasticity,
+            self._set_elasticity,
+            x,
+            y,
+            width,
+        )
+        y += 40
         self.drag_field = SliderField(
             "Drag",
             1,
@@ -113,6 +124,12 @@ class VariableParticleTool(Tool):
     def _set_radius(self, value):
         self.app.particle.radius = max(1, int(value))
 
+    def _get_elasticity(self):
+        return self.app.particle.elasticity
+
+    def _set_elasticity(self, value):
+        self.app.particle.elasticity = max(0.0, min(1.0, value))
+
     # -------- drawing
     def draw_ui(self, offset: int = 0):
         if not super().draw_ui(offset):
@@ -120,6 +137,7 @@ class VariableParticleTool(Tool):
         self.color_field.draw(self.sidebar.screen, offset)
         self.mass_field.draw(self.sidebar.screen, offset)
         self.radius_field.draw(self.sidebar.screen, offset)
+        self.elasticity_field.draw(self.sidebar.screen, offset)
         self.drag_field.draw(self.sidebar.screen, offset)
         self.speed_field.draw(self.sidebar.screen, offset)
         self.key_field.draw(self.sidebar.screen, offset)
@@ -134,6 +152,8 @@ class VariableParticleTool(Tool):
         if self.mass_field.handle_event(event, offset):
             return True
         if self.radius_field.handle_event(event, offset):
+            return True
+        if self.elasticity_field.handle_event(event, offset):
             return True
         if self.drag_field.handle_event(event, offset):
             return True
@@ -154,6 +174,7 @@ class VariableParticleTool(Tool):
                     mass=app.particle.mass,
                     color=app.particle.color,
                     radius=app.particle.radius,
+                    elasticity=app.particle.elasticity,
                     base_drag=1.0,
                     alt_drag=app.vparticle.alt_drag,
                     key=app.vparticle.key,

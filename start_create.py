@@ -797,6 +797,7 @@ class BuilderApp:
                     "tag": p.tag,
                     "fixed": p.fixed,
                     "drag": p.drag,
+                    "elasticity": getattr(p, "elasticity", 1.0),
                     **(
                         {
                             "type": "variable",
@@ -865,6 +866,7 @@ class BuilderApp:
                     mass=pd.get("mass", 1.0),
                     color=tuple(pd["color"]) if pd.get("color") else None,
                     radius=pd.get("radius"),
+                    elasticity=pd.get("elasticity", 1.0),
                     base_drag=pd.get("base", 1.0),
                     alt_drag=pd.get("alt", 100.0),
                     key=pd.get("key"),
@@ -883,6 +885,7 @@ class BuilderApp:
                     radius=pd.get("radius"),
                     tag=pd.get("tag"),
                     drag=pd.get("drag", 1.0),
+                    elasticity=pd.get("elasticity", 1.0),
                 )
             p.prev_pos = pygame.Vector2(pd.get("prev", pd["pos"]))
             p.fixed = pd.get("fixed", False)

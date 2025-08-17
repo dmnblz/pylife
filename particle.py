@@ -20,9 +20,21 @@ class Particle:
     drag:
         Multiplier applied to the global damping coefficient. ``1``
         represents normal drag while higher values increase resistance.
+    elasticity:
+        Coefficient ``e`` in the range 0–1 determining how much the
+        particle bounces during collisions.
     """
 
-    def __init__(self, position, mass=1.0, color=None, radius=None, tag=None, drag=1.0):
+    def __init__(
+        self,
+        position,
+        mass: float = 1.0,
+        color=None,
+        radius=None,
+        tag=None,
+        drag: float = 1.0,
+        elasticity: float = 1.0,
+    ):
         self.pos = pygame.Vector2(position)
         self.prev_pos = self.pos.copy()
         self.acc = pygame.Vector2(0, 0)
@@ -32,6 +44,7 @@ class Particle:
         self.radius = radius
         self.tag = tag
         self.drag = drag
+        self.elasticity = elasticity
 
     def apply_force(self, force):
         if not self.fixed:
