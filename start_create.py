@@ -354,6 +354,21 @@ class BuilderApp:
         self.selected_particles.clear()
         self.selected_springs.clear()
 
+    def delete_selection(self) -> None:
+        """Delete all currently selected particles and springs."""
+        if not self.selected_particles and not self.selected_springs:
+            return
+        particles = list(self.selected_particles)
+        springs = list(self.selected_springs)
+        for s in self.springs:
+            if (s.p1 in particles or s.p2 in particles) and s not in springs:
+                springs.append(s)
+        self.remove_entities(particles, springs)
+        self.push_undo(
+            lambda parts=particles, sprs=springs: self._restore_entities(parts, sprs)
+        )
+        self.clear_selection()
+
     def remove_entities(
         self,
         particles: Iterable[Particle] = (),
@@ -454,6 +469,21 @@ class BuilderApp:
         if isinstance(s, VariableSpring):
             self.variable_springs.append(s)
             self.register_variable_spring(s)
+
+    def _restore_entities(
+        self, particles: list[Particle], springs: list[Spring]
+    ) -> None:
+        """Reinsert collections of particles and springs."""
+        self.particles.extend(particles)
+        self.springs.extend(springs)
+        for p in particles:
+            if isinstance(p, VariableParticle):
+                self.variable_particles.append(p)
+                self.register_variable_particle(p)
+        for s in springs:
+            if isinstance(s, VariableSpring):
+                self.variable_springs.append(s)
+                self.register_variable_spring(s)
 
     # ------------------------------------------------------------------ save/load
     def save_state_dialog(self):
@@ -1091,58 +1121,64 @@ class BuilderApp:
                     continue
 
                 elif e.type == pygame.KEYDOWN:
-                    tool_keys = {
-                        pygame.K_1: "drag",
-                        pygame.K_2: "particle",
-                        pygame.K_3: "spring",
-                        pygame.K_4: "bend",
-                        pygame.K_5: "circle",
-                        pygame.K_6: "rod",
-                        pygame.K_7: "arm",
-                        pygame.K_8: "inspect",
-                        pygame.K_9: "grid",
-                        pygame.K_0: "env",
-                        pygame.K_s: "select",
-                        pygame.K_BACKSPACE: "delete",
-                        pygame.K_DELETE: "delete",
-                    }
-                    mode = tool_keys.get(e.key)
-                    if mode:
-                        self.set_mode(mode)
-                    elif e.key == pygame.K_c:
-                        self.choose_color()
-                    elif e.key == pygame.K_z:
-                        self.adjust_mass(-0.1)
-                    elif e.key == pygame.K_x:
-                        self.adjust_mass(0.1)
-                    elif e.key == pygame.K_v:
-                        self.adjust_radius(-1)
-                    elif e.key == pygame.K_b:
-                        self.adjust_radius(1)
-                    elif e.key == pygame.K_k:
-                        self.adjust_stiffness(-10)
-                    elif e.key == pygame.K_l:
-                        self.adjust_stiffness(10)
-                    elif e.key == pygame.K_n:
-                        self.adjust_temperature(-10)
-                    elif e.key == pygame.K_m:
-                        self.adjust_temperature(10)
-                    elif e.key == pygame.K_p:
-                        self.toggle_pause()
-                    elif e.key == pygame.K_t:
-                        # toggle theme
-                        self.theme_name = "light" if theme.get_theme_name() == "dark" else "dark"
-                        theme.set_theme(self.theme_name)
+                    if e.key in (pygame.K_BACKSPACE, pygame.K_DELETE):
+                        if self.selected_particles or self.selected_springs:
+                            self.delete_selection()
+                        else:
+                            self.set_mode("delete")
                     else:
-                        arms = self.cycle_keys.get(e.key, [])
-                        for arm in arms:
-                            arm.cycle_held = True
-                        vsprings = self.vspring_keys.get(e.key, [])
-                        for s in vsprings:
-                            s.on_keydown()
-                        vparts = self.vparticle_keys.get(e.key, [])
-                        for p in vparts:
-                            p.on_keydown()
+                        tool_keys = {
+                            pygame.K_1: "drag",
+                            pygame.K_2: "particle",
+                            pygame.K_3: "spring",
+                            pygame.K_4: "bend",
+                            pygame.K_5: "circle",
+                            pygame.K_6: "rod",
+                            pygame.K_7: "arm",
+                            pygame.K_8: "inspect",
+                            pygame.K_9: "grid",
+                            pygame.K_0: "env",
+                            pygame.K_s: "select",
+                        }
+                        mode = tool_keys.get(e.key)
+                        if mode:
+                            self.set_mode(mode)
+                        elif e.key == pygame.K_c:
+                            self.choose_color()
+                        elif e.key == pygame.K_z:
+                            self.adjust_mass(-0.1)
+                        elif e.key == pygame.K_x:
+                            self.adjust_mass(0.1)
+                        elif e.key == pygame.K_v:
+                            self.adjust_radius(-1)
+                        elif e.key == pygame.K_b:
+                            self.adjust_radius(1)
+                        elif e.key == pygame.K_k:
+                            self.adjust_stiffness(-10)
+                        elif e.key == pygame.K_l:
+                            self.adjust_stiffness(10)
+                        elif e.key == pygame.K_n:
+                            self.adjust_temperature(-10)
+                        elif e.key == pygame.K_m:
+                            self.adjust_temperature(10)
+                        elif e.key == pygame.K_p:
+                            self.toggle_pause()
+                        elif e.key == pygame.K_t:
+                            # toggle theme
+                            self.theme_name = (
+                                "light" if theme.get_theme_name() == "dark" else "dark"
+                            )
+                            theme.set_theme(self.theme_name)
+                        else:
+                            arms = self.cycle_keys.get(e.key, [])
+                            for arm in arms:
+                                arm.cycle_held = True
+                            vsprings = self.vspring_keys.get(e.key, [])
+                            for s in vsprings:
+                                s.on_keydown()
+                            vparts = self.vparticle_keys.get(e.key, [])
+                            for p in vparts:
+                                p.on_keydown()
 
                 elif e.type == pygame.KEYUP:
                     arms = self.cycle_keys.get(e.key, [])
