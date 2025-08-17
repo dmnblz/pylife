@@ -180,6 +180,7 @@ class VariableParticleTool(Tool):
                     key=app.vparticle.key,
                     mode=app.vparticle.mode,
                     change_speed=app.vparticle.speed,
+                    trail_length=app.environment.trail_length,
                 )
                 app.particles.append(p)
                 app.variable_particles.append(p)

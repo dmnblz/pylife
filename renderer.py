@@ -15,6 +15,7 @@ class Renderer:
         # cache for expensive background composition
         self._bg_cache_size: tuple[int, int] | None = None
         self._bg_surface: pygame.Surface | None = None
+        self.trails_enabled: bool = False
 
     # ---------------- camera helpers -----------------------------------------
     def set_camera(self, offset: pygame.Vector2 | tuple[float, float], zoom: float) -> None:
@@ -28,6 +29,10 @@ class Renderer:
     def screen_to_world(self, v: pygame.Vector2 | tuple[float, float]) -> pygame.Vector2:
         p = pygame.Vector2(v)
         return p / self.zoom + self.offset
+
+    def set_trails_enabled(self, enabled: bool) -> None:
+        """Show or hide particle trails."""
+        self.trails_enabled = bool(enabled)
 
     def draw_background(self, play_area: pygame.Rect) -> None:
         """Draw a smooth vertical gradient background with a subtle vignette.
@@ -104,6 +109,20 @@ class Renderer:
             two connected segments.
         """
         screen_rect = self.screen.get_rect()
+
+        if self.trails_enabled:
+            trail_surf = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+            for p in particles:
+                trail = getattr(p, "trail", None)
+                if not trail or len(trail) < 2:
+                    continue
+                pts = [self.world_to_screen(v) for v in trail]
+                base = p.color if p.color else (0, 114, 255)
+                n = len(pts)
+                for i in range(1, n):
+                    alpha = int(255 * i / (n - 1))
+                    pygame.draw.line(trail_surf, (*base, alpha), pts[i - 1], pts[i], 2)
+            self.screen.blit(trail_surf, (0, 0))
 
         # draw springs with simple culling
         for s in springs:

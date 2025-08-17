@@ -94,6 +94,7 @@ class ParticleTool(Tool):
                     color=self.sidebar.app.particle.color,
                     radius=self.sidebar.app.particle.radius,
                     elasticity=self.sidebar.app.particle.elasticity,
+                    trail_length=self.sidebar.app.environment.trail_length,
                 )
                 self.sidebar.app.particles.append(p)
                 self.sidebar.app.push_undo(lambda p=p: self.sidebar.app.remove_entities([p]))

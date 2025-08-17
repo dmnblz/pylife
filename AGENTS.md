@@ -90,6 +90,7 @@ graph TD
 - World/screen transforms live in `renderer.py` with `set_camera`, `world_to_screen`, `screen_to_world`.
 - The builder zooms with mouse wheel when the cursor is over the world area, anchoring the zoom at the mouse position.
 - Play area is rendered as a rectangle; simulation boundary clamping uses either the play area or the screen size.
+- Renderer can optionally draw fading particle trails when enabled via the environment tool.
 
 ---
 
@@ -119,7 +120,7 @@ Other controls:
 - Arm: Attach `HookArm` to a base particle; control segments, spacing, mass, radius, stiffness, cycle speed, colors, adhesion factor, cycle key.
 - Inspect: Click an existing particle, spring, or bend to edit properties in place; convert between normal/variable spring/particle types; toggle spring visibility; set `max_force` (0 means unlimited/None).
 - Grid: Toggle overlay and spacing; new placements snap to intersections. `snap_to_grid` leaves aligned coords unchanged.
-- Env: Adjust gravity, repulsion radius/strength, damping, temperature, toggle collisions.
+- Env: Adjust gravity, repulsion radius/strength, damping, temperature, toggle collisions, and particle trails.
 
 ### Undo and deletion
 
@@ -143,7 +144,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 - `bending`: list of `{ p1, p2, p3, angle, stiff }`
 - `arms`: list of
   - `particles` (indices), `springs` (indices into global springs), `rest_lengths`, `max_lengths`, `cycle_speed`, `color`, `high_color`, `adhesion` (mass factor), `orig_mass`, `adhesion_drag`, `orig_drag`, `cycle_key`
-- `physics`: `{ gravity: [gx, gy], repulsion_radius, repulsion_strength, temperature, damping_coeff, collisions, collision_elasticity, collision_bucket_size }`
+- `physics`: `{ gravity: [gx, gy], repulsion_radius, repulsion_strength, temperature, damping_coeff, collisions, collision_elasticity, collision_bucket_size, trails_enabled, trail_length }`
 
 ### Example
 

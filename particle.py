@@ -1,5 +1,7 @@
 """Verlet-integrated point mass with per-particle drag."""
 
+from collections import deque
+
 import pygame
 
 class Particle:
@@ -23,6 +25,9 @@ class Particle:
     elasticity:
         Coefficient ``e`` in the range 0–1 determining how much the
         particle bounces during collisions.
+    trail_length:
+        Maximum number of past positions stored in ``trail``. The trail is
+        only populated when the physics engine enables trail recording.
     """
 
     def __init__(
@@ -34,6 +39,7 @@ class Particle:
         tag=None,
         drag: float = 1.0,
         elasticity: float = 1.0,
+        trail_length: int = 40,
     ):
         self.pos = pygame.Vector2(position)
         self.prev_pos = self.pos.copy()
@@ -45,6 +51,7 @@ class Particle:
         self.tag = tag
         self.drag = drag
         self.elasticity = elasticity
+        self.trail: deque[pygame.Vector2] = deque(maxlen=max(1, int(trail_length)))
 
     def apply_force(self, force):
         if not self.fixed:

@@ -113,6 +113,10 @@ class EnvironmentParams:
         Toggle for particle-particle collision handling.
     collision_bucket_size:
         Spatial-hash cell size for collisions; ``0`` chooses an automatic value.
+    trails_enabled:
+        When ``True`` particles record their positions for rendering.
+    trail_length:
+        Maximum number of positions kept in each particle's trail.
     """
 
     gravity: pygame.Vector2 = field(default_factory=lambda: pygame.Vector2(0, 0))
@@ -122,6 +126,8 @@ class EnvironmentParams:
     damping: float = 1.0
     collisions: bool = True
     collision_bucket_size: float = 0.0
+    trails_enabled: bool = False
+    trail_length: int = 40
 
 
 __all__ = [
