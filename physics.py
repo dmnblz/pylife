@@ -76,6 +76,7 @@ class PhysicsEngine:
             if collision_bucket_size and collision_bucket_size > 0
             else None
         )
+        self.trails_enabled: bool = False
         # Updated dynamically by the app when the window resizes
         self._screen_size: tuple[int, int] | None = None
         # Optional world-space playable area used for boundary proximity
@@ -238,6 +239,9 @@ class PhysicsEngine:
                 friction_coeff = 0.7  # adjust as needed
                 v *= friction_coeff
                 p.prev_pos = p.pos - v
+        if self.trails_enabled:
+            for p in self.particles:
+                p.trail.append(p.pos.copy())
 
     def configure_neighbor_search(self, *, enabled: bool = True, rebuild_interval_steps: int = 1) -> None:
         """Enable/disable spatial-hash neighbor search for repulsion and set rebuild cadence.

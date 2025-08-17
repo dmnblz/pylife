@@ -2,6 +2,7 @@
 
 import pygame
 import math
+from collections import deque
 from typing import Callable, Iterable
 
 from particle import Particle
@@ -88,6 +89,8 @@ class BuilderApp:
         # Use a fixed timestep with substeps for stability across variable framerates
         self.physics.set_fixed_timestep(1.0 / FPS, substeps=2)
         self.renderer = Renderer(self.screen)
+        self.physics.trails_enabled = self.environment.trails_enabled
+        self.renderer.set_trails_enabled(self.environment.trails_enabled)
         self.ui = SidebarUI(self.screen, self)
         # camera / play area
         self.play_area = pygame.Rect(0, 0, SCREEN_SIZE[0], SCREEN_SIZE[1])
@@ -492,6 +495,7 @@ class BuilderApp:
                     key=pdata["key"],
                     mode=pdata["mode"],
                     change_speed=pdata["change_speed"],
+                    trail_length=self.environment.trail_length,
                 )
                 p.active = pdata["active"]
                 p.drag = pdata["drag"]
@@ -503,6 +507,7 @@ class BuilderApp:
                     radius=pdata["radius"],
                     tag=pdata["tag"],
                     drag=pdata["drag"],
+                    trail_length=self.environment.trail_length,
                 )
             p.fixed = pdata["fixed"]
             new_particles.append(p)
@@ -853,6 +858,8 @@ class BuilderApp:
                 "collisions": self.physics.collisions_enabled,
                 "collision_elasticity": self.physics.collision_elasticity,
                 "collision_bucket_size": self.physics.collision_bucket_size or 0,
+                "trails_enabled": self.environment.trails_enabled,
+                "trail_length": self.environment.trail_length,
             },
         }
 
@@ -874,6 +881,7 @@ class BuilderApp:
                     key=pd.get("key"),
                     mode=pd.get("mode", "hold"),
                     change_speed=pd.get("speed", 240.0),
+                    trail_length=self.environment.trail_length,
                 )
                 p.active = pd.get("active", False)
                 p.drag = pd.get("curr", p.base_drag)
@@ -888,6 +896,7 @@ class BuilderApp:
                     tag=pd.get("tag"),
                     drag=pd.get("drag", 1.0),
                     elasticity=pd.get("elasticity", 1.0),
+                    trail_length=self.environment.trail_length,
                 )
             p.prev_pos = pygame.Vector2(pd.get("prev", pd["pos"]))
             p.fixed = pd.get("fixed", False)
@@ -980,6 +989,12 @@ class BuilderApp:
         self.physics.collision_elasticity = phys.get("collision_elasticity", 1.0)
         self.physics.collision_bucket_size = phys.get("collision_bucket_size", 0) or None
         self.environment.collision_bucket_size = self.physics.collision_bucket_size or 0
+        self.physics.trails_enabled = phys.get("trails_enabled", False)
+        self.environment.trails_enabled = self.physics.trails_enabled
+        self.environment.trail_length = int(phys.get("trail_length", self.environment.trail_length))
+        self.renderer.set_trails_enabled(self.environment.trails_enabled)
+        for p in self.particles:
+            p.trail = deque(p.trail, maxlen=self.environment.trail_length)
 
         # refresh physics engine references so loaded objects are simulated
         self.physics.particles = self.particles
@@ -1009,6 +1024,7 @@ class BuilderApp:
                 mass=self.particle.mass,
                 color=self.particle.color,
                 radius=self.particle.radius,
+                trail_length=self.environment.trail_length,
             )
             particles.append(p)
         for i in range(segments):
@@ -1104,6 +1120,7 @@ class BuilderApp:
                 mass=self.particle.mass,
                 color=self.particle.color,
                 radius=self.particle.radius,
+                trail_length=self.environment.trail_length,
             )
             self.particles.append(p)
             self.push_undo(lambda p=p: self.remove_entities([p]))
@@ -1123,6 +1140,7 @@ class BuilderApp:
                 key=self.vparticle.key,
                 mode=self.vparticle.mode,
                 change_speed=self.vparticle.speed,
+                trail_length=self.environment.trail_length,
             )
             self.particles.append(p)
             self.variable_particles.append(p)

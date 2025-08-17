@@ -1,6 +1,7 @@
 """Tool exposing global simulation options such as gravity and damping."""
 
 import pygame
+from collections import deque
 
 from ..fields import SliderField
 from .base import Tool
@@ -94,6 +95,28 @@ class EnvironmentTool(Tool):
             y,
             width,
         )
+        y += 40
+        self.trail_toggle_field = SliderField(
+            "Trail",
+            0,
+            1,
+            lambda: 1 if self.app.environment.trails_enabled else 0,
+            self._set_trails_enabled,
+            x,
+            y,
+            width,
+        )
+        y += 40
+        self.trail_len_field = SliderField(
+            "TrailLen",
+            1,
+            200,
+            lambda: self.app.environment.trail_length,
+            self._set_trail_length,
+            x,
+            y,
+            width,
+        )
 
     # ---------------- value setters
     def _set_gravity_x(self, value: float):
@@ -136,6 +159,23 @@ class EnvironmentTool(Tool):
         self.app.environment.collisions = enabled
         self.app.physics.collisions_enabled = enabled
 
+    def _set_trails_enabled(self, value: float) -> None:
+        """Toggle recording and rendering of particle trails."""
+        enabled = value >= 0.5
+        self.app.environment.trails_enabled = enabled
+        self.app.physics.trails_enabled = enabled
+        self.app.renderer.set_trails_enabled(enabled)
+        if not enabled:
+            for p in self.app.particles:
+                p.trail.clear()
+
+    def _set_trail_length(self, value: float) -> None:
+        """Adjust the maximum stored points per particle trail."""
+        length = max(1, int(value))
+        self.app.environment.trail_length = length
+        for p in self.app.particles:
+            p.trail = deque(p.trail, maxlen=length)
+
     # ---------------- drawing
     def draw_ui(self, offset: int = 0):
         """Render sliders for environment parameters."""
@@ -148,6 +188,8 @@ class EnvironmentTool(Tool):
         self.damp_field.draw(self.sidebar.screen, offset)
         self.temp_field.draw(self.sidebar.screen, offset)
         self.coll_field.draw(self.sidebar.screen, offset)
+        self.trail_toggle_field.draw(self.sidebar.screen, offset)
+        self.trail_len_field.draw(self.sidebar.screen, offset)
 
     # ---------------- event handling
     def handle_event(self, event, offset: int = 0):
@@ -167,5 +209,9 @@ class EnvironmentTool(Tool):
         if self.temp_field.handle_event(event, offset):
             return True
         if self.coll_field.handle_event(event, offset):
+            return True
+        if self.trail_toggle_field.handle_event(event, offset):
+            return True
+        if self.trail_len_field.handle_event(event, offset):
             return True
         return False
