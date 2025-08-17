@@ -132,6 +132,9 @@ class Renderer:
                 continue
             # draw single line for consistent perceived thickness
             pygame.draw.line(self.screen, color, p1, p2, width)
+            if getattr(s, "selected", False):
+                pygame.draw.line(self.screen, theme.ACCENT, p1, p2, 8)
+                pygame.draw.line(self.screen, (255, 255, 255), p1, p2, 2)
 
         # draw bending springs if provided
         if bending_springs:

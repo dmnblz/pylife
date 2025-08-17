@@ -47,6 +47,10 @@ class BuilderApp:
         self.vspring_keys: dict[int, list[VariableSpring]] = {}
         self.vparticle_keys: dict[int, list[VariableParticle]] = {}
         self.selected = None
+        self.selection_start: pygame.Vector2 | None = None
+        self.selection_rect: pygame.Rect | None = None
+        self.selected_particles: list[Particle] = []
+        self.selected_springs: list[Spring] = []
         self.spring_first = None
         self.paused = False
 
@@ -95,6 +99,7 @@ class BuilderApp:
         # initialise undo/history and mode handlers
         self.history: list[callable] = []
         self.mode_handlers: dict[str, Callable[[pygame.event.Event], None]] = {
+            "select": self.handle_select_event,
             "drag": self.handle_drag_event,
             "particle": self.handle_particle_event,
             "vparticle": self.handle_variable_particle_event,
@@ -337,6 +342,17 @@ class BuilderApp:
         """Undo the most recent change if any exist."""
         if self.history:
             self.history.pop()()
+
+    def clear_selection(self) -> None:
+        """Remove selection flags from all currently selected objects."""
+        for p in self.selected_particles:
+            if hasattr(p, "selected"):
+                delattr(p, "selected")
+        for s in self.selected_springs:
+            if hasattr(s, "selected"):
+                delattr(s, "selected")
+        self.selected_particles.clear()
+        self.selected_springs.clear()
 
     def remove_entities(
         self,
@@ -722,6 +738,41 @@ class BuilderApp:
         )
 
     # ------------------------------------------------------------------ mode handlers
+    def handle_select_event(self, event: pygame.event.Event):
+        """Handle rectangle selection of particles and springs."""
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if event.pos[0] >= self.screen.get_width() - self.ui.visible_width():
+                return
+            self.selection_start = pygame.Vector2(event.pos)
+            self.selection_rect = pygame.Rect(self.selection_start, (0, 0))
+        elif event.type == pygame.MOUSEMOTION and self.selection_start:
+            end = pygame.Vector2(event.pos)
+            rect = pygame.Rect(self.selection_start, (end.x - self.selection_start.x, end.y - self.selection_start.y))
+            rect.normalize()
+            self.selection_rect = rect
+        elif (
+            event.type == pygame.MOUSEBUTTONUP
+            and event.button == 1
+            and self.selection_rect is not None
+        ):
+            start = self.screen_to_world(self.selection_rect.topleft)
+            end = self.screen_to_world(self.selection_rect.bottomright)
+            world_rect = pygame.Rect(start, (end.x - start.x, end.y - start.y))
+            world_rect.normalize()
+            self.clear_selection()
+            for p in self.particles:
+                if world_rect.collidepoint(p.pos.x, p.pos.y):
+                    p.selected = True
+                    self.selected_particles.append(p)
+            for s in self.springs:
+                if world_rect.collidepoint(s.p1.pos.x, s.p1.pos.y) and world_rect.collidepoint(
+                    s.p2.pos.x, s.p2.pos.y
+                ):
+                    s.selected = True
+                    self.selected_springs.append(s)
+            self.selection_rect = None
+            self.selection_start = None
+
     def handle_drag_event(self, event: pygame.event.Event):
         """Handle interactions while in *drag* mode."""
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -1051,6 +1102,7 @@ class BuilderApp:
                         pygame.K_8: "inspect",
                         pygame.K_9: "grid",
                         pygame.K_0: "env",
+                        pygame.K_s: "select",
                         pygame.K_BACKSPACE: "delete",
                         pygame.K_DELETE: "delete",
                     }
@@ -1196,6 +1248,8 @@ class BuilderApp:
                 hover_spring=self.hover_spring,
                 hover_bend=self.hover_bend,
             )
+            if self.selection_rect:
+                pygame.draw.rect(self.screen, theme.ACCENT, self.selection_rect, width=1)
             self.ui.draw()
             # highlight first spring particle (accent)
             if self.spring_first is not None and self.mode in ("spring", "vspring"):
