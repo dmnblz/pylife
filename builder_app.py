@@ -376,6 +376,34 @@ class BuilderApp:
         elif kind == "bend":
             self.hover_bend = obj  # type: ignore[assignment]
 
+    def _draw_hover_tooltip(self, obj) -> None:
+        """Render a small property preview beside the mouse cursor."""
+        lines = self.ui.inspect_tool.get_hover_lines(obj)
+        if not lines:
+            return
+        padding = 6
+        line_h = self.font.get_linesize()
+        width = max(self.font.size(t)[0] for t in lines) + padding * 2
+        height = line_h * len(lines) + padding * 2
+        mx, my = pygame.mouse.get_pos()
+        x = mx + 12
+        y = my + 12
+        sw, sh = self.screen.get_size()
+        sidebar_w = self.ui.visible_width()
+        max_x = sw - sidebar_w - width - 5
+        if x > max_x:
+            x = max(mx - width - 12, 5)
+        if y + height > sh - 5:
+            y = sh - height - 5
+        rect = pygame.Rect(x, y, width, height)
+        panel = pygame.Surface(rect.size, pygame.SRCALPHA)
+        pygame.draw.rect(panel, (30, 36, 48, 200), panel.get_rect(), border_radius=8)
+        pygame.draw.rect(panel, (255, 255, 255, 40), panel.get_rect().inflate(-2, -2), width=1, border_radius=6)
+        for i, line in enumerate(lines):
+            txt = self.font.render(line, True, (220, 230, 240))
+            panel.blit(txt, (padding, padding + i * line_h))
+        self.screen.blit(panel, rect)
+
     # ------------------------------------------------------------------ undo support
     def push_undo(self, action: Callable[[], None]):
         """Record a callable capable of undoing the last change."""
@@ -1624,6 +1652,10 @@ class BuilderApp:
             self.draw_paste_preview()
             if self.selection_rect:
                 pygame.draw.rect(self.screen, theme.ACCENT, self.selection_rect, width=1)
+            if self.mode == "inspect":
+                obj = self.hover_particle or self.hover_spring or self.hover_bend
+                if obj:
+                    self._draw_hover_tooltip(obj)
             self.ui.draw()
             # highlight first spring particle (accent)
             if self.spring_first is not None and self.mode in ("spring", "vspring"):
