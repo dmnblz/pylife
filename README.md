@@ -13,8 +13,8 @@ Number keys **1–0** switch between the first ten sidebar tools in order and ea
   * `bending_spring.py` – maintains an angle between three particles.
   * `physics.py` – contains ``PhysicsEngine`` which integrates particles each
     frame.  The engine applies gravity, spring forces, short range repulsion,
-    optional collision resolution with per-particle restitution, viscous drag scaled by each
-    particle's ``drag`` multiplier and Brownian noise.
+    optional collision resolution with per-particle restitution using a spatial hash with a separate cell size,
+    viscous drag scaled by each particle's ``drag`` multiplier and Brownian noise.
   * `renderer.py` – draws particles, springs and bending springs to the pygame window.
   * `structures.py` – helper functions to build shapes like circular walls or rods.
   * `builder_ui/` and `color_picker.py` – the sidebar widgets and the cross‑platform colour selection utility. Tools in this

@@ -46,7 +46,7 @@ graph TD
   - `particle.py`: Verlet‑integrated point mass with per‑particle drag.
   - `spring.py`: Linear springs with Hooke’s law, optional break force, color coded by stretch/compression.
   - `bending_spring.py`: Angular constraint maintaining an angle p1–p2–p3.
-  - `physics.py`: `PhysicsEngine` orchestrating gravity, springs, bends, short‑range repulsion, viscous drag scaled by per‑particle drag, Brownian noise, wall proximity friction, and integration.
+  - `physics.py`: `PhysicsEngine` orchestrating gravity, springs, bends, short‑range repulsion, viscous drag scaled by per‑particle drag, Brownian noise, wall proximity friction, and integration. Collisions use a spatial hash with a separate configurable cell size.
   - `renderer.py`: World/screen transforms, camera zoom, drawing springs, bends (dashed), particles (with red outline for high‑drag).
 
 - Structures and helpers
@@ -141,7 +141,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 - `bending`: list of `{ p1, p2, p3, angle, stiff }`
 - `arms`: list of
   - `particles` (indices), `springs` (indices into global springs), `rest_lengths`, `max_lengths`, `cycle_speed`, `color`, `high_color`, `adhesion` (mass factor), `orig_mass`, `adhesion_drag`, `orig_drag`, `cycle_key`
-- `physics`: `{ gravity: [gx, gy], repulsion_radius, repulsion_strength, temperature, damping_coeff }`
+- `physics`: `{ gravity: [gx, gy], repulsion_radius, repulsion_strength, temperature, damping_coeff, collisions, collision_elasticity, collision_bucket_size }`
 
 ### Example
 
@@ -156,7 +156,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
   ],
   "bending": [],
   "arms": [],
-  "physics": {"gravity": [0, 0], "repulsion_radius": 30, "repulsion_strength": 1000, "temperature": 0, "damping_coeff": 1}
+  "physics": {"gravity": [0, 0], "repulsion_radius": 30, "repulsion_strength": 1000, "temperature": 0, "damping_coeff": 1, "collisions": true, "collision_elasticity": 1.0, "collision_bucket_size": 0}
 }
 ```
 

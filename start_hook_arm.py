@@ -50,6 +50,7 @@ class HookArmApp:
             self.particles.extend(arm.particles)
             self.springs.extend(arm.springs)
 
+        max_r = max((p.radius for p in self.particles), default=0)
         self.physics = PhysicsEngine(
             self.particles,
             self.springs,
@@ -58,6 +59,7 @@ class HookArmApp:
             repulsion_strength=1000,
             temperature=0,
             damping_coeff=1,
+            collision_bucket_size=max_r * 2,
         )
         # Fixed timestep keeps arms stable at variable frame times
         self.physics.set_fixed_timestep(1.0 / FPS, substeps=2)

@@ -163,7 +163,7 @@ Loading rebuilds references and re‑registers variable elements and key binding
 - `BendingSpring(p1, p2, p3, rest_angle_rad, stiffness)`
 - `VariableSpring(..., alt_rest_length, key=None, mode='hold'|'toggle', change_speed=..., ...)`
 - `VariableParticle(..., base_drag=..., alt_drag=..., key=None, mode='hold'|'toggle', change_speed=...)`
-- `PhysicsEngine(particles, springs, bending_springs=None, gravity=(0,0), repulsion_radius=..., repulsion_strength=..., temperature=..., damping_coeff=...)`
+- `PhysicsEngine(particles, springs, bending_springs=None, gravity=(0,0), repulsion_radius=..., repulsion_strength=..., temperature=..., damping_coeff=..., collision_bucket_size=...)`
   - `set_screen_size(w, h)`, `set_play_area(pygame.Rect)`, `update(dt)`
 
 ---
@@ -193,7 +193,16 @@ for i in range(segments):
     p1, p2 = particles[i], particles[(i+1)%segments]
     springs.append(Spring(p1, p2, (p2.pos - p1.pos).length(), stiffness=k))
 
-engine = PhysicsEngine(particles, springs, repulsion_radius=25, repulsion_strength=800, temperature=200, damping_coeff=1.0)
+max_r = max((p.radius for p in particles), default=0)
+engine = PhysicsEngine(
+    particles,
+    springs,
+    repulsion_radius=25,
+    repulsion_strength=800,
+    temperature=200,
+    damping_coeff=1.0,
+    collision_bucket_size=max_r * 2,
+)
 engine.set_screen_size(*screen.get_size())
 renderer = Renderer(screen)
 
