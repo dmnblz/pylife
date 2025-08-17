@@ -25,7 +25,7 @@ from structures import create_rod as structure_create_rod
 from hook_arm import HookArm
 
 SCREEN_SIZE = (1300, 900)
-FPS = 120
+FPS = 240
 
 
 class BuilderApp:
