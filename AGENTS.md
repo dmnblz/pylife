@@ -78,7 +78,7 @@ graph TD
 ### Bending springs
 
 - Maintain a rest angle at the middle particle; apply torque‑like corrective forces around the vertex.
-- Renderer draws a small arc between the two segments showing bend direction; the arc highlights on hover and is clickable for selection.
+- Renderer draws a small arc inside the bend between the two segments showing direction; the arc highlights on hover and is clickable for selection.
 
 ### PhysicsEngine.update(dt)
 
@@ -115,7 +115,7 @@ Other controls:
 - Select: Drag a rectangle to highlight particles, springs, bends and hook arms; Backspace/Delete removes the selection, Ctrl+C copies it and Ctrl+V pastes it.
 - Particle / VarPar: Place new particles; variable particles can toggle to a second drag value under a key (hold/toggle modes).
 - Spring / VarSpr: Connect nearest pairs; variable springs switch between base and alternate rest lengths under a key (hold/toggle modes).
-- Bend: Select 3 particles; angle can be manual or auto from current geometry. A preview arc shows orientation before creation, highlights on hover and remains clickable for inspection even when overlapped.
+- Bend: Select 3 particles; angle can be manual or auto from current geometry. A preview arc inside the bend shows orientation before creation, highlights on hover and remains clickable for inspection even when overlapped.
 - Circle: Preview ring with segments, stiffness, optional bend springs (with separate stiffness).
 - Rod: Preview capsule with segments; options for cytoskeleton, internal skeleton, and optional bend springs.
 - Arm: Attach `HookArm` to a base particle; control segments, spacing, mass, radius, stiffness, cycle speed, colors, adhesion factor, cycle key.

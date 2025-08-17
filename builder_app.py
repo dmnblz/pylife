@@ -270,20 +270,13 @@ class BuilderApp:
         dist = mv.length()
         if dist == 0:
             return float("inf")
-        ang1 = math.atan2(v1.y, v1.x)
-        ang2 = math.atan2(v2.y, v2.x)
-        if v1.cross(v2) < 0:
-            ang1, ang2 = ang2, ang1
-        ang_m = math.atan2(mv.y, mv.x)
-        a1 = (ang1 + math.tau) % math.tau
-        a2 = (ang2 + math.tau) % math.tau
-        am = (ang_m + math.tau) % math.tau
-        if a1 <= a2:
-            in_arc = a1 <= am <= a2
+        angle = math.atan2(v1.cross(v2), v1.dot(v2))
+        if angle >= 0:
+            if v1.cross(mv) < 0 or mv.cross(v2) < 0:
+                return float("inf")
         else:
-            in_arc = am >= a1 or am <= a2
-        if not in_arc:
-            return float("inf")
+            if v1.cross(mv) > 0 or mv.cross(v2) > 0:
+                return float("inf")
         return abs(dist - radius)
 
     def _screen_bend_distance(self, bs: BendingSpring, mouse_screen: tuple[int, int]) -> float:
