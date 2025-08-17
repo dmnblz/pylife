@@ -67,7 +67,7 @@ graph TD
 
 ### Particles
 
-- Verlet integration with state: `pos`, `prev_pos`, `acc`, `mass`, `fixed`, `color`, `radius`, `tag`, `drag`.
+- Verlet integration with state: `pos`, `prev_pos`, `acc`, `mass`, `fixed`, `color`, `radius`, `tag`, `drag`, `elasticity`.
 - High drag (drag > 1) simulates adhesion; rendered with a red outline.
 
 ### Springs
@@ -81,7 +81,7 @@ graph TD
 
 ### PhysicsEngine.update(dt)
 
-- Applies: gravity; spring forces; bending forces; O(n^2) short‑range repulsion; radius‑based collision resolution with optional restitution; viscous drag scaled by per‑particle `drag`; Brownian random force; Verlet integration; increased friction near boundaries based on either window size or a configured play area.
+- Applies: gravity; spring forces; bending forces; O(n^2) short‑range repulsion; radius‑based collision resolution with per-particle elasticity and optional restitution; viscous drag scaled by per‑particle `drag`; Brownian random force; Verlet integration; increased friction near boundaries based on either window size or a configured play area.
 
 ---
 
@@ -133,7 +133,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 
 - `particles`: list of
   - `pos`, `prev`: [x, y]
-  - `mass`, `radius`, `color` (RGB or null), `tag`, `fixed`, `drag`
+  - `mass`, `radius`, `color` (RGB or null), `tag`, `fixed`, `drag`, `elasticity`
   - variable particle extras (when `type == "variable"`): `base`, `alt`, `speed`, `key`, `mode` ("hold"|"toggle"), `active`, `curr`
 - `springs`: list of
   - `p1`, `p2` (indices into particles), `rest`, `stiff`, `max`, `invis`
@@ -148,8 +148,8 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 ```json
 {
   "particles": [
-    {"pos": [100, 200], "prev": [100, 200], "mass": 1.0, "radius": 10, "color": [255, 0, 0], "tag": null, "fixed": false, "drag": 1.0},
-    {"pos": [160, 200], "prev": [160, 200], "mass": 1.0, "radius": 10, "color": [255, 0, 0], "tag": null, "fixed": false, "drag": 1.0}
+    {"pos": [100, 200], "prev": [100, 200], "mass": 1.0, "radius": 10, "color": [255, 0, 0], "tag": null, "fixed": false, "drag": 1.0, "elasticity": 1.0},
+    {"pos": [160, 200], "prev": [160, 200], "mass": 1.0, "radius": 10, "color": [255, 0, 0], "tag": null, "fixed": false, "drag": 1.0, "elasticity": 1.0}
   ],
   "springs": [
     {"p1": 0, "p2": 1, "rest": 60.0, "stiff": 200.0, "max": null, "invis": false}

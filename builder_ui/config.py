@@ -24,11 +24,14 @@ class ParticleParams:
         Rendering and collision radius for new particles.
     color:
         RGB colour tuple used when spawning particles.
+    elasticity:
+        Collision restitution factor for new particles (0–1).
     """
 
     mass: float = 1.0
     radius: int = 10
     color: tuple[int, int, int] = (255, 0, 0)
+    elasticity: float = 1.0
 
 
 @dataclass

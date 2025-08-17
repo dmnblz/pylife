@@ -41,6 +41,10 @@ class InspectTool(Tool):
             "P Radius", 1, 50, self._get_radius, self._set_radius, x, y, width
         )
         y += 40
+        self.elastic_field = SliderField(
+            "P Elast", 0, 1, self._get_elasticity, self._set_elasticity, x, y, width
+        )
+        y += 40
         self.drag_field = SliderField(
             "P Drag", 1, 500, self._get_drag, self._set_drag, x, y, width
         )
@@ -162,6 +166,15 @@ class InspectTool(Tool):
         if self.particle:
             self.particle.radius = max(1, int(value))
 
+    def _get_elasticity(self) -> float:
+        """Return collision elasticity for the selected particle."""
+        return self.particle.elasticity if self.particle else 0
+
+    def _set_elasticity(self, value: float) -> None:
+        """Set collision elasticity for the selected particle."""
+        if self.particle:
+            self.particle.elasticity = max(0.0, min(1.0, value))
+
     def _get_drag(self) -> float:
         """Return the base drag for the selected particle."""
         if isinstance(self.particle, VariableParticle):
@@ -251,6 +264,9 @@ class InspectTool(Tool):
         y += 40
         self.radius_field.slider_rect.y = y + 18
         self.radius_field.box_rect.y = y + 10
+        y += 40
+        self.elastic_field.slider_rect.y = y + 18
+        self.elastic_field.box_rect.y = y + 10
         y += 40
         self.drag_field.slider_rect.y = y + 18
         self.drag_field.box_rect.y = y + 10
@@ -451,6 +467,7 @@ class InspectTool(Tool):
             self.color_field.draw(self.sidebar.screen, offset)
             self.mass_field.draw(self.sidebar.screen, offset)
             self.radius_field.draw(self.sidebar.screen, offset)
+            self.elastic_field.draw(self.sidebar.screen, offset)
             self.drag_field.draw(self.sidebar.screen, offset)
             if isinstance(self.particle, VariableParticle):
                 self.alt_drag_field.draw(self.sidebar.screen, offset)
@@ -520,6 +537,8 @@ class InspectTool(Tool):
             if self.mass_field.handle_event(event, offset):
                 return True
             if self.radius_field.handle_event(event, offset):
+                return True
+            if self.elastic_field.handle_event(event, offset):
                 return True
             if self.drag_field.handle_event(event, offset):
                 return True

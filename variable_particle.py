@@ -31,8 +31,16 @@ class VariableParticle(Particle):
         key: int | None = None,
         mode: str = "hold",
         change_speed: float = 240.0,
+        elasticity: float = 1.0,
     ):
-        super().__init__(position, mass=mass, color=color, radius=radius, drag=base_drag)
+        super().__init__(
+            position,
+            mass=mass,
+            color=color,
+            radius=radius,
+            drag=base_drag,
+            elasticity=elasticity,
+        )
         self.base_drag = base_drag
         self.alt_drag = alt_drag
         self.key = key

@@ -40,7 +40,9 @@ class PhysicsEngine:
     collisions_enabled:
         If ``True`` (default) resolve overlapping particles after integration.
     collision_elasticity:
-        Coefficient ``e`` (0–1) controlling bounce when resolving collisions.
+        Base coefficient ``e`` (0–1) controlling bounce when resolving
+        collisions. The value is multiplied by the ``elasticity`` of each
+        particle involved.
     """
     def __init__(
         self,
@@ -312,7 +314,11 @@ class PhysicsEngine:
                         p2.apply_force(force)
 
     def _resolve_collisions(self) -> None:
-        """Separate overlapping particles and apply optional bounce."""
+        """Separate overlapping particles and apply optional bounce.
+
+        Each particle may define an ``elasticity`` coefficient that scales
+        the engine-wide ``collision_elasticity``.
+        """
 
         if not self.collisions_enabled or len(self.particles) < 2:
             return
@@ -345,7 +351,7 @@ class PhysicsEngine:
                 for j in range(i + 1, len(self.particles))
             ]
 
-        e = max(0.0, float(self.collision_elasticity))
+        base_e = max(0.0, float(self.collision_elasticity))
 
         for i, j in pairs:
             p1 = self.particles[i]
@@ -384,7 +390,8 @@ class PhysicsEngine:
                 p1.prev_pos += move1
                 p2.prev_pos += move2
 
-            if e <= 0:
+            e_pair = base_e * min(getattr(p1, "elasticity", 1.0), getattr(p2, "elasticity", 1.0))
+            if e_pair <= 0:
                 continue
 
             v1 = p1.pos - p1.prev_pos
@@ -398,7 +405,7 @@ class PhysicsEngine:
             denom = inv1 + inv2
             if denom == 0:
                 continue
-            j_imp = (1 + e) * rel_norm / denom
+            j_imp = (1 + e_pair) * rel_norm / denom
             if not p1.fixed:
                 v1 -= j_imp * inv1 * n
                 p1.prev_pos = p1.pos - v1
