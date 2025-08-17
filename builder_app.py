@@ -257,6 +257,42 @@ class BuilderApp:
         dx, dy = mx - px, my - py
         return (dx * dx + dy * dy) ** 0.5
 
+    def _screen_arc_distance(self, bs: BendingSpring, mouse_screen: tuple[int, int]) -> float:
+        """Return pixel distance from mouse to the bend's angle arc."""
+        center = self.world_to_screen(bs.p2.pos)
+        v1 = self.world_to_screen(bs.p1.pos) - center
+        v2 = self.world_to_screen(bs.p3.pos) - center
+        l1, l2 = v1.length(), v2.length()
+        if l1 == 0 or l2 == 0:
+            return float("inf")
+        radius = min(l1, l2) * 0.6
+        mv = pygame.Vector2(mouse_screen) - center
+        dist = mv.length()
+        if dist == 0:
+            return float("inf")
+        ang1 = math.atan2(v1.y, v1.x)
+        ang2 = math.atan2(v2.y, v2.x)
+        if v1.cross(v2) < 0:
+            ang1, ang2 = ang2, ang1
+        ang_m = math.atan2(mv.y, mv.x)
+        a1 = (ang1 + math.tau) % math.tau
+        a2 = (ang2 + math.tau) % math.tau
+        am = (ang_m + math.tau) % math.tau
+        if a1 <= a2:
+            in_arc = a1 <= am <= a2
+        else:
+            in_arc = am >= a1 or am <= a2
+        if not in_arc:
+            return float("inf")
+        return abs(dist - radius)
+
+    def _screen_bend_distance(self, bs: BendingSpring, mouse_screen: tuple[int, int]) -> float:
+        """Return minimal distance from mouse to any part of the bend."""
+        d1 = self._screen_segment_distance(bs.p1.pos, bs.p2.pos, mouse_screen)
+        d2 = self._screen_segment_distance(bs.p2.pos, bs.p3.pos, mouse_screen)
+        d_arc = self._screen_arc_distance(bs, mouse_screen)
+        return min(d1, d2, d_arc)
+
     def _update_hover_targets(self) -> None:
         """Update hover highlights based on current mode and mouse position."""
         # default clear
@@ -310,14 +346,12 @@ class BuilderApp:
                     best_ds = ds
                     nearest_s = s
 
-        # compute nearest bend segment pair
+        # compute nearest bend
         nearest_b = None
         best_db = float("inf")
         if "bend" in allowed and self.bending_springs:
             for bs in self.bending_springs:
-                d1 = self._screen_segment_distance(bs.p1.pos, bs.p2.pos, mouse_screen)
-                d2 = self._screen_segment_distance(bs.p2.pos, bs.p3.pos, mouse_screen)
-                db = min(d1, d2)
+                db = self._screen_bend_distance(bs, mouse_screen)
                 if db < best_db:
                     best_db = db
                     nearest_b = bs
@@ -711,6 +745,14 @@ class BuilderApp:
         for p in arm.particles:
             if p in self.particles:
                 self.particles.remove(p)
+
+    def _remove_bending(self, bend: BendingSpring) -> None:
+        """Remove a single bending spring from the scene."""
+        if bend in self.bending_springs:
+            self.bending_springs.remove(bend)
+        if bend in self.selected_bends:
+            self.selected_bends.remove(bend)
+        self.physics.bending_springs = self.bending_springs
 
     def _restore_particle(self, p: Particle, springs: list[Spring]):
         """Reinsert ``p`` and associated springs."""

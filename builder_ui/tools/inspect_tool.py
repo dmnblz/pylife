@@ -524,6 +524,18 @@ class InspectTool(Tool):
             pygame.draw.line(self.sidebar.screen, (255, 255, 255), p1, p2, 2)
             pygame.draw.line(self.sidebar.screen, theme.ACCENT, p2, p3, 8)
             pygame.draw.line(self.sidebar.screen, (255, 255, 255), p2, p3, 2)
+            v1 = p1 - p2
+            v2 = p3 - p2
+            l1, l2 = v1.length(), v2.length()
+            if l1 and l2:
+                radius = min(l1, l2) * 0.6
+                rect = pygame.Rect(0, 0, radius * 2, radius * 2)
+                rect.center = (int(p2.x), int(p2.y))
+                start = math.atan2(v1.y, v1.x)
+                end = math.atan2(v2.y, v2.x)
+                if v1.cross(v2) < 0:
+                    start, end = end, start
+                pygame.draw.arc(self.sidebar.screen, theme.ACCENT, rect, start, end, 3)
 
     # ---------------- event handling
     def handle_event(self, event, offset: int = 0):
@@ -605,17 +617,11 @@ class InspectTool(Tool):
                     nearest_s = min(self.app.springs, key=seg_dist)
                     dist_s = seg_dist(nearest_s)
                 if self.app.bending_springs:
-                    def seg_dist_b(bs):
-                        def seg(a, b):
-                            d = b - a
-                            if d.length_squared() == 0:
-                                return (mouse - a).length()
-                            t = max(0, min(1, (mouse - a).dot(d) / d.length_squared()))
-                            proj = a + d * t
-                            return (mouse - proj).length()
-                        return min(seg(bs.p1.pos, bs.p2.pos), seg(bs.p2.pos, bs.p3.pos))
-                    nearest_b = min(self.app.bending_springs, key=seg_dist_b)
-                    dist_b = seg_dist_b(nearest_b)
+                    nearest_b = min(
+                        self.app.bending_springs,
+                        key=lambda b: self.app._screen_bend_distance(b, event.pos),
+                    )
+                    dist_b = self.app._screen_bend_distance(nearest_b, event.pos)
                 if dist_p <= dist_s and dist_p <= dist_b:
                     if nearest_p is not None:
                         self.particle = nearest_p
