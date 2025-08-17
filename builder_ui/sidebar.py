@@ -95,7 +95,7 @@ class SidebarUI:
             y += self.BUTTON_HEIGHT + self.BUTTON_MARGIN
 
         add_button("Drag", lambda: self.app.set_mode("drag"), "1", "drag")
-        add_button("Select", lambda: self.app.set_mode("select"), "S", "select")
+        add_button("Select", lambda: self.app.set_mode("select"), "Ctrl+S", "select")
         add_button("Particle", lambda: self.app.set_mode("particle"), "2", "particle")
         add_button("VarPar", lambda: self.app.set_mode("vparticle"), mode="vparticle")
         add_button("Spring", lambda: self.app.set_mode("spring"), "3", "spring")
@@ -111,7 +111,7 @@ class SidebarUI:
         add_button("Undo", self.app.undo)
         add_button("Save", self.app.save_state_dialog)
         add_button("Load", self.app.load_state_dialog)
-        add_button(lambda: "Resume" if self.app.paused else "Pause", self.app.toggle_pause)
+        add_button(lambda: "Resume" if self.app.paused else "Pause", self.app.toggle_pause, "Space")
 
         y += 10
         self.extra_start_y = y

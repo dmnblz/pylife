@@ -1424,36 +1424,21 @@ class BuilderApp:
                             pygame.K_8: "inspect",
                             pygame.K_9: "grid",
                             pygame.K_0: "env",
-                            pygame.K_s: "select",
                         }
                         mode = tool_keys.get(e.key)
+                        mods = pygame.key.get_mods()
+                        ctrl = mods & (pygame.KMOD_CTRL | pygame.KMOD_META)
                         if mode:
                             self.set_mode(mode)
-                        elif e.key == pygame.K_c:
+                        elif ctrl and e.key == pygame.K_s:
+                            self.set_mode("select")
+                        elif ctrl and e.key == pygame.K_c:
                             if self.selected_particles or self.selected_springs or self.selected_bends:
                                 self.copy_selection()
-                            else:
-                                self.choose_color()
-                        elif e.key == pygame.K_z:
-                            self.adjust_mass(-0.1)
-                        elif e.key == pygame.K_x:
-                            self.adjust_mass(0.1)
-                        elif e.key == pygame.K_v:
+                        elif ctrl and e.key == pygame.K_v:
                             if self.clipboard["particles"]:
                                 self.pasting = True
-                            else:
-                                self.adjust_radius(-1)
-                        elif e.key == pygame.K_b:
-                            self.adjust_radius(1)
-                        elif e.key == pygame.K_k:
-                            self.adjust_stiffness(-10)
-                        elif e.key == pygame.K_l:
-                            self.adjust_stiffness(10)
-                        elif e.key == pygame.K_n:
-                            self.adjust_temperature(-10)
-                        elif e.key == pygame.K_m:
-                            self.adjust_temperature(10)
-                        elif e.key == pygame.K_p:
+                        elif e.key == pygame.K_SPACE:
                             self.toggle_pause()
                         elif e.key == pygame.K_t:
                             # toggle theme
