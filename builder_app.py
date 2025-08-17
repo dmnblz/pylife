@@ -265,7 +265,7 @@ class BuilderApp:
         l1, l2 = v1.length(), v2.length()
         if l1 == 0 or l2 == 0:
             return float("inf")
-        radius = min(l1, l2) * 0.6
+        radius = min(l1, l2) * 0.4
         mv = pygame.Vector2(mouse_screen) - center
         dist = mv.length()
         if dist == 0:
