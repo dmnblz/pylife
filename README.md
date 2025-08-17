@@ -57,6 +57,22 @@ pip install pygame
 
 Some features (the colour picker) use `tkinter` which is included with most Python installations.
 
+## Installation and CLI usage
+
+This repository bundles a small command line interface powered by
+[Typer](https://typer.tiangolo.com/).  Install the extra dependency and
+invoke the CLI to create new project directories or write configuration
+files:
+
+```bash
+pip install typer
+python -m pylife.cli create demo_project
+python -m pylife.cli config demo_project/config.json
+```
+
+Tests can exercise the CLI via `CliRunner` from `typer.testing`.  See
+`tests/test_cli.py` for small examples.
+
 ## Running the builder
 
 ```bash

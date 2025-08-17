@@ -222,6 +222,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 - Add/update docstrings for new or modified modules/classes/functions.
 - Keep defaults in `builder_ui/config.py` aligned with UI controls and serialization.
 - When changing persistence fields, update both save and load paths and this document’s schema.
+- Provide a CLI option for every new feature.
 
 ---
 
