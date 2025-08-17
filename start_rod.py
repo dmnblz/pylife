@@ -56,14 +56,22 @@ class CellWallApp:
         self.springs.extend(wall2_springs + wall1_springs)
         # self._loose_particles(count=40)
 
-        self.physics = PhysicsEngine(self.particles, self.springs, gravity=(0, 0),
-                                     # repulsion_radius=100, repulsion_strength=100,
-                                     # repulsion_radius=100, repulsion_strength=1000,
-                                     # repulsion_radius=150, repulsion_strength=100,
-                                     # repulsion_radius=30, repulsion_strength=1000,
-                                     repulsion_radius=30, repulsion_strength=10000,
-                                     # repulsion_radius=0, repulsion_strength=10000,
-                                     temperature=500, damping_coeff=1)
+        max_r = max((p.radius for p in self.particles), default=0)
+        self.physics = PhysicsEngine(
+            self.particles,
+            self.springs,
+            gravity=(0, 0),
+            # repulsion_radius=100, repulsion_strength=100,
+            # repulsion_radius=100, repulsion_strength=1000,
+            # repulsion_radius=150, repulsion_strength=100,
+            # repulsion_radius=30, repulsion_strength=1000,
+            repulsion_radius=30,
+            repulsion_strength=10000,
+            # repulsion_radius=0, repulsion_strength=10000,
+            temperature=500,
+            damping_coeff=1,
+            collision_bucket_size=max_r * 2,
+        )
                                      # temperature=0, damping_coeff=1)
                                      # temperature=0, damping_coeff=0)
         # Fixed timestep for stability

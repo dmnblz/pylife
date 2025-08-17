@@ -43,6 +43,9 @@ class PhysicsEngine:
         Base coefficient ``e`` (0–1) controlling bounce when resolving
         collisions. The value is multiplied by the ``elasticity`` of each
         particle involved.
+    collision_bucket_size:
+        Size of the spatial-hash cells used for collision detection. ``None``
+        chooses twice the maximum particle radius each step.
     """
     def __init__(
         self,
@@ -54,8 +57,9 @@ class PhysicsEngine:
         repulsion_strength=100,
         temperature=1.0,
         damping_coeff=1.0,
-        collisions_enabled: bool = True,
+    collisions_enabled: bool = True,
         collision_elasticity: float = 1.0,
+        collision_bucket_size: float | None = None,
     ):
         self.particles = particles
         self.springs = springs
@@ -67,6 +71,11 @@ class PhysicsEngine:
         self.damping_coeff = damping_coeff
         self.collisions_enabled = bool(collisions_enabled)
         self.collision_elasticity = float(collision_elasticity)
+        self.collision_bucket_size = (
+            float(collision_bucket_size)
+            if collision_bucket_size and collision_bucket_size > 0
+            else None
+        )
         # Updated dynamically by the app when the window resizes
         self._screen_size: tuple[int, int] | None = None
         # Optional world-space playable area used for boundary proximity
@@ -84,6 +93,9 @@ class PhysicsEngine:
         self._repulsion_buckets: dict[tuple[int, int], list[int]] = {}
         self._repulsion_bucket_size: float = max(1e-6, float(self.repulsion_radius))
         self._last_repulsion_radius: float = float(self.repulsion_radius)
+        # Spatial hash reused by collisions when repulsion builds it
+        self._collision_buckets: dict[tuple[int, int], list[int]] = {}
+        self._collision_bucket_size: float = 0.0
 
     def set_fixed_timestep(
         self,
@@ -241,9 +253,21 @@ class PhysicsEngine:
         self._repulsion_rebuild_interval_steps = max(1, int(rebuild_interval_steps))
         self._repulsion_steps_since_rebuild = 0
         self._repulsion_buckets.clear()
+        self._collision_buckets.clear()
+
+    def _get_collision_bucket_size(self) -> float:
+        """Return the spatial-hash cell size for collisions."""
+        if self.collision_bucket_size and self.collision_bucket_size > 0:
+            return max(1e-6, float(self.collision_bucket_size))
+        max_r = 0.0
+        for p in self.particles:
+            r = getattr(p, "radius", 0) or 0
+            if r > max_r:
+                max_r = r
+        return max(1e-6, 2 * max_r)
 
     def _build_repulsion_buckets(self) -> None:
-        bs = max(1e-6, float(self.repulsion_radius))
+        bs = max(self._get_collision_bucket_size(), float(self.repulsion_radius))
         self._repulsion_bucket_size = bs
         self._last_repulsion_radius = float(self.repulsion_radius)
         buckets: dict[tuple[int, int], list[int]] = {}
@@ -252,12 +276,26 @@ class PhysicsEngine:
             cy = int(math.floor(p.pos.y / bs))
             buckets.setdefault((cx, cy), []).append(i)
         self._repulsion_buckets = buckets
+        self._collision_buckets = buckets
+        self._collision_bucket_size = bs
+
+    def _build_collision_buckets(self) -> None:
+        bs = self._get_collision_bucket_size()
+        buckets: dict[tuple[int, int], list[int]] = {}
+        for i, p in enumerate(self.particles):
+            cx = int(math.floor(p.pos.x / bs))
+            cy = int(math.floor(p.pos.y / bs))
+            buckets.setdefault((cx, cy), []).append(i)
+        self._collision_buckets = buckets
+        self._collision_bucket_size = bs
 
     def _apply_repulsion(self) -> None:
         # Fast exits
         if self.repulsion_radius <= 0 or self.repulsion_strength == 0 or len(self.particles) < 2:
+            self._collision_buckets.clear()
             return
         if not self._use_spatial_hash:
+            self._collision_buckets.clear()
             # fallback O(n^2)
             for i, p1 in enumerate(self.particles):
                 for j in range(i + 1, len(self.particles)):
@@ -323,17 +361,18 @@ class PhysicsEngine:
         if not self.collisions_enabled or len(self.particles) < 2:
             return
 
-        # choose iteration strategy
-        if self._use_spatial_hash and self.repulsion_radius > 0:
-            self._build_repulsion_buckets()
-            bs = self._repulsion_bucket_size
-            buckets = self._repulsion_buckets
+        base_e = max(0.0, float(self.collision_elasticity))
+
+        if self._use_spatial_hash:
+            if not self._collision_buckets:
+                self._build_collision_buckets()
+            bs = self._collision_bucket_size
+            buckets = self._collision_buckets
             neighbor_offsets = (
                 (-1, -1), (-1, 0), (-1, 1),
                 (0, -1),  (0, 0),  (0, 1),
                 (1, -1),  (1, 0),  (1, 1),
             )
-            pairs: list[tuple[int, int]] = []
             for i, p1 in enumerate(self.particles):
                 cx = int(math.floor(p1.pos.x / bs))
                 cy = int(math.floor(p1.pos.y / bs))
@@ -342,73 +381,98 @@ class PhysicsEngine:
                     if not lst:
                         continue
                     for j in lst:
-                        if j > i:
-                            pairs.append((i, j))
+                        if j <= i:
+                            continue
+                        p2 = self.particles[j]
+                        r1 = getattr(p1, "radius", 0) or 0
+                        r2 = getattr(p2, "radius", 0) or 0
+                        if r1 <= 0 and r2 <= 0:
+                            continue
+                        delta = p2.pos - p1.pos
+                        min_dist = r1 + r2
+                        if min_dist <= 0:
+                            continue
+                        dist_sq = delta.length_squared()
+                        if dist_sq >= min_dist * min_dist:
+                            continue
+                        dist = math.sqrt(dist_sq) if dist_sq > 0 else 0.0
+                        if dist == 0:
+                            delta = pygame.Vector2(1, 0)
+                            dist = 1.0
+                        n = delta / dist
+                        overlap = min_dist - dist
+                        self._separate_and_bounce(p1, p2, n, overlap, base_e)
         else:
-            pairs = [
-                (i, j)
-                for i in range(len(self.particles))
-                for j in range(i + 1, len(self.particles))
-            ]
+            for i in range(len(self.particles)):
+                p1 = self.particles[i]
+                for j in range(i + 1, len(self.particles)):
+                    p2 = self.particles[j]
+                    r1 = getattr(p1, "radius", 0) or 0
+                    r2 = getattr(p2, "radius", 0) or 0
+                    if r1 <= 0 and r2 <= 0:
+                        continue
+                    delta = p2.pos - p1.pos
+                    min_dist = r1 + r2
+                    if min_dist <= 0:
+                        continue
+                    dist_sq = delta.length_squared()
+                    if dist_sq >= min_dist * min_dist:
+                        continue
+                    dist = math.sqrt(dist_sq) if dist_sq > 0 else 0.0
+                    if dist == 0:
+                        delta = pygame.Vector2(1, 0)
+                        dist = 1.0
+                    n = delta / dist
+                    overlap = min_dist - dist
+                    self._separate_and_bounce(p1, p2, n, overlap, base_e)
 
-        base_e = max(0.0, float(self.collision_elasticity))
+    def _separate_and_bounce(
+        self,
+        p1: Particle,
+        p2: Particle,
+        n: pygame.Vector2,
+        overlap: float,
+        base_e: float,
+    ) -> None:
+        """Resolve overlap between ``p1`` and ``p2`` and apply bounce."""
+        if p1.fixed and p2.fixed:
+            return
+        elif p1.fixed:
+            move2 = n * overlap
+            p2.pos += move2
+            p2.prev_pos += move2
+        elif p2.fixed:
+            move1 = -n * overlap
+            p1.pos += move1
+            p1.prev_pos += move1
+        else:
+            total_mass = p1.mass + p2.mass
+            move1 = -n * overlap * (p2.mass / total_mass)
+            move2 = n * overlap * (p1.mass / total_mass)
+            p1.pos += move1
+            p2.pos += move2
+            p1.prev_pos += move1
+            p2.prev_pos += move2
 
-        for i, j in pairs:
-            p1 = self.particles[i]
-            p2 = self.particles[j]
-            r1 = getattr(p1, "radius", 0) or 0
-            r2 = getattr(p2, "radius", 0) or 0
-            if r1 <= 0 and r2 <= 0:
-                continue
-            delta = p2.pos - p1.pos
-            dist = delta.length()
-            min_dist = r1 + r2
-            if dist >= min_dist or min_dist <= 0:
-                continue
-            if dist == 0:
-                delta = pygame.Vector2(1, 0)
-                dist = 1
-            n = delta / dist
-            overlap = min_dist - dist
+        e_pair = base_e * min(getattr(p1, "elasticity", 1.0), getattr(p2, "elasticity", 1.0))
+        if e_pair <= 0:
+            return
 
-            if p1.fixed and p2.fixed:
-                continue
-            elif p1.fixed:
-                move2 = n * overlap
-                p2.pos += move2
-                p2.prev_pos += move2
-            elif p2.fixed:
-                move1 = -n * overlap
-                p1.pos += move1
-                p1.prev_pos += move1
-            else:
-                total_mass = p1.mass + p2.mass
-                move1 = -n * overlap * (p2.mass / total_mass)
-                move2 = n * overlap * (p1.mass / total_mass)
-                p1.pos += move1
-                p2.pos += move2
-                p1.prev_pos += move1
-                p2.prev_pos += move2
-
-            e_pair = base_e * min(getattr(p1, "elasticity", 1.0), getattr(p2, "elasticity", 1.0))
-            if e_pair <= 0:
-                continue
-
-            v1 = p1.pos - p1.prev_pos
-            v2 = p2.pos - p2.prev_pos
-            rel = v1 - v2
-            rel_norm = rel.dot(n)
-            if rel_norm <= 0:
-                continue
-            inv1 = 0.0 if p1.fixed else 1.0 / p1.mass
-            inv2 = 0.0 if p2.fixed else 1.0 / p2.mass
-            denom = inv1 + inv2
-            if denom == 0:
-                continue
-            j_imp = (1 + e_pair) * rel_norm / denom
-            if not p1.fixed:
-                v1 -= j_imp * inv1 * n
-                p1.prev_pos = p1.pos - v1
-            if not p2.fixed:
-                v2 += j_imp * inv2 * n
-                p2.prev_pos = p2.pos - v2
+        v1 = p1.pos - p1.prev_pos
+        v2 = p2.pos - p2.prev_pos
+        rel = v1 - v2
+        rel_norm = rel.dot(n)
+        if rel_norm <= 0:
+            return
+        inv1 = 0.0 if p1.fixed else 1.0 / p1.mass
+        inv2 = 0.0 if p2.fixed else 1.0 / p2.mass
+        denom = inv1 + inv2
+        if denom == 0:
+            return
+        j_imp = (1 + e_pair) * rel_norm / denom
+        if not p1.fixed:
+            v1 -= j_imp * inv1 * n
+            p1.prev_pos = p1.pos - v1
+        if not p2.fixed:
+            v2 += j_imp * inv2 * n
+            p2.prev_pos = p2.pos - v2

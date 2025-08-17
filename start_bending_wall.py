@@ -57,6 +57,7 @@ class CellWallApp:
         self.springs.extend(wall1_springs)
         self.bending_springs.extend(wall1_bending_springs)
 
+        max_r = max((p.radius for p in self.particles), default=0)
         self.physics = PhysicsEngine(
             self.particles,
             self.springs,
@@ -66,7 +67,8 @@ class CellWallApp:
             repulsion_radius=30,
             repulsion_strength=10000,
             temperature=0,
-            damping_coeff=1
+            damping_coeff=1,
+            collision_bucket_size=max_r * 2,
         )
         # Fixed timestep for stability across variable framerates
         self.physics.set_fixed_timestep(1.0 / FPS, substeps=2)

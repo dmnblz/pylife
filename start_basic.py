@@ -27,8 +27,15 @@ class CellWallApp:
         self.selected = None
 
         self._create_wall()
-        self.physics = PhysicsEngine(self.particles, self.springs, gravity=(0, 0),
-                                     repulsion_radius=100, repulsion_strength=500)
+        max_r = max((p.radius for p in self.particles), default=0)
+        self.physics = PhysicsEngine(
+            self.particles,
+            self.springs,
+            gravity=(0, 0),
+            repulsion_radius=100,
+            repulsion_strength=500,
+            collision_bucket_size=max_r * 2,
+        )
         # Fixed timestep for consistent behavior
         self.physics.set_fixed_timestep(1.0 / FPS, substeps=2)
         self.renderer = Renderer(self.screen)

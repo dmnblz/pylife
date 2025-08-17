@@ -111,6 +111,8 @@ class EnvironmentParams:
         Coefficient for viscous damping.
     collisions:
         Toggle for particle-particle collision handling.
+    collision_bucket_size:
+        Spatial-hash cell size for collisions; ``0`` chooses an automatic value.
     """
 
     gravity: pygame.Vector2 = field(default_factory=lambda: pygame.Vector2(0, 0))
@@ -119,6 +121,7 @@ class EnvironmentParams:
     temperature: float = 0.0
     damping: float = 1.0
     collisions: bool = True
+    collision_bucket_size: float = 0.0
 
 
 __all__ = [

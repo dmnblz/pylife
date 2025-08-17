@@ -95,10 +95,16 @@ class CellWallApp:
             self.particles.extend(particles)
             self.springs.extend(springs)
 
+        max_r = max((p.radius for p in self.particles), default=0)
         self.physics = PhysicsEngine(
-            self.particles, self.springs, gravity=(0, 0),
-            repulsion_radius=30, repulsion_strength=10000,
-            temperature=500, damping_coeff=1
+            self.particles,
+            self.springs,
+            gravity=(0, 0),
+            repulsion_radius=30,
+            repulsion_strength=10000,
+            temperature=500,
+            damping_coeff=1,
+            collision_bucket_size=max_r * 2,
         )
         # Fixed timestep for consistency
         self.physics.set_fixed_timestep(1.0 / FPS, substeps=2)
