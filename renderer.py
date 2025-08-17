@@ -169,13 +169,17 @@ class Renderer:
                 v2 = c - b
                 l1, l2 = v1.length(), v2.length()
                 if l1 and l2:
-                    radius = min(l1, l2) * 0.6
+                    radius = min(l1, l2) * 0.4
                     rect = pygame.Rect(0, 0, radius * 2, radius * 2)
                     rect.center = (int(b.x), int(b.y))
                     start = math.atan2(v1.y, v1.x)
                     end = math.atan2(v2.y, v2.x)
                     if v1.cross(v2) < 0:
                         start, end = end, start
+                    start = (start + math.tau) % math.tau
+                    end = (end + math.tau) % math.tau
+                    if end < start:
+                        end += math.tau
                     pygame.draw.arc(self.screen, color, rect, start, end, 3)
                     if getattr(bs, "selected", False):
                         pygame.draw.line(self.screen, theme.ACCENT, a, b, 6)
@@ -251,3 +255,19 @@ class Renderer:
             pygame.draw.line(self.screen, (255, 255, 255), p1, p2, 2)
             pygame.draw.line(self.screen, theme.ACCENT, p2, p3, 8)
             pygame.draw.line(self.screen, (255, 255, 255), p2, p3, 2)
+            v1 = p1 - p2
+            v2 = p3 - p2
+            l1, l2 = v1.length(), v2.length()
+            if l1 and l2:
+                radius = min(l1, l2) * 0.4
+                rect = pygame.Rect(0, 0, radius * 2, radius * 2)
+                rect.center = (int(p2.x), int(p2.y))
+                start = math.atan2(v1.y, v1.x)
+                end = math.atan2(v2.y, v2.x)
+                if v1.cross(v2) < 0:
+                    start, end = end, start
+                start = (start + math.tau) % math.tau
+                end = (end + math.tau) % math.tau
+                if end < start:
+                    end += math.tau
+                pygame.draw.arc(self.screen, theme.ACCENT, rect, start, end, 4)
