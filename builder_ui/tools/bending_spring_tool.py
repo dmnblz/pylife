@@ -148,8 +148,8 @@ class BendingSpringTool(Tool):
                 radius = min(l1, l2) * 0.4
                 rect = pygame.Rect(0, 0, radius * 2, radius * 2)
                 rect.center = (int(p2.x), int(p2.y))
-                start = math.atan2(v1.y, v1.x)
-                angle = math.atan2(v1.cross(v2), v1.dot(v2))
+                start = math.atan2(-v1.y, v1.x)
+                angle = math.atan2(-v1.cross(v2), v1.dot(v2))
                 end = start + angle
                 if angle < 0:
                     start, end = end, start
