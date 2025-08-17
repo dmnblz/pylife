@@ -52,7 +52,12 @@ class BuilderApp:
         self.selected_particles: list[Particle] = []
         self.selected_springs: list[Spring] = []
         self.selected_bends: list[BendingSpring] = []
-        self.clipboard: dict[str, list] = {"particles": [], "springs": [], "bends": []}
+        self.clipboard: dict[str, list] = {
+            "particles": [],
+            "springs": [],
+            "bends": [],
+            "arms": [],
+        }
         self.pasting = False
         self.spring_first = None
         self.paused = False
@@ -381,13 +386,18 @@ class BuilderApp:
         self.clear_selection()
 
     def copy_selection(self) -> None:
-        """Copy selected particles, springs and bends to the clipboard."""
+        """Copy selected particles, springs, bends and arms to the clipboard."""
         if not (self.selected_particles or self.selected_springs or self.selected_bends):
             return
         origin_x = min(p.pos.x for p in self.selected_particles)
         origin_y = min(p.pos.y for p in self.selected_particles)
         origin = pygame.Vector2(origin_x, origin_y)
-        self.clipboard = {"particles": [], "springs": [], "bends": []}
+        self.clipboard = {
+            "particles": [],
+            "springs": [],
+            "bends": [],
+            "arms": [],
+        }
         for p in self.selected_particles:
             data = {
                 "offset": p.pos - origin,
@@ -434,6 +444,7 @@ class BuilderApp:
                     }
                 )
             self.clipboard["springs"].append(data)
+        spring_index = {s: i for i, s in enumerate(self.selected_springs)}
         for b in self.selected_bends:
             data = {
                 "p1": index[b.p1],
@@ -443,6 +454,23 @@ class BuilderApp:
                 "stiffness": b.stiffness,
             }
             self.clipboard["bends"].append(data)
+        for arm in self.arms:
+            if all(p in index for p in arm.particles) and all(s in spring_index for s in arm.springs):
+                data = {
+                    "particles": [index[p] for p in arm.particles],
+                    "springs": [spring_index[s] for s in arm.springs],
+                    "rest_lengths": arm.rest_lengths,
+                    "max_lengths": arm.max_lengths,
+                    "cycle_speed": arm.cycle_speed,
+                    "color": list(arm.color),
+                    "high_color": list(arm.high_drag_color),
+                    "adhesion": arm.adhesion_mass_factor,
+                    "orig_mass": arm._orig_mass,
+                    "adhesion_drag": arm.adhesion_drag,
+                    "orig_drag": arm._orig_drag,
+                    "cycle_key": arm.cycle_key,
+                }
+                self.clipboard["arms"].append(data)
 
     def paste_selection(self, anchor: pygame.Vector2) -> None:
         """Paste the clipboard with its top-left anchored at *anchor*."""
@@ -479,6 +507,7 @@ class BuilderApp:
         index_map = {i: p for i, p in enumerate(new_particles)}
         new_springs: list[Spring] = []
         new_bends: list[BendingSpring] = []
+        new_arms: list[HookArm] = []
         for sdata in self.clipboard["springs"]:
             p1 = index_map[sdata["p1"]]
             p2 = index_map[sdata["p2"]]
@@ -513,9 +542,34 @@ class BuilderApp:
             p3 = index_map[bdata["p3"]]
             b = BendingSpring(p1, p2, p3, bdata["angle"], bdata["stiffness"])
             new_bends.append(b)
+        for adata in self.clipboard["arms"]:
+            arm = HookArm.__new__(HookArm)
+            arm.particles = [new_particles[i] for i in adata["particles"]]
+            arm.springs = [new_springs[i] for i in adata["springs"]]
+            arm.color = tuple(adata["color"])
+            arm.high_drag_color = tuple(adata["high_color"])
+            arm.adhesion_mass_factor = adata["adhesion"]
+            arm.adhesion_drag = adata["adhesion_drag"]
+            arm.cycle_speed = adata["cycle_speed"]
+            arm.rest_lengths = adata["rest_lengths"]
+            arm.max_lengths = adata["max_lengths"]
+            arm.tip = arm.particles[-1]
+            arm._orig_mass = adata["orig_mass"]
+            arm._orig_drag = adata["orig_drag"]
+            arm.extend_held = False
+            arm.contract_held = False
+            arm.cycle_held = False
+            arm.cycle_active = False
+            arm.cycle_phase = 0
+            arm.cycle_key = adata.get("cycle_key")
+            if arm.cycle_key is not None:
+                self.cycle_keys.setdefault(arm.cycle_key, []).append(arm)
+            arm._set_high_drag(False)
+            new_arms.append(arm)
         self.particles.extend(new_particles)
         self.springs.extend(new_springs)
         self.bending_springs.extend(new_bends)
+        self.arms.extend(new_arms)
         for p in new_particles:
             if isinstance(p, VariableParticle):
                 self.variable_particles.append(p)
@@ -535,7 +589,9 @@ class BuilderApp:
             b.selected = True
             self.selected_bends.append(b)
         self.push_undo(
-            lambda parts=new_particles, sprs=new_springs, bends=new_bends: self.remove_entities(parts, sprs, bends)
+            lambda parts=new_particles, sprs=new_springs, bends=new_bends, arms=new_arms: self.remove_entities(
+                parts, sprs, bends, arms
+            )
         )
 
     def draw_paste_preview(self) -> None:
