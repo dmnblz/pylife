@@ -140,6 +140,19 @@ class BendingSpringTool(Tool):
             p3 = self.app.world_to_screen(self.selected[2].pos)
             pygame.draw.line(screen, theme.ACCENT, p2, p3, 8)
             pygame.draw.line(screen, (255, 255, 255), p2, p3, 2)
+            p1 = self.app.world_to_screen(self.selected[0].pos)
+            v1 = p1 - p2
+            v2 = p3 - p2
+            l1, l2 = v1.length(), v2.length()
+            if l1 and l2:
+                radius = min(l1, l2) * 0.6
+                rect = pygame.Rect(0, 0, radius * 2, radius * 2)
+                rect.center = (int(p2.x), int(p2.y))
+                start = math.atan2(v1.y, v1.x)
+                end = math.atan2(v2.y, v2.x)
+                if v1.cross(v2) < 0:
+                    start, end = end, start
+                pygame.draw.arc(screen, theme.ACCENT, rect, start, end, 3)
 
     # ---------------- event handling
     def handle_event(self, event, offset: int = 0):

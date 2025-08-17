@@ -1,5 +1,6 @@
 """World renderer with camera transforms and drawing helpers."""
 
+import math
 import pygame
 from pygame import gfxdraw
 from builder_ui import theme
@@ -161,14 +162,27 @@ class Renderer:
                 color = (200, 200, 0)
                 self._draw_dashed_line(bs.p1.pos, bs.p2.pos, color, 3)
                 self._draw_dashed_line(bs.p2.pos, bs.p3.pos, color, 3)
-                if getattr(bs, "selected", False):
-                    a = self.world_to_screen(bs.p1.pos)
-                    b = self.world_to_screen(bs.p2.pos)
-                    c = self.world_to_screen(bs.p3.pos)
-                    pygame.draw.line(self.screen, theme.ACCENT, a, b, 6)
-                    pygame.draw.line(self.screen, theme.ACCENT, b, c, 6)
-                    pygame.draw.line(self.screen, (255, 255, 255), a, b, 2)
-                    pygame.draw.line(self.screen, (255, 255, 255), b, c, 2)
+                a = self.world_to_screen(bs.p1.pos)
+                b = self.world_to_screen(bs.p2.pos)
+                c = self.world_to_screen(bs.p3.pos)
+                v1 = a - b
+                v2 = c - b
+                l1, l2 = v1.length(), v2.length()
+                if l1 and l2:
+                    radius = min(l1, l2) * 0.6
+                    rect = pygame.Rect(0, 0, radius * 2, radius * 2)
+                    rect.center = (int(b.x), int(b.y))
+                    start = math.atan2(v1.y, v1.x)
+                    end = math.atan2(v2.y, v2.x)
+                    if v1.cross(v2) < 0:
+                        start, end = end, start
+                    pygame.draw.arc(self.screen, color, rect, start, end, 3)
+                    if getattr(bs, "selected", False):
+                        pygame.draw.line(self.screen, theme.ACCENT, a, b, 6)
+                        pygame.draw.line(self.screen, theme.ACCENT, b, c, 6)
+                        pygame.draw.line(self.screen, (255, 255, 255), a, b, 2)
+                        pygame.draw.line(self.screen, (255, 255, 255), b, c, 2)
+                        pygame.draw.arc(self.screen, theme.ACCENT, rect, start, end, 4)
 
         # draw particles with culling and simplified effects at high zoom
         for p in particles:
