@@ -1,4 +1,5 @@
-# particle.py
+"""Verlet-integrated point mass with per-particle drag."""
+
 import pygame
 
 class Particle:
