@@ -51,6 +51,8 @@ class BuilderApp:
         self.selection_rect: pygame.Rect | None = None
         self.selected_particles: list[Particle] = []
         self.selected_springs: list[Spring] = []
+        self.clipboard: dict[str, list] = {"particles": [], "springs": []}
+        self.pasting = False
         self.spring_first = None
         self.paused = False
 
@@ -368,6 +370,162 @@ class BuilderApp:
             lambda parts=particles, sprs=springs: self._restore_entities(parts, sprs)
         )
         self.clear_selection()
+
+    def copy_selection(self) -> None:
+        """Copy selected particles and springs to the clipboard."""
+        if not self.selected_particles and not self.selected_springs:
+            return
+        origin_x = min(p.pos.x for p in self.selected_particles)
+        origin_y = min(p.pos.y for p in self.selected_particles)
+        origin = pygame.Vector2(origin_x, origin_y)
+        self.clipboard = {"particles": [], "springs": []}
+        for p in self.selected_particles:
+            data = {
+                "offset": p.pos - origin,
+                "mass": p.mass,
+                "color": p.color,
+                "radius": p.radius,
+                "tag": p.tag,
+                "drag": p.drag,
+                "fixed": p.fixed,
+                "type": "variable" if isinstance(p, VariableParticle) else "particle",
+            }
+            if isinstance(p, VariableParticle):
+                data.update(
+                    {
+                        "base_drag": p.base_drag,
+                        "alt_drag": p.alt_drag,
+                        "key": p.key,
+                        "mode": p.mode,
+                        "change_speed": p.change_speed,
+                        "active": p.active,
+                    }
+                )
+            self.clipboard["particles"].append(data)
+        index = {p: i for i, p in enumerate(self.selected_particles)}
+        for s in self.selected_springs:
+            data = {
+                "p1": index[s.p1],
+                "p2": index[s.p2],
+                "rest_length": s.rest_length,
+                "stiffness": s.stiffness,
+                "max_force": s.max_force,
+                "invisible": s.invisible,
+                "type": "variable" if isinstance(s, VariableSpring) else "spring",
+            }
+            if isinstance(s, VariableSpring):
+                data.update(
+                    {
+                        "base_rest": s.base_rest_length,
+                        "alt_rest": s.alt_rest_length,
+                        "key": s.key,
+                        "mode": s.mode,
+                        "change_speed": s.change_speed,
+                        "active": s.active,
+                    }
+                )
+            self.clipboard["springs"].append(data)
+
+    def paste_selection(self, anchor: pygame.Vector2) -> None:
+        """Paste the clipboard with its top-left anchored at *anchor*."""
+        if not self.clipboard["particles"]:
+            return
+        new_particles: list[Particle] = []
+        for pdata in self.clipboard["particles"]:
+            pos = anchor + pdata["offset"]
+            if pdata["type"] == "variable":
+                p = VariableParticle(
+                    pos,
+                    mass=pdata["mass"],
+                    color=pdata["color"],
+                    radius=pdata["radius"],
+                    base_drag=pdata["base_drag"],
+                    alt_drag=pdata["alt_drag"],
+                    key=pdata["key"],
+                    mode=pdata["mode"],
+                    change_speed=pdata["change_speed"],
+                )
+                p.active = pdata["active"]
+                p.drag = pdata["drag"]
+            else:
+                p = Particle(
+                    pos,
+                    mass=pdata["mass"],
+                    color=pdata["color"],
+                    radius=pdata["radius"],
+                    tag=pdata["tag"],
+                    drag=pdata["drag"],
+                )
+            p.fixed = pdata["fixed"]
+            new_particles.append(p)
+        index_map = {i: p for i, p in enumerate(new_particles)}
+        new_springs: list[Spring] = []
+        for sdata in self.clipboard["springs"]:
+            p1 = index_map[sdata["p1"]]
+            p2 = index_map[sdata["p2"]]
+            if sdata["type"] == "variable":
+                s = VariableSpring(
+                    p1,
+                    p2,
+                    sdata["base_rest"],
+                    sdata["alt_rest"],
+                    sdata["stiffness"],
+                    key=sdata["key"],
+                    mode=sdata["mode"],
+                    change_speed=sdata["change_speed"],
+                    max_force=sdata["max_force"],
+                    invisible=sdata["invisible"],
+                )
+                s.rest_length = sdata["rest_length"]
+                s.active = sdata["active"]
+            else:
+                s = Spring(
+                    p1,
+                    p2,
+                    sdata["rest_length"],
+                    sdata["stiffness"],
+                    sdata["max_force"],
+                    sdata["invisible"],
+                )
+            new_springs.append(s)
+        self.particles.extend(new_particles)
+        self.springs.extend(new_springs)
+        for p in new_particles:
+            if isinstance(p, VariableParticle):
+                self.variable_particles.append(p)
+                self.register_variable_particle(p)
+        for s in new_springs:
+            if isinstance(s, VariableSpring):
+                self.variable_springs.append(s)
+                self.register_variable_spring(s)
+        self.clear_selection()
+        for p in new_particles:
+            p.selected = True
+            self.selected_particles.append(p)
+        for s in new_springs:
+            s.selected = True
+            self.selected_springs.append(s)
+        self.push_undo(lambda parts=new_particles, sprs=new_springs: self.remove_entities(parts, sprs))
+
+    def draw_paste_preview(self) -> None:
+        """Render a faint preview of the clipboard at the cursor."""
+        if not self.pasting or not self.clipboard["particles"]:
+            return
+        anchor = self.screen_to_world(pygame.mouse.get_pos())
+        overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+        col = theme.ACCENT + (80,)
+        for pdata in self.clipboard["particles"]:
+            pos = anchor + pdata["offset"]
+            c = self.world_to_screen(pos)
+            r = int((pdata["radius"] or 5) * self.camera_zoom)
+            pygame.draw.circle(overlay, col, (int(c.x), int(c.y)), r)
+        for sdata in self.clipboard["springs"]:
+            p1 = anchor + self.clipboard["particles"][sdata["p1"]]["offset"]
+            p2 = anchor + self.clipboard["particles"][sdata["p2"]]["offset"]
+            a = self.world_to_screen(p1)
+            b = self.world_to_screen(p2)
+            pygame.draw.line(overlay, col, a, b, 2)
+        self.screen.blit(overlay, (0, 0))
 
     def remove_entities(
         self,
@@ -1116,6 +1274,16 @@ class BuilderApp:
                 if self.ui.handle_event(e):
                     continue
 
+                if self.pasting:
+                    if e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
+                        anchor = self.screen_to_world(e.pos)
+                        self.paste_selection(anchor)
+                        self.pasting = False
+                        continue
+                    if e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
+                        self.pasting = False
+                        continue
+
                 if e.type == pygame.QUIT:
                     running = False
                     continue
@@ -1144,13 +1312,19 @@ class BuilderApp:
                         if mode:
                             self.set_mode(mode)
                         elif e.key == pygame.K_c:
-                            self.choose_color()
+                            if self.selected_particles or self.selected_springs:
+                                self.copy_selection()
+                            else:
+                                self.choose_color()
                         elif e.key == pygame.K_z:
                             self.adjust_mass(-0.1)
                         elif e.key == pygame.K_x:
                             self.adjust_mass(0.1)
                         elif e.key == pygame.K_v:
-                            self.adjust_radius(-1)
+                            if self.clipboard["particles"]:
+                                self.pasting = True
+                            else:
+                                self.adjust_radius(-1)
                         elif e.key == pygame.K_b:
                             self.adjust_radius(1)
                         elif e.key == pygame.K_k:
@@ -1284,6 +1458,7 @@ class BuilderApp:
                 hover_spring=self.hover_spring,
                 hover_bend=self.hover_bend,
             )
+            self.draw_paste_preview()
             if self.selection_rect:
                 pygame.draw.rect(self.screen, theme.ACCENT, self.selection_rect, width=1)
             self.ui.draw()
