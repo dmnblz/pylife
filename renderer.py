@@ -142,6 +142,14 @@ class Renderer:
                 color = (200, 200, 0)
                 self._draw_dashed_line(bs.p1.pos, bs.p2.pos, color, 3)
                 self._draw_dashed_line(bs.p2.pos, bs.p3.pos, color, 3)
+                if getattr(bs, "selected", False):
+                    a = self.world_to_screen(bs.p1.pos)
+                    b = self.world_to_screen(bs.p2.pos)
+                    c = self.world_to_screen(bs.p3.pos)
+                    pygame.draw.line(self.screen, theme.ACCENT, a, b, 6)
+                    pygame.draw.line(self.screen, theme.ACCENT, b, c, 6)
+                    pygame.draw.line(self.screen, (255, 255, 255), a, b, 2)
+                    pygame.draw.line(self.screen, (255, 255, 255), b, c, 2)
 
         # draw particles with culling and simplified effects at high zoom
         for p in particles:

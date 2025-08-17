@@ -51,7 +51,8 @@ class BuilderApp:
         self.selection_rect: pygame.Rect | None = None
         self.selected_particles: list[Particle] = []
         self.selected_springs: list[Spring] = []
-        self.clipboard: dict[str, list] = {"particles": [], "springs": []}
+        self.selected_bends: list[BendingSpring] = []
+        self.clipboard: dict[str, list] = {"particles": [], "springs": [], "bends": []}
         self.pasting = False
         self.spring_first = None
         self.paused = False
@@ -353,32 +354,40 @@ class BuilderApp:
         for s in self.selected_springs:
             if hasattr(s, "selected"):
                 delattr(s, "selected")
+        for b in self.selected_bends:
+            if hasattr(b, "selected"):
+                delattr(b, "selected")
         self.selected_particles.clear()
         self.selected_springs.clear()
+        self.selected_bends.clear()
 
     def delete_selection(self) -> None:
-        """Delete all currently selected particles and springs."""
-        if not self.selected_particles and not self.selected_springs:
+        """Delete all currently selected particles, springs and bends."""
+        if not (self.selected_particles or self.selected_springs or self.selected_bends):
             return
         particles = list(self.selected_particles)
         springs = list(self.selected_springs)
+        bends = list(self.selected_bends)
         for s in self.springs:
             if (s.p1 in particles or s.p2 in particles) and s not in springs:
                 springs.append(s)
-        self.remove_entities(particles, springs)
+        for b in self.bending_springs:
+            if (b.p1 in particles or b.p2 in particles or b.p3 in particles) and b not in bends:
+                bends.append(b)
+        self.remove_entities(particles, springs, bends)
         self.push_undo(
-            lambda parts=particles, sprs=springs: self._restore_entities(parts, sprs)
+            lambda parts=particles, sprs=springs, bds=bends: self._restore_entities(parts, sprs, bds)
         )
         self.clear_selection()
 
     def copy_selection(self) -> None:
-        """Copy selected particles and springs to the clipboard."""
-        if not self.selected_particles and not self.selected_springs:
+        """Copy selected particles, springs and bends to the clipboard."""
+        if not (self.selected_particles or self.selected_springs or self.selected_bends):
             return
         origin_x = min(p.pos.x for p in self.selected_particles)
         origin_y = min(p.pos.y for p in self.selected_particles)
         origin = pygame.Vector2(origin_x, origin_y)
-        self.clipboard = {"particles": [], "springs": []}
+        self.clipboard = {"particles": [], "springs": [], "bends": []}
         for p in self.selected_particles:
             data = {
                 "offset": p.pos - origin,
@@ -425,6 +434,15 @@ class BuilderApp:
                     }
                 )
             self.clipboard["springs"].append(data)
+        for b in self.selected_bends:
+            data = {
+                "p1": index[b.p1],
+                "p2": index[b.p2],
+                "p3": index[b.p3],
+                "angle": b.rest_angle,
+                "stiffness": b.stiffness,
+            }
+            self.clipboard["bends"].append(data)
 
     def paste_selection(self, anchor: pygame.Vector2) -> None:
         """Paste the clipboard with its top-left anchored at *anchor*."""
@@ -460,6 +478,7 @@ class BuilderApp:
             new_particles.append(p)
         index_map = {i: p for i, p in enumerate(new_particles)}
         new_springs: list[Spring] = []
+        new_bends: list[BendingSpring] = []
         for sdata in self.clipboard["springs"]:
             p1 = index_map[sdata["p1"]]
             p2 = index_map[sdata["p2"]]
@@ -488,8 +507,15 @@ class BuilderApp:
                     sdata["invisible"],
                 )
             new_springs.append(s)
+        for bdata in self.clipboard["bends"]:
+            p1 = index_map[bdata["p1"]]
+            p2 = index_map[bdata["p2"]]
+            p3 = index_map[bdata["p3"]]
+            b = BendingSpring(p1, p2, p3, bdata["angle"], bdata["stiffness"])
+            new_bends.append(b)
         self.particles.extend(new_particles)
         self.springs.extend(new_springs)
+        self.bending_springs.extend(new_bends)
         for p in new_particles:
             if isinstance(p, VariableParticle):
                 self.variable_particles.append(p)
@@ -505,7 +531,12 @@ class BuilderApp:
         for s in new_springs:
             s.selected = True
             self.selected_springs.append(s)
-        self.push_undo(lambda parts=new_particles, sprs=new_springs: self.remove_entities(parts, sprs))
+        for b in new_bends:
+            b.selected = True
+            self.selected_bends.append(b)
+        self.push_undo(
+            lambda parts=new_particles, sprs=new_springs, bends=new_bends: self.remove_entities(parts, sprs, bends)
+        )
 
     def draw_paste_preview(self) -> None:
         """Render a faint preview of the clipboard at the cursor."""
@@ -525,6 +556,15 @@ class BuilderApp:
             a = self.world_to_screen(p1)
             b = self.world_to_screen(p2)
             pygame.draw.line(overlay, col, a, b, 2)
+        for bdata in self.clipboard["bends"]:
+            p1 = anchor + self.clipboard["particles"][bdata["p1"]]["offset"]
+            p2 = anchor + self.clipboard["particles"][bdata["p2"]]["offset"]
+            p3 = anchor + self.clipboard["particles"][bdata["p3"]]["offset"]
+            a = self.world_to_screen(p1)
+            b = self.world_to_screen(p2)
+            c = self.world_to_screen(p3)
+            pygame.draw.line(overlay, col, a, b, 1)
+            pygame.draw.line(overlay, col, b, c, 1)
         self.screen.blit(overlay, (0, 0))
 
     def remove_entities(
@@ -629,11 +669,16 @@ class BuilderApp:
             self.register_variable_spring(s)
 
     def _restore_entities(
-        self, particles: list[Particle], springs: list[Spring]
+        self,
+        particles: list[Particle],
+        springs: list[Spring],
+        bends: list[BendingSpring] | None = None,
     ) -> None:
-        """Reinsert collections of particles and springs."""
+        """Reinsert collections of particles, springs and bends."""
         self.particles.extend(particles)
         self.springs.extend(springs)
+        if bends:
+            self.bending_springs.extend(bends)
         for p in particles:
             if isinstance(p, VariableParticle):
                 self.variable_particles.append(p)
@@ -927,7 +972,7 @@ class BuilderApp:
 
     # ------------------------------------------------------------------ mode handlers
     def handle_select_event(self, event: pygame.event.Event):
-        """Handle rectangle selection of particles and springs."""
+        """Handle rectangle selection of particles, springs and bends."""
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] >= self.screen.get_width() - self.ui.visible_width():
                 return
@@ -958,6 +1003,14 @@ class BuilderApp:
                 ):
                     s.selected = True
                     self.selected_springs.append(s)
+            for b in self.bending_springs:
+                if (
+                    world_rect.collidepoint(b.p1.pos.x, b.p1.pos.y)
+                    and world_rect.collidepoint(b.p2.pos.x, b.p2.pos.y)
+                    and world_rect.collidepoint(b.p3.pos.x, b.p3.pos.y)
+                ):
+                    b.selected = True
+                    self.selected_bends.append(b)
             self.selection_rect = None
             self.selection_start = None
 
@@ -1290,7 +1343,7 @@ class BuilderApp:
 
                 elif e.type == pygame.KEYDOWN:
                     if e.key in (pygame.K_BACKSPACE, pygame.K_DELETE):
-                        if self.selected_particles or self.selected_springs:
+                        if self.selected_particles or self.selected_springs or self.selected_bends:
                             self.delete_selection()
                         else:
                             self.set_mode("delete")
@@ -1312,7 +1365,7 @@ class BuilderApp:
                         if mode:
                             self.set_mode(mode)
                         elif e.key == pygame.K_c:
-                            if self.selected_particles or self.selected_springs:
+                            if self.selected_particles or self.selected_springs or self.selected_bends:
                                 self.copy_selection()
                             else:
                                 self.choose_color()
