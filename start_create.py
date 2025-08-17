@@ -82,6 +82,7 @@ class BuilderApp:
             repulsion_strength=self.environment.repulsion_strength,
             temperature=self.environment.temperature,
             damping_coeff=self.environment.damping,
+            collisions_enabled=self.environment.collisions,
         )
         # Use a fixed timestep with substeps for stability across variable framerates
         self.physics.set_fixed_timestep(1.0 / FPS, substeps=2)
@@ -847,6 +848,8 @@ class BuilderApp:
                 "repulsion_strength": self.physics.repulsion_strength,
                 "temperature": self.physics.temperature,
                 "damping_coeff": self.physics.damping_coeff,
+                "collisions": self.physics.collisions_enabled,
+                "collision_elasticity": self.physics.collision_elasticity,
             },
         }
 
@@ -967,6 +970,9 @@ class BuilderApp:
         self.environment.temperature = self.physics.temperature
         self.physics.damping_coeff = phys.get("damping_coeff", 1)
         self.environment.damping = self.physics.damping_coeff
+        self.physics.collisions_enabled = phys.get("collisions", True)
+        self.environment.collisions = self.physics.collisions_enabled
+        self.physics.collision_elasticity = phys.get("collision_elasticity", 1.0)
 
         # refresh physics engine references so loaded objects are simulated
         self.physics.particles = self.particles

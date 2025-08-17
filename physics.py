@@ -37,9 +37,24 @@ class PhysicsEngine:
         Scales the Brownian noise applied to particles.
     damping_coeff:
         Coefficient for viscous drag and the Brownian noise variance.
+    collisions_enabled:
+        If ``True`` (default) resolve overlapping particles after integration.
+    collision_elasticity:
+        Coefficient ``e`` (0–1) controlling bounce when resolving collisions.
     """
-    def __init__(self, particles: list[Particle], springs: list[Spring], bending_springs: list[BendingSpring]=None, gravity=(0, 0), repulsion_radius=20,
-                 repulsion_strength=100, temperature=1.0, damping_coeff=1.0):
+    def __init__(
+        self,
+        particles: list[Particle],
+        springs: list[Spring],
+        bending_springs: list[BendingSpring] = None,
+        gravity=(0, 0),
+        repulsion_radius=20,
+        repulsion_strength=100,
+        temperature=1.0,
+        damping_coeff=1.0,
+        collisions_enabled: bool = True,
+        collision_elasticity: float = 1.0,
+    ):
         self.particles = particles
         self.springs = springs
         self.bending_springs = bending_springs
@@ -48,6 +63,8 @@ class PhysicsEngine:
         self.repulsion_strength = repulsion_strength
         self.temperature = temperature
         self.damping_coeff = damping_coeff
+        self.collisions_enabled = bool(collisions_enabled)
+        self.collision_elasticity = float(collision_elasticity)
         # Updated dynamically by the app when the window resizes
         self._screen_size: tuple[int, int] | None = None
         # Optional world-space playable area used for boundary proximity
@@ -198,6 +215,8 @@ class PhysicsEngine:
         # integrate motion
         for p in self.particles:
             p.integrate(dt, damping=0.98)
+        # resolve direct particle collisions
+        self._resolve_collisions()
         # apply wall friction
         for p in self.particles:
             if getattr(p, "near_boundary", False):
@@ -291,3 +310,98 @@ class PhysicsEngine:
                         force = direction * force_magnitude
                         p1.apply_force(-force)
                         p2.apply_force(force)
+
+    def _resolve_collisions(self) -> None:
+        """Separate overlapping particles and apply optional bounce."""
+
+        if not self.collisions_enabled or len(self.particles) < 2:
+            return
+
+        # choose iteration strategy
+        if self._use_spatial_hash and self.repulsion_radius > 0:
+            self._build_repulsion_buckets()
+            bs = self._repulsion_bucket_size
+            buckets = self._repulsion_buckets
+            neighbor_offsets = (
+                (-1, -1), (-1, 0), (-1, 1),
+                (0, -1),  (0, 0),  (0, 1),
+                (1, -1),  (1, 0),  (1, 1),
+            )
+            pairs: list[tuple[int, int]] = []
+            for i, p1 in enumerate(self.particles):
+                cx = int(math.floor(p1.pos.x / bs))
+                cy = int(math.floor(p1.pos.y / bs))
+                for dx, dy in neighbor_offsets:
+                    lst = buckets.get((cx + dx, cy + dy))
+                    if not lst:
+                        continue
+                    for j in lst:
+                        if j > i:
+                            pairs.append((i, j))
+        else:
+            pairs = [
+                (i, j)
+                for i in range(len(self.particles))
+                for j in range(i + 1, len(self.particles))
+            ]
+
+        e = max(0.0, float(self.collision_elasticity))
+
+        for i, j in pairs:
+            p1 = self.particles[i]
+            p2 = self.particles[j]
+            r1 = getattr(p1, "radius", 0) or 0
+            r2 = getattr(p2, "radius", 0) or 0
+            if r1 <= 0 and r2 <= 0:
+                continue
+            delta = p2.pos - p1.pos
+            dist = delta.length()
+            min_dist = r1 + r2
+            if dist >= min_dist or min_dist <= 0:
+                continue
+            if dist == 0:
+                delta = pygame.Vector2(1, 0)
+                dist = 1
+            n = delta / dist
+            overlap = min_dist - dist
+
+            if p1.fixed and p2.fixed:
+                continue
+            elif p1.fixed:
+                move2 = n * overlap
+                p2.pos += move2
+                p2.prev_pos += move2
+            elif p2.fixed:
+                move1 = -n * overlap
+                p1.pos += move1
+                p1.prev_pos += move1
+            else:
+                total_mass = p1.mass + p2.mass
+                move1 = -n * overlap * (p2.mass / total_mass)
+                move2 = n * overlap * (p1.mass / total_mass)
+                p1.pos += move1
+                p2.pos += move2
+                p1.prev_pos += move1
+                p2.prev_pos += move2
+
+            if e <= 0:
+                continue
+
+            v1 = p1.pos - p1.prev_pos
+            v2 = p2.pos - p2.prev_pos
+            rel = v1 - v2
+            rel_norm = rel.dot(n)
+            if rel_norm <= 0:
+                continue
+            inv1 = 0.0 if p1.fixed else 1.0 / p1.mass
+            inv2 = 0.0 if p2.fixed else 1.0 / p2.mass
+            denom = inv1 + inv2
+            if denom == 0:
+                continue
+            j_imp = (1 + e) * rel_norm / denom
+            if not p1.fixed:
+                v1 -= j_imp * inv1 * n
+                p1.prev_pos = p1.pos - v1
+            if not p2.fixed:
+                v2 += j_imp * inv2 * n
+                p2.prev_pos = p2.pos - v2

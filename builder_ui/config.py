@@ -106,6 +106,8 @@ class EnvironmentParams:
         Brownian motion intensity.
     damping:
         Coefficient for viscous damping.
+    collisions:
+        Toggle for particle-particle collision handling.
     """
 
     gravity: pygame.Vector2 = field(default_factory=lambda: pygame.Vector2(0, 0))
@@ -113,6 +115,7 @@ class EnvironmentParams:
     repulsion_strength: float = 1000.0
     temperature: float = 0.0
     damping: float = 1.0
+    collisions: bool = True
 
 
 __all__ = [
