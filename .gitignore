@@ -19,5 +19,5 @@ dist/
 *.spec
 
 # IDE
-.idea/          # or remove this line if you want to commit IDE project files
+.idea/
 .vscode/
