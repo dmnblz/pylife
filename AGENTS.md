@@ -81,7 +81,7 @@ graph TD
 
 ### PhysicsEngine.update(dt)
 
-- Applies: gravity; spring forces; bending forces; O(n^2) short‑range repulsion; viscous drag scaled by per‑particle `drag`; Brownian random force; Verlet integration; increased friction near boundaries based on either window size or a configured play area.
+- Applies: gravity; spring forces; bending forces; O(n^2) short‑range repulsion; radius‑based collision resolution with optional restitution; viscous drag scaled by per‑particle `drag`; Brownian random force; Verlet integration; increased friction near boundaries based on either window size or a configured play area.
 
 ---
 
@@ -117,7 +117,7 @@ graph TD
 - Arm: Attach `HookArm` to a base particle; control segments, spacing, mass, radius, stiffness, cycle speed, colors, adhesion factor, cycle key.
 - Inspect: Click an existing particle, spring, or bend to edit properties in place; convert between normal/variable spring/particle types; toggle spring visibility; set `max_force` (0 means unlimited/None).
 - Grid: Toggle overlay and spacing; new placements snap to intersections. `snap_to_grid` leaves aligned coords unchanged.
-- Env: Adjust gravity, repulsion radius/strength, damping, temperature.
+- Env: Adjust gravity, repulsion radius/strength, damping, temperature, toggle collisions.
 
 ### Undo and deletion
 

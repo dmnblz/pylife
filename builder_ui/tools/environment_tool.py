@@ -83,6 +83,17 @@ class EnvironmentTool(Tool):
             y,
             width,
         )
+        y += 40
+        self.coll_field = SliderField(
+            "Collide",
+            0,
+            1,
+            lambda: 1 if self.app.environment.collisions else 0,
+            self._set_collisions,
+            x,
+            y,
+            width,
+        )
 
     # ---------------- value setters
     def _set_gravity_x(self, value: float):
@@ -119,6 +130,12 @@ class EnvironmentTool(Tool):
         self.app.environment.temperature = val
         self.app.physics.temperature = val
 
+    def _set_collisions(self, value: float):
+        """Enable or disable particle collisions."""
+        enabled = value >= 0.5
+        self.app.environment.collisions = enabled
+        self.app.physics.collisions_enabled = enabled
+
     # ---------------- drawing
     def draw_ui(self, offset: int = 0):
         """Render sliders for environment parameters."""
@@ -130,6 +147,7 @@ class EnvironmentTool(Tool):
         self.rep_str_field.draw(self.sidebar.screen, offset)
         self.damp_field.draw(self.sidebar.screen, offset)
         self.temp_field.draw(self.sidebar.screen, offset)
+        self.coll_field.draw(self.sidebar.screen, offset)
 
     # ---------------- event handling
     def handle_event(self, event, offset: int = 0):
@@ -147,5 +165,7 @@ class EnvironmentTool(Tool):
         if self.damp_field.handle_event(event, offset):
             return True
         if self.temp_field.handle_event(event, offset):
+            return True
+        if self.coll_field.handle_event(event, offset):
             return True
         return False
