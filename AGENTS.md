@@ -8,7 +8,7 @@ This document is the definitive guide for future agents working on this codebase
 
 Pylife is a compact 2D soft‑body sandbox using pygame. It simulates point‑mass particles connected by linear and angular constraints and includes:
 
-- An interactive builder (`start_create.py`) with a sidebar of tools to create/edit particles, springs, bending springs, rods, circles, and flexible hook arms; adjust environment; save/load; undo; and use a grid for snapping.
+- An interactive builder (`start_create.py`) with a sidebar of tools to create/edit particles, springs, bending springs, rods, circles, and flexible hook arms; select multiple objects; adjust environment; save/load; undo; and use a grid for snapping.
 - A set of demo scenes (`start_*.py`) showcasing common configurations.
 - A small, readable physics/rendering core designed to be extended.
 
@@ -99,6 +99,7 @@ graph TD
 
 - Number keys select tools (shown on buttons):
   - 1 Drag, 2 Particle, 3 Spring, 4 Bend, 5 Circle, 6 Rod, 7 Arm, 8 Inspect, 9 Grid, 0 Env
+  - S Select
 - Other controls:
   - C color picker; Z/X mass −/+; V/B radius −/+; K/L stiffness −/+; N/M temperature −/+; P pause/resume
   - Backspace/Delete Delete tool
@@ -107,6 +108,7 @@ graph TD
 ### Tools (sidebar)
 
 - Drag: Grab/release nearest particle.
+- Select: Drag a rectangle to highlight particles and springs.
 - Particle / VarPar: Place new particles; variable particles can toggle to a second drag value under a key (hold/toggle modes).
 - Spring / VarSpr: Connect nearest pairs; variable springs switch between base and alternate rest lengths under a key (hold/toggle modes).
 - Bend: Select 3 particles; angle can be manual or auto from current geometry.
