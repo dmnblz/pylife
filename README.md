@@ -4,8 +4,8 @@ Pylife is a small collection of Python scripts for experimenting with 2D physics
 
 ## Features
 
-* **Interactive builder** – `start_create.py` opens a window where you can drag particles, connect them with springs and spawn predefined structures. A sidebar UI contains sliders to tweak parameters such as mass, radius, collision elasticity, spring stiffness and various environment settings like temperature, gravity, repulsion, damping and collision toggling. Tools exist for circles, rods, bending springs, flexible hook arms and an inspect mode for tweaking existing particles, springs and bends. A Select tool can highlight multiple particles, springs, bending springs and hook arms via a drag rectangle; press Backspace/Delete to remove the highlighted items or **C**/**V** to copy and paste them. Circles and rods now have per-shape stiffness sliders and an option to add bending springs along their outline. Bending springs may use the current angle of the selected particles or a manual value. Arm creation now exposes mass, radius, colour, adhesion settings and cycle speed per arm. Particle, spring and environment controls each have their own button in the sidebar. Sidebar and menu buttons darken when clicked, highlight active tools or toggles and the sidebar scrolls with the mouse wheel but stops at the list bounds. The builder can also save or load the entire scene using sidebar buttons, and an **Undo** button reverts the most recent change. Undo operations now keep springs and bending springs functional thanks to a unified `remove_entities` helper. Variable springs offer two rest lengths switched by a user-defined key in hold or toggle mode, and save files retain their parameters and key bindings. A dedicated **Grid** tool toggles a grid overlay and lets you adjust its spacing; newly created particles snap to grid intersections while it is enabled. Snapping uses a `snap_to_grid` helper that leaves already aligned positions untouched. Internally, these options are grouped into small dataclasses for particles, springs and the environment, simplifying updates.
-Number keys **1–0** switch between the first ten sidebar tools in order and each button displays its shortcut. The Select tool is accessed with **S**. Internally, the builder now dispatches mouse and keyboard input through per‑mode handlers which are looked up from a small dictionary, simplifying the event logic. The delete tool now removes springs without crashing, inspecting springs no longer triggers errors, and converting springs between normal and variable types is stable.
+* **Interactive builder** – `start_create.py` opens a window where you can drag particles, connect them with springs and spawn predefined structures. A sidebar UI contains sliders to tweak parameters such as mass, radius, collision elasticity, spring stiffness and various environment settings like temperature, gravity, repulsion, damping and collision toggling. Tools exist for circles, rods, bending springs, flexible hook arms and an inspect mode for tweaking existing particles, springs and bends. A Select tool can highlight multiple particles, springs, bending springs and hook arms via a drag rectangle; press Backspace/Delete to remove the highlighted items or **Ctrl+C**/**Ctrl+V** to copy and paste them. Circles and rods now have per-shape stiffness sliders and an option to add bending springs along their outline. Bending springs may use the current angle of the selected particles or a manual value. Arm creation now exposes mass, radius, colour, adhesion settings and cycle speed per arm. Particle, spring and environment controls each have their own button in the sidebar. Sidebar and menu buttons darken when clicked, highlight active tools or toggles and the sidebar scrolls with the mouse wheel but stops at the list bounds. The builder can also save or load the entire scene using sidebar buttons, and an **Undo** button reverts the most recent change. Undo operations now keep springs and bending springs functional thanks to a unified `remove_entities` helper. Variable springs offer two rest lengths switched by a user-defined key in hold or toggle mode, and save files retain their parameters and key bindings. A dedicated **Grid** tool toggles a grid overlay and lets you adjust its spacing; newly created particles snap to grid intersections while it is enabled. Snapping uses a `snap_to_grid` helper that leaves already aligned positions untouched. Internally, these options are grouped into small dataclasses for particles, springs and the environment, simplifying updates.
+Number keys **1–0** switch between the first ten sidebar tools in order and each button displays its shortcut. The Select tool is accessed with **Ctrl+S**. Internally, the builder now dispatches mouse and keyboard input through per‑mode handlers which are looked up from a small dictionary, simplifying the event logic. The delete tool now removes springs without crashing, inspecting springs no longer triggers errors, and converting springs between normal and variable types is stable.
 * **Demo scenes** – other `start_*.py` files showcase different preset configurations (e.g. cell walls, rods or gradient walls).  They are good starting points for custom experiments.
 * **Modular codebase** – the core simulation is split into small modules:
   * `particle.py` – a point mass implemented with Verlet integration.
@@ -66,28 +66,24 @@ python start_create.py
 Mouse and keyboard controls allow you to switch modes and modify properties:
 
 * **1** – drag existing particles
-* **S** – select multiple particles or springs with a rectangle
+* **Ctrl+S** – select multiple particles or springs with a rectangle
 * **2** – place new particles
 * Use the **VarPar** button to create a particle with a controllable drag
   multiplier
 * **3** – connect two particles with a spring
 * Use the **VarSpr** button to link particles with a spring that can expand or
   contract when a chosen key is pressed
-* **4** – delete the particle or spring under the cursor
+* **4** – create a bending spring from three particles
+* **5** – draw a circle of particles and springs
+* **6** – create rod structures
+* **7** – attach a hook arm to a particle
+* **8** – inspect an existing particle, spring or bending spring
+* **9** – toggle a grid overlay and adjust its spacing
+* **0** – adjust environment settings (temperature, gravity, repulsion, damping and collisions)
 * **Backspace/Delete** – remove selected particles, springs, bends and hook arms or switch to the Delete tool when nothing is selected
-* **5** – create rod structures
-* **6** – attach a hook arm to a particle
-* **7** – inspect an existing particle, spring or bending spring
-* **8** – adjust environment settings (temperature, gravity, repulsion, damping and collisions)
-* **9** – create a bending spring from three particles
-* **C** – copy selected particles, springs, bends and hook arms or choose a colour for new particles when nothing is selected
-* **Z/X** – decrease/increase particle mass
-* **V** – paste a copied selection (including hook arms) or decrease particle radius when no copy exists
-* **B** – increase particle radius
-* **K/L** – decrease/increase spring stiffness
-* **N/M** – decrease/increase simulation temperature
-* **P** – pause or resume the physics update
-* Use the **Grid** button in the sidebar to toggle a grid overlay and adjust its spacing. While active, new particles snap to the grid.
+* **Ctrl+C** – copy selected particles, springs, bends and hook arms
+* **Ctrl+V** – paste a copied selection, including hook arms
+* **Space** – pause or resume the physics update
 * Use the **Save** and **Load** buttons in the sidebar to export or import the
   current scene as a JSON file. Loaded scenes automatically resume simulation.
 * Hit **Undo** in the sidebar to revert the most recent addition or deletion.

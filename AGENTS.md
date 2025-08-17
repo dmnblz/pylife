@@ -99,16 +99,18 @@ graph TD
 
 - Number keys select tools (shown on buttons):
   - 1 Drag, 2 Particle, 3 Spring, 4 Bend, 5 Circle, 6 Rod, 7 Arm, 8 Inspect, 9 Grid, 0 Env
-  - S Select
-- Other controls:
-  - C copy selection of particles, springs, bends and hook arms or open color picker; Z/X mass −/+; V paste selection or radius −; B radius +; K/L stiffness −/+; N/M temperature −/+; P pause/resume
+Other controls:
+  - Ctrl+S Select tool
+  - Ctrl+C copy selection of particles, springs, bends and hook arms
+  - Ctrl+V paste selection
+  - Space pause/resume
   - Backspace/Delete delete selection (particles, springs, bends, hook arms) or switch to Delete tool
   - Sidebar: Save, Load, Undo buttons; mouse‑wheel scroll within sidebar
 
 ### Tools (sidebar)
 
 - Drag: Grab/release nearest particle.
-- Select: Drag a rectangle to highlight particles, springs, bends and hook arms; Backspace/Delete removes the selection, C copies it and V pastes it.
+- Select: Drag a rectangle to highlight particles, springs, bends and hook arms; Backspace/Delete removes the selection, Ctrl+C copies it and Ctrl+V pastes it.
 - Particle / VarPar: Place new particles; variable particles can toggle to a second drag value under a key (hold/toggle modes).
 - Spring / VarSpr: Connect nearest pairs; variable springs switch between base and alternate rest lengths under a key (hold/toggle modes).
 - Bend: Select 3 particles; angle can be manual or auto from current geometry.
