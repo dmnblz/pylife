@@ -270,12 +270,15 @@ class BuilderApp:
         dist = mv.length()
         if dist == 0:
             return float("inf")
-        angle = math.atan2(v1.cross(v2), v1.dot(v2))
+        cross12 = -v1.cross(v2)
+        angle = math.atan2(cross12, v1.dot(v2))
+        cross1m = -v1.cross(mv)
+        crossm2 = -mv.cross(v2)
         if angle >= 0:
-            if v1.cross(mv) < 0 or mv.cross(v2) < 0:
+            if cross1m < 0 or crossm2 < 0:
                 return float("inf")
         else:
-            if v1.cross(mv) > 0 or mv.cross(v2) > 0:
+            if cross1m > 0 or crossm2 > 0:
                 return float("inf")
         return abs(dist - radius)
 

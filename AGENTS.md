@@ -78,7 +78,7 @@ graph TD
 ### Bending springs
 
 - Maintain a rest angle at the middle particle; apply torque‑like corrective forces around the vertex.
-- Renderer draws a small arc inside the bend between the two segments showing direction; the arc highlights on hover and is clickable for selection.
+- Renderer draws a small arc inside the bend between the two segments showing direction; the arc highlights on hover and is clickable for selection. Angle calculations invert the screen y-axis so vertical bends orient correctly.
 
 ### PhysicsEngine.update(dt)
 
