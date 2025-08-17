@@ -145,6 +145,8 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 - `arms`: list of
   - `particles` (indices), `springs` (indices into global springs), `rest_lengths`, `max_lengths`, `cycle_speed`, `color`, `high_color`, `adhesion` (mass factor), `orig_mass`, `adhesion_drag`, `orig_drag`, `cycle_key`
 - `physics`: `{ gravity: [gx, gy], repulsion_radius, repulsion_strength, temperature, damping_coeff, collisions, collision_elasticity, collision_bucket_size, trails_enabled, trail_length }`
+  Older save files may omit `trails_enabled` and `trail_length`; they default
+  to `false` and `40` on load.
 
 ### Example
 
