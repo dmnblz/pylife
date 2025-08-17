@@ -1,4 +1,5 @@
-# renderer.py
+"""World renderer with camera transforms and drawing helpers."""
+
 import pygame
 from pygame import gfxdraw
 from builder_ui import theme

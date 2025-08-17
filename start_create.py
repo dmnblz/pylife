@@ -1,3 +1,5 @@
+"""Interactive builder for creating and editing particles and constraints."""
+
 import pygame
 import math
 from typing import Callable, Iterable

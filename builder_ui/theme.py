@@ -1,7 +1,6 @@
-from __future__ import annotations
+"""Theme token definitions with runtime switchable dark and light palettes."""
 
-# Multiple theme support. We expose module-level tokens that can be switched
-# at runtime via set_theme().
+from __future__ import annotations
 
 THEMES: dict[str, dict[str, tuple[int, int, int] | int]] = {
     "dark": {

@@ -1,4 +1,5 @@
-# spring.py
+"""Linear spring obeying Hooke's law with optional break force."""
+
 import pygame
 from particle import Particle
 
