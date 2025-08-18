@@ -25,6 +25,7 @@ class InspectTool(Tool):
         self.particle = None
         self.spring = None
         self.bend = None
+        self.choose_trigger = False
 
         x = sidebar.screen.get_width() - sidebar.WIDTH + 10
         width = sidebar.WIDTH - 20
@@ -62,6 +63,14 @@ class InspectTool(Tool):
         y += 40
         self.sense_dir_field = SliderField(
             "S Dir", 0, 360, self._get_sense_dir, self._set_sense_dir, x, y, width
+        )
+        y += 40
+        self.trigger_btn = ButtonField(
+            lambda: f"Trigger: {self._trigger_label()}",
+            self._start_choose_trigger,
+            x,
+            y,
+            width,
         )
         y += 40
         self.alt_drag_field = SliderField(
@@ -313,6 +322,14 @@ class InspectTool(Tool):
         if isinstance(self.particle, SensorParticle):
             self.particle.forward = pygame.Vector2(1, 0).rotate(value)
 
+    def _trigger_label(self) -> str:
+        if isinstance(self.particle, SensorParticle) and self.particle.trigger in self.app.particles:
+            return str(self.app.particles.index(self.particle.trigger))
+        return "-"
+
+    def _start_choose_trigger(self) -> None:
+        self.choose_trigger = True
+
     def _get_alt_drag(self) -> float:
         """Return alternate drag for variable particles."""
         if isinstance(self.particle, VariableParticle):
@@ -405,6 +422,8 @@ class InspectTool(Tool):
             y += 40
             self.sense_dir_field.slider_rect.y = y + 18
             self.sense_dir_field.box_rect.y = y + 10
+            y += 40
+            self.trigger_btn.rect.y = y
             y += 40
         if isinstance(self.particle, VariableParticle):
             self.alt_drag_field.slider_rect.y = y + 18
@@ -706,6 +725,7 @@ class InspectTool(Tool):
                 self.sense_radius_field.draw(self.sidebar.screen, offset)
                 self.sense_angle_field.draw(self.sidebar.screen, offset)
                 self.sense_dir_field.draw(self.sidebar.screen, offset)
+                self.trigger_btn.draw(self.sidebar.screen, offset)
             if isinstance(self.particle, VariableParticle):
                 self.alt_drag_field.draw(self.sidebar.screen, offset)
                 self.vspeed_field.draw(self.sidebar.screen, offset)
@@ -790,6 +810,15 @@ class InspectTool(Tool):
         """Process selection and slider events."""
         if not super().handle_event(event, offset):
             return False
+        if self.choose_trigger and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
+                if self.app.particles and isinstance(self.particle, SensorParticle):
+                    mouse = self.app.screen_to_world(event.pos)
+                    p = min(self.app.particles, key=lambda q: (q.pos - mouse).length())
+                    self.particle.trigger = p
+                    self.particle.add_callback(lambda s, o: print("Sensor triggered"))
+            self.choose_trigger = False
+            return True
         if self.particle:
             self._layout_particle_fields()
             if self.color_field.handle_event(event, offset):
@@ -808,6 +837,8 @@ class InspectTool(Tool):
                 if self.sense_angle_field.handle_event(event, offset):
                     return True
                 if self.sense_dir_field.handle_event(event, offset):
+                    return True
+                if self.trigger_btn.handle_event(event, offset):
                     return True
             if isinstance(self.particle, VariableParticle):
                 if self.alt_drag_field.handle_event(event, offset):

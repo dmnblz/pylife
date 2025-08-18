@@ -25,6 +25,8 @@ class SensorParticle(Particle):
         Half of the field of view in radians. ``math.pi`` covers a full circle.
     tags:
         Optional set of strings limiting which objects trigger the sensor.
+    trigger:
+        Particle that can activate this sensor when within range.
     """
 
     def __init__(
@@ -35,6 +37,7 @@ class SensorParticle(Particle):
         sense_radius: float = 1.0,
         half_angle: float = math.pi,
         tags: Optional[Iterable[str]] = None,
+        trigger: Particle | None = None,
         mass: float = 1.0,
         color=None,
         radius: float | None = None,
@@ -58,6 +61,7 @@ class SensorParticle(Particle):
         self.half_angle = float(half_angle)
         self.tags = set(tags) if tags else set()
         self.callbacks: list[Callable[["SensorParticle", object], None]] = []
+        self.trigger: Particle | None = trigger
 
     def add_callback(self, fn: Callable[["SensorParticle", object], None]) -> None:
         """Register a function called with ``(sensor, obj)`` when triggered."""
