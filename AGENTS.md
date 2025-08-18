@@ -8,7 +8,7 @@ This document is the definitive guide for future agents working on this codebase
 
 Pylife is a compact 2D soft‑body sandbox using pygame. It simulates point‑mass particles connected by linear and angular constraints and includes:
 
-- An interactive builder (`start_create.py`) with a sidebar of tools to create/edit particles, springs, bending springs, rods, circles, flexible hook arms and sensor particles. The Sensor tool exposes range, half-angle, direction and colour sliders and spawns yellow sensors by default. Inspect existing particles, springs, bends and sensors; select multiple objects; adjust environment; save/load; undo; and use a grid for snapping.
+- An interactive builder (`start_create.py`) with a sidebar of tools to create/edit particles, springs, bending springs, rods, circles, flexible hook arms and sensor particles. The Sensor tool exposes range, half-angle, direction and colour sliders so sensors can be fully configured before placement, spawning yellow sensors by default. Inspect existing particles, springs, bends and sensors; select multiple objects; adjust environment; save/load; undo; and use a grid for snapping.
 - A set of demo scenes (`start_*.py`) showcasing common configurations.
 - A small, readable physics/rendering core designed to be extended.
 
