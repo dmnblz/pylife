@@ -1755,6 +1755,9 @@ class BuilderApp:
                     p.update(dt)
                 for b in self.variable_bending_springs:
                     b.update(dt)
+            for s in self.sensors:
+                if s.trigger:
+                    s.check(s.trigger)
 
             # keep particles inside the world play area (independent of screen size)
             left, top, width, height = self.play_area

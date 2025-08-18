@@ -5,7 +5,7 @@ import pygame
 
 from sensor_particle import SensorParticle
 
-from ..fields import SliderField
+from ..fields import SliderField, ButtonField
 from .particle_tool import ParticleTool
 from .base import Tool
 
@@ -50,6 +50,15 @@ class SensorTool(ParticleTool):
             y,
             width,
         )
+        y += 40
+        self.trigger_btn = ButtonField(
+            lambda: f"Trigger: {self._trigger_label()}",
+            self._start_choose_trigger,
+            x,
+            y,
+            width,
+        )
+        self.await_trigger = False
 
     def draw_ui(self, offset: int = 0) -> None:
         """Render sensor configuration sliders."""
@@ -59,6 +68,7 @@ class SensorTool(ParticleTool):
         self.range_field.draw(self.sidebar.screen, offset)
         self.angle_field.draw(self.sidebar.screen, offset)
         self.dir_field.draw(self.sidebar.screen, offset)
+        self.trigger_btn.draw(self.sidebar.screen, offset)
 
     def handle_event(self, event, offset: int = 0) -> bool:
         if not Tool.handle_event(self, event, offset):
@@ -77,6 +87,16 @@ class SensorTool(ParticleTool):
             return True
         if self.dir_field.handle_event(event, offset):
             return True
+        if self.trigger_btn.handle_event(event, offset):
+            return True
+        if self.await_trigger and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
+                if self.app.particles:
+                    mouse = self.sidebar.app.screen_to_world(event.pos)
+                    p = min(self.app.particles, key=lambda q: (q.pos - mouse).length())
+                    self.app.sensor.trigger = p
+            self.await_trigger = False
+            return True
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
                 world = self.sidebar.app.screen_to_world(event.pos)
@@ -91,7 +111,10 @@ class SensorTool(ParticleTool):
                     radius=self.app.sensor.particle_radius,
                     elasticity=self.app.sensor.elasticity,
                     trail_length=self.app.environment.trail_length,
+                    trigger=self.app.sensor.trigger,
                 )
+                if sensor.trigger:
+                    sensor.add_callback(lambda s, o: print("Sensor triggered"))
                 self.app.particles.append(sensor)
                 self.app.sensors.append(sensor)
                 self.app.push_undo(
@@ -117,6 +140,15 @@ class SensorTool(ParticleTool):
 
     def _set_dir(self, value: float) -> None:
         self.app.sensor.direction_deg = value % 360
+
+    def _trigger_label(self) -> str:
+        t = self.app.sensor.trigger
+        if t and t in self.app.particles:
+            return str(self.app.particles.index(t))
+        return "-"
+
+    def _start_choose_trigger(self) -> None:
+        self.await_trigger = True
 
     # override particle parameter accessors to use sensor defaults
 

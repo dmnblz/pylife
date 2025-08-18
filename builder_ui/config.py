@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import pygame
+from particle import Particle
 
 
 @dataclass
@@ -150,6 +151,8 @@ class SensorParams:
         Half of the field of view in degrees. ``180`` covers a full circle.
     direction_deg:
         Direction the sensor faces in degrees.
+    trigger:
+        Particle selected to trigger the sensor when within range.
     """
 
     mass: float = 1.0
@@ -159,6 +162,7 @@ class SensorParams:
     sense_radius: float = 50.0
     half_angle_deg: float = 180.0
     direction_deg: float = 0.0
+    trigger: Particle | None = None
 
 
 @dataclass
