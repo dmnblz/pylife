@@ -138,6 +138,42 @@ class InspectTool(Tool):
             "B Stiff", 10, 1000, self._get_bstiff, self._set_bstiff, x, y, width
         )
 
+    def get_hover_lines(self, obj) -> list[str]:
+        """Return sidebar-formatted property lines for ``obj``.
+
+        The labels mirror the short field names used in the sidebar so the
+        tooltip feels consistent with the inspect UI.
+        """
+        lines: list[str] = []
+        if isinstance(obj, Particle):
+            lines.append(f"P Mass: {obj.mass:.2f}")
+            lines.append(f"P Radius: {obj.radius:.0f}")
+            lines.append(f"P Elast: {obj.elasticity:.2f}")
+            lines.append(f"P Drag: {obj.drag:.2f}")
+            if isinstance(obj, VariableParticle):
+                lines.append(f"V Drag: {obj.alt_drag:.2f}")
+                lines.append(f"V Speed: {obj.change_speed:.0f}")
+                key = pygame.key.name(obj.key) if obj.key else "-"
+                lines.append(f"V Key: {key}")
+                lines.append(f"Mode: {obj.mode}")
+        elif isinstance(obj, Spring):
+            rest = obj.base_rest_length if isinstance(obj, VariableSpring) else obj.rest_length
+            lines.append(f"S Rest: {rest:.1f}")
+            lines.append(f"S Stiff: {obj.stiffness:.1f}")
+            if obj.max_force is not None:
+                lines.append(f"S MaxF: {obj.max_force:.1f}")
+            if isinstance(obj, VariableSpring):
+                lines.append(f"V Rest2: {obj.alt_rest_length:.1f}")
+                lines.append(f"V Speed: {obj.change_speed:.1f}")
+                key = pygame.key.name(obj.key) if obj.key else "-"
+                lines.append(f"V Key: {key}")
+                lines.append(f"Mode: {obj.mode}")
+        else:
+            # treat as bend
+            lines.append(f"B Angle: {math.degrees(obj.rest_angle):.1f}°")
+            lines.append(f"B Stiff: {obj.stiffness:.1f}")
+        return lines
+
     # ---------------- helpers
     def _get_color(self) -> tuple[int, int, int]:
         """Return the selected particle colour or white."""
