@@ -117,7 +117,8 @@ class Renderer:
             Optional list of ``BendingSpring`` objects which will be rendered as
             two connected segments.
         sensors:
-            Optional list of :class:`sensor.Sensor` objects to outline.
+            Optional list of :class:`sensor_particle.SensorParticle` objects
+            to outline.
         """
         screen_rect = self.screen.get_rect()
 
@@ -200,7 +201,7 @@ class Renderer:
         if sensors:
             for s in sensors:
                 center = self.world_to_screen(s.pos)
-                radius = max(1, int(s.radius * self.zoom))
+                radius = max(1, int(s.sense_radius * self.zoom))
                 col = (180, 180, 80)
                 pygame.draw.circle(self.screen, col, (int(center.x), int(center.y)), radius, 1)
                 if s.half_angle < math.pi:
