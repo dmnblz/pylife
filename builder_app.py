@@ -1281,7 +1281,8 @@ class BuilderApp:
     def handle_particle_event(self, event: pygame.event.Event):
         """Spawn a new particle at the clicked position."""
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            mouse = pygame.Vector2(event.pos)
+            # convert screen coordinates to world space before snapping
+            mouse = self.screen_to_world(event.pos)
             snap_mouse = self.snap_to_grid(mouse)
             p = Particle(
                 snap_mouse,
@@ -1296,7 +1297,8 @@ class BuilderApp:
     def handle_variable_particle_event(self, event: pygame.event.Event):
         """Spawn a variable particle that can change drag via a key."""
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            mouse = pygame.Vector2(event.pos)
+            # convert screen coordinates to world space before snapping
+            mouse = self.screen_to_world(event.pos)
             snap_mouse = self.snap_to_grid(mouse)
             p = VariableParticle(
                 snap_mouse,
