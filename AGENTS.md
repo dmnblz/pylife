@@ -8,7 +8,7 @@ This document is the definitive guide for future agents working on this codebase
 
 Pylife is a compact 2D soft‑body sandbox using pygame. It simulates point‑mass particles connected by linear and angular constraints and includes:
 
-- An interactive builder (`start_create.py`) with a sidebar of tools to create/edit particles, springs, bending springs, rods, circles, flexible hook arms, sensor particles; select multiple objects; adjust environment; save/load; undo; and use a grid for snapping.
+- An interactive builder (`start_create.py`) with a sidebar of tools to create/edit particles, springs, bending springs, rods, circles, flexible hook arms and sensor particles; inspect existing particles, springs, bends and sensors; select multiple objects; adjust environment; save/load; undo; and use a grid for snapping.
 - A set of demo scenes (`start_*.py`) showcasing common configurations.
 - A small, readable physics/rendering core designed to be extended.
 
@@ -218,7 +218,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 ## Manual QA checklist (pre‑PR)
 
 - Builder (`start_create.py`):
-  - Place particle, spring, var‑particle, var‑spring, bend; create circle/rod; attach arm; use inspect to edit/convert; delete; undo works across all; grid snapping; env sliders; pause.
+  - Place particle, spring, var‑particle, var‑spring, bend, sensor; create circle/rod; attach arm; use inspect to edit/convert, including sensor range/angle; delete; undo works across all; grid snapping; env sliders; pause.
   - Save → Load roundtrip maintains: positions, prev positions, types, keys/modes, active flags, arm data, physics globals.
   - Zoom near sidebar vs world behaves as expected; sidebar scroll clamps to bounds.
 - Demos: Run all `start_*.py` and verify documented keybindings.
