@@ -320,11 +320,18 @@ class BuilderApp:
 
         # allowed targets per mode
         allowed: set[str]
-        if self.mode in ("drag",):
+        if self.mode == "drag":
             allowed = {"particle"}
         elif self.mode in ("spring", "vspring", "bend", "vbend"):
             allowed = {"particle"}
-        elif self.mode in ("delete", "inspect"):
+        elif self.mode == "sensor" and self.ui.sensor_tool.await_trigger:
+            allowed = {"particle"}
+        elif self.mode == "inspect":
+            if self.ui.inspect_tool.choose_trigger:
+                allowed = {"particle"}
+            else:
+                allowed = {"particle", "spring", "bend"}
+        elif self.mode == "delete":
             allowed = {"particle", "spring", "bend"}
         else:
             allowed = set()
