@@ -14,6 +14,7 @@ from spring import Spring
 from variable_particle import VariableParticle
 from variable_spring import VariableSpring
 from variable_bending_spring import VariableBendingSpring
+from sensor_particle import SensorParticle
 
 
 class DummyScreen:
@@ -66,3 +67,11 @@ def test_hover_lines_variable_bend() -> None:
     vbend = VariableBendingSpring(p1, p2, p3, math.radians(90), math.radians(45), 200)
     lines = tool.get_hover_lines(vbend)
     assert any(line.startswith("V Ang2") for line in lines)
+
+
+def test_hover_lines_sensor() -> None:
+    tool = make_tool()
+    sensor = SensorParticle((0, 0), sense_radius=30, half_angle=math.radians(60), radius=5)
+    lines = tool.get_hover_lines(sensor)
+    assert any(line.startswith("S Range") for line in lines)
+    assert any(line.startswith("S HalfAng") for line in lines)

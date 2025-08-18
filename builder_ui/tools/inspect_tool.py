@@ -1,4 +1,4 @@
-"""Tool for inspecting and editing existing particles, springs and bends."""
+"""Tool for inspecting and editing particles, springs, bends and sensors."""
 
 import math
 import pygame
@@ -6,6 +6,7 @@ from .. import theme
 
 from particle import Particle
 from variable_particle import VariableParticle
+from sensor_particle import SensorParticle
 from spring import Spring
 from variable_spring import VariableSpring
 from bending_spring import BendingSpring
@@ -15,7 +16,7 @@ from .base import Tool
 
 
 class InspectTool(Tool):
-    """Select a particle or spring and edit its properties from the sidebar."""
+    """Select a particle, spring, bend or sensor and edit its properties."""
 
     def __init__(self, sidebar: 'SidebarUI'):
         """Prepare fields for inspecting particles, springs and bends."""
@@ -49,6 +50,18 @@ class InspectTool(Tool):
         y += 40
         self.drag_field = SliderField(
             "P Drag", 1, 500, self._get_drag, self._set_drag, x, y, width
+        )
+        y += 40
+        self.sense_radius_field = SliderField(
+            "S Range", 1, 200, self._get_sense_radius, self._set_sense_radius, x, y, width
+        )
+        y += 40
+        self.sense_angle_field = SliderField(
+            "S HalfAng", 0, 180, self._get_sense_angle, self._set_sense_angle, x, y, width
+        )
+        y += 40
+        self.sense_dir_field = SliderField(
+            "S Dir", 0, 360, self._get_sense_dir, self._set_sense_dir, x, y, width
         )
         y += 40
         self.alt_drag_field = SliderField(
@@ -186,6 +199,12 @@ class InspectTool(Tool):
                 key = pygame.key.name(obj.key) if obj.key else "-"
                 lines.append(f"V Key: {key}")
                 lines.append(f"Mode: {obj.mode}")
+            if isinstance(obj, SensorParticle):
+                lines.append(f"S Range: {obj.sense_radius:.1f}")
+                if obj.half_angle < math.pi:
+                    lines.append(f"S HalfAng: {math.degrees(obj.half_angle):.1f}°")
+                direction = math.degrees(math.atan2(obj.forward.y, obj.forward.x)) % 360
+                lines.append(f"S Dir: {direction:.1f}°")
         elif isinstance(obj, Spring):
             rest = obj.base_rest_length if isinstance(obj, VariableSpring) else obj.rest_length
             lines.append(f"S Rest: {rest:.1f}")
@@ -260,6 +279,39 @@ class InspectTool(Tool):
             self.particle.base_drag = max(1, value)
         elif self.particle:
             self.particle.drag = max(1, value)
+
+    def _get_sense_radius(self) -> float:
+        """Return detection radius for the selected sensor."""
+        if isinstance(self.particle, SensorParticle):
+            return self.particle.sense_radius
+        return 0
+
+    def _set_sense_radius(self, value: float) -> None:
+        """Set detection radius for the selected sensor."""
+        if isinstance(self.particle, SensorParticle):
+            self.particle.sense_radius = max(1.0, value)
+
+    def _get_sense_angle(self) -> float:
+        """Return half-angle in degrees for the selected sensor."""
+        if isinstance(self.particle, SensorParticle):
+            return math.degrees(self.particle.half_angle)
+        return 0
+
+    def _set_sense_angle(self, value: float) -> None:
+        """Set half-angle in degrees for the selected sensor."""
+        if isinstance(self.particle, SensorParticle):
+            self.particle.half_angle = math.radians(max(0.0, min(180.0, value)))
+
+    def _get_sense_dir(self) -> float:
+        """Return forward direction in degrees for the selected sensor."""
+        if isinstance(self.particle, SensorParticle):
+            return math.degrees(math.atan2(self.particle.forward.y, self.particle.forward.x)) % 360
+        return 0
+
+    def _set_sense_dir(self, value: float) -> None:
+        """Set forward direction in degrees for the selected sensor."""
+        if isinstance(self.particle, SensorParticle):
+            self.particle.forward = pygame.Vector2(1, 0).rotate(value)
 
     def _get_alt_drag(self) -> float:
         """Return alternate drag for variable particles."""
@@ -344,6 +396,16 @@ class InspectTool(Tool):
         self.drag_field.slider_rect.y = y + 18
         self.drag_field.box_rect.y = y + 10
         y += 40
+        if isinstance(self.particle, SensorParticle):
+            self.sense_radius_field.slider_rect.y = y + 18
+            self.sense_radius_field.box_rect.y = y + 10
+            y += 40
+            self.sense_angle_field.slider_rect.y = y + 18
+            self.sense_angle_field.box_rect.y = y + 10
+            y += 40
+            self.sense_dir_field.slider_rect.y = y + 18
+            self.sense_dir_field.box_rect.y = y + 10
+            y += 40
         if isinstance(self.particle, VariableParticle):
             self.alt_drag_field.slider_rect.y = y + 18
             self.alt_drag_field.box_rect.y = y + 10
@@ -640,12 +702,17 @@ class InspectTool(Tool):
             self.radius_field.draw(self.sidebar.screen, offset)
             self.elastic_field.draw(self.sidebar.screen, offset)
             self.drag_field.draw(self.sidebar.screen, offset)
+            if isinstance(self.particle, SensorParticle):
+                self.sense_radius_field.draw(self.sidebar.screen, offset)
+                self.sense_angle_field.draw(self.sidebar.screen, offset)
+                self.sense_dir_field.draw(self.sidebar.screen, offset)
             if isinstance(self.particle, VariableParticle):
                 self.alt_drag_field.draw(self.sidebar.screen, offset)
                 self.vspeed_field.draw(self.sidebar.screen, offset)
                 self.vkey_field.draw(self.sidebar.screen, offset)
                 self.vmode_btn.draw(self.sidebar.screen, offset)
-            self.ptype_btn.draw(self.sidebar.screen, offset)
+            if not isinstance(self.particle, SensorParticle):
+                self.ptype_btn.draw(self.sidebar.screen, offset)
         elif self.spring:
             self._layout_spring_fields()
             self.rest_field.draw(self.sidebar.screen, offset)
@@ -735,6 +802,13 @@ class InspectTool(Tool):
                 return True
             if self.drag_field.handle_event(event, offset):
                 return True
+            if isinstance(self.particle, SensorParticle):
+                if self.sense_radius_field.handle_event(event, offset):
+                    return True
+                if self.sense_angle_field.handle_event(event, offset):
+                    return True
+                if self.sense_dir_field.handle_event(event, offset):
+                    return True
             if isinstance(self.particle, VariableParticle):
                 if self.alt_drag_field.handle_event(event, offset):
                     return True
@@ -744,8 +818,9 @@ class InspectTool(Tool):
                     return True
                 if self.vmode_btn.handle_event(event, offset):
                     return True
-            if self.ptype_btn.handle_event(event, offset):
-                return True
+            if not isinstance(self.particle, SensorParticle):
+                if self.ptype_btn.handle_event(event, offset):
+                    return True
         elif self.spring:
             self._layout_spring_fields()
             if self.rest_field.handle_event(event, offset):
