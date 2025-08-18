@@ -233,14 +233,16 @@ class BuilderApp:
         """Return ``vec`` snapped to the nearest grid intersection.
 
         If the grid is disabled or ``vec`` already lies on a grid intersection,
-        the original vector is returned unchanged.
+        the original vector is returned unchanged. Negative world coordinates
+        are handled correctly.
         """
 
         if not self.grid_enabled:
             return vec
 
-        x = round(vec.x / self.grid_size) * self.grid_size
-        y = round(vec.y / self.grid_size) * self.grid_size
+        step = self.grid_size
+        x = math.floor((vec.x + step / 2) / step) * step
+        y = math.floor((vec.y + step / 2) / step) * step
 
         if x == vec.x and y == vec.y:
             return vec

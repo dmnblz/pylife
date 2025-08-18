@@ -215,7 +215,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 ## Manual QA checklist (pre‑PR)
 
 - Builder (`start_create.py`):
-  - Place particle, spring, var‑particle, var‑spring, bend; create circle/rod; attach arm; use inspect to edit/convert; delete; undo works across all; grid snapping (honours camera offset and zoom); env sliders; pause.
+  - Place particle, spring, var‑particle, var‑spring, bend; create circle/rod; attach arm; use inspect to edit/convert; delete; undo works across all; grid snapping (honours camera offset, zoom and negative world space); env sliders; pause.
   - Save → Load roundtrip maintains: positions, prev positions, types, keys/modes, active flags, arm data, physics globals.
   - Zoom near sidebar vs world behaves as expected; sidebar scroll clamps to bounds.
 - Demos: Run all `start_*.py` and verify documented keybindings.
