@@ -24,7 +24,7 @@ from builder_ui.config import (
     EnvironmentParams,
     SensorParams,
 )
-from sensor import Sensor
+from sensor_particle import SensorParticle
 import builder_io
 from structures import create_rod as structure_create_rod
 from hook_arm import HookArm
@@ -49,7 +49,7 @@ class BuilderApp:
         self.bending_springs: list[BendingSpring] = []
         self.variable_bending_springs: list[VariableBendingSpring] = []
         self.arms: list[HookArm] = []
-        self.sensors: list[Sensor] = []
+        self.sensors: list[SensorParticle] = []
         self.cycle_keys: dict[int, list[HookArm]] = {}
         self.vspring_keys: dict[int, list[VariableSpring]] = {}
         self.vparticle_keys: dict[int, list[VariableParticle]] = {}
@@ -742,7 +742,7 @@ class BuilderApp:
         springs: Iterable[Spring] = (),
         bends: Iterable[BendingSpring] = (),
         arms: Iterable[HookArm] = (),
-        sensors: Iterable[Sensor] = (),
+        sensors: Iterable[SensorParticle] = (),
     ) -> None:
         """Remove collections of objects from the simulation.
 
@@ -757,6 +757,7 @@ class BuilderApp:
         bends_set = set(bends)
         arms_set = set(arms)
         sensors_set = set(sensors)
+        parts_set.update(sensors_set)
 
         # remove arms explicitly passed or those referencing removed particles
         for arm in list(self.arms):
@@ -865,6 +866,8 @@ class BuilderApp:
         if isinstance(p, VariableParticle):
             self.variable_particles.append(p)
             self.register_variable_particle(p)
+        if isinstance(p, SensorParticle):
+            self.sensors.append(p)
 
     def _restore_spring(self, s: Spring):
         """Reinsert ``s`` into the simulation."""
@@ -963,10 +966,21 @@ class BuilderApp:
                         }
                         if isinstance(p, VariableParticle)
                         else {}
+                      ),
+                    **(
+                        {
+                            "type": "sensor",
+                            "forward": [p.forward.x, p.forward.y],
+                            "sense_radius": p.sense_radius,
+                            "half_angle": p.half_angle,
+                            "tags": sorted(p.tags),
+                        }
+                        if isinstance(p, SensorParticle)
+                        else {},
                     ),
-                }
-                for p in self.particles
-            ],
+                  }
+                  for p in self.particles
+              ],
             "springs": self._build_springs(),
             "bending": [
                 (
@@ -1012,16 +1026,6 @@ class BuilderApp:
                 }
                 for arm in self.arms
             ],
-            "sensors": [
-                {
-                    "pos": [s.pos.x, s.pos.y],
-                    "forward": [s.forward.x, s.forward.y],
-                    "radius": s.radius,
-                    "half_angle": s.half_angle,
-                    "tags": sorted(s.tags),
-                }
-                for s in self.sensors
-            ],
             "physics": {
                 "gravity": [self.physics.gravity.x, self.physics.gravity.y],
                 "repulsion_radius": self.physics.repulsion_radius,
@@ -1041,6 +1045,7 @@ class BuilderApp:
         self.particles = []
         self.variable_particles = []
         self.vparticle_keys = {}
+        self.sensors = []
         for pd in data.get("particles", []):
             if pd.get("type") == "variable":
                 p = VariableParticle(
@@ -1060,6 +1065,22 @@ class BuilderApp:
                 p.drag = pd.get("curr", p.base_drag)
                 self.variable_particles.append(p)
                 self.register_variable_particle(p)
+            elif pd.get("type") == "sensor":
+                p = SensorParticle(
+                    pd["pos"],
+                    forward=pd.get("forward", (1, 0)),
+                    sense_radius=pd.get("sense_radius", 1.0),
+                    half_angle=pd.get("half_angle", math.pi),
+                    tags=pd.get("tags"),
+                    mass=pd.get("mass", 1.0),
+                    color=tuple(pd["color"]) if pd.get("color") else None,
+                    radius=pd.get("radius"),
+                    tag=pd.get("tag"),
+                    drag=pd.get("drag", 1.0),
+                    elasticity=pd.get("elasticity", 1.0),
+                    trail_length=self.environment.trail_length,
+                )
+                self.sensors.append(p)
             else:
                 p = Particle(
                     pd["pos"],
@@ -1165,17 +1186,6 @@ class BuilderApp:
                 self.cycle_keys.setdefault(arm.cycle_key, []).append(arm)
             arm._set_high_drag(False)
             self.arms.append(arm)
-
-        self.sensors = []
-        for sd in data.get("sensors", []):
-            s = Sensor(
-                sd.get("pos", (0, 0)),
-                forward=sd.get("forward", (1, 0)),
-                radius=sd.get("radius", 1.0),
-                half_angle=sd.get("half_angle", math.pi),
-                tags=sd.get("tags"),
-            )
-            self.sensors.append(s)
 
         phys = data.get("physics", {})
         self.physics.gravity = pygame.Vector2(phys.get("gravity", [0, 0]))

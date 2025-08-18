@@ -4,7 +4,7 @@ import math
 
 import pygame
 
-from sensor import Sensor
+from sensor_particle import SensorParticle
 
 
 class Dummy:
@@ -14,7 +14,7 @@ class Dummy:
 
 
 def test_triggers_on_tag():
-    sensor = Sensor((0, 0), radius=10, tags={"enemy"})
+    sensor = SensorParticle((0, 0), sense_radius=10, tags={"enemy"})
     seen = []
     sensor.add_callback(lambda s, o: seen.append(o))
     enemy = Dummy((5, 0), "enemy")
@@ -23,7 +23,7 @@ def test_triggers_on_tag():
 
 
 def test_wedge_filters_direction():
-    sensor = Sensor((0, 0), forward=(1, 0), radius=10, half_angle=math.pi / 4)
+    sensor = SensorParticle((0, 0), forward=(1, 0), sense_radius=10, half_angle=math.pi / 4)
     seen = []
     sensor.add_callback(lambda s, o: seen.append(o))
     inside = Dummy((5, 1))
