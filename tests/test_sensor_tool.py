@@ -18,5 +18,7 @@ def test_sensor_tool_creates_sensor():
     s = app.sensors[0]
     assert isinstance(s, SensorParticle)
     assert s in app.particles
-    assert s.sense_radius == app.sensor.radius
+    assert s.sense_radius == app.sensor.sense_radius
+    assert s.color == (255, 255, 0)
+    assert app.particle.color == (255, 0, 0)
     pygame.quit()
