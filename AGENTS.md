@@ -55,7 +55,7 @@ graph TD
 
 - Builder UI and persistence
   - `start_create.py`: `BuilderApp` main loop, camera, play area, history/undo, mode handlers, and integration of tools.
-  - `builder_ui/`: Sidebar, fields (sliders, color picker, key selector, buttons), and tools (particle, spring, variable variants, bend, circle, rod, arm, grid, environment, inspect, delete shortcuts).
+  - `builder_ui/`: Sidebar, fields (sliders, color picker, key selector, buttons), and tools (particle, spring, variable variants, bend, variable bend, circle, rod, arm, grid, environment, inspect, delete shortcuts).
   - `builder_io.py`: JSON save/load helpers; `color_picker.py`, `file_dialog.py` use Tk in a subprocess.
 
 - Demos
@@ -115,6 +115,7 @@ Other controls:
 - Select: Drag a rectangle to highlight particles, springs, bends and hook arms; Backspace/Delete removes the selection, Ctrl+C copies it and Ctrl+V pastes it.
 - Particle / VarPar: Place new particles; variable particles can toggle to a second drag value under a key (hold/toggle modes).
 - Spring / VarSpr: Connect nearest pairs; variable springs switch between base and alternate rest lengths under a key (hold/toggle modes).
+- Bend / VarBend: Create bending springs; variable bends switch between two angles under a key (hold/toggle modes).
 - Bend: Select 3 particles; angle can be manual or auto from current geometry. A preview arc inside the bend shows orientation before creation, highlights on hover and remains clickable for inspection even when overlapped.
 - Circle: Preview ring with segments, stiffness, optional bend springs (with separate stiffness).
 - Rod: Preview capsule with segments; options for cytoskeleton, internal skeleton, and optional bend springs.
@@ -142,6 +143,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 - `springs`: list of
   - `p1`, `p2` (indices into particles), `rest`, `stiff`, `max`, `invis`
   - variable spring extras (when `type == "variable"`): `alt`, `speed`, `key`, `mode`, `active`, `curr`
+  - variable bend extras (when `type == "variable"`): `alt`, `speed`, `key`, `mode`, `active`, `curr`
 - `bending`: list of `{ p1, p2, p3, angle, stiff }`
 - `arms`: list of
   - `particles` (indices), `springs` (indices into global springs), `rest_lengths`, `max_lengths`, `cycle_speed`, `color`, `high_color`, `adhesion` (mass factor), `orig_mass`, `adhesion_drag`, `orig_drag`, `cycle_key`
@@ -186,7 +188,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 
 ### New variable elements or key‑driven behavior
 
-- Follow `variable_spring.py` and `variable_particle.py` patterns. Ensure registration maps (`vspring_keys`, `vparticle_keys`, `cycle_keys`) are updated in create/convert/save/load paths.
+- Follow `variable_spring.py` and `variable_particle.py` patterns. Ensure registration maps (`vspring_keys`, `vparticle_keys`, `vbend_keys`, `cycle_keys`) are updated in create/convert/save/load paths.
 
 ---
 

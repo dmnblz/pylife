@@ -9,6 +9,7 @@ from particle import Particle
 from spring import Spring
 from variable_spring import VariableSpring
 from variable_particle import VariableParticle
+from variable_bending_spring import VariableBendingSpring
 from physics import PhysicsEngine
 from bending_spring import BendingSpring
 from renderer import Renderer
@@ -19,6 +20,7 @@ from builder_ui.config import (
     SpringParams,
     VariableSpringParams,
     VariableParticleParams,
+    VariableBendParams,
     EnvironmentParams,
 )
 import builder_io
@@ -43,10 +45,12 @@ class BuilderApp:
         self.variable_springs: list[VariableSpring] = []
         self.variable_particles: list[VariableParticle] = []
         self.bending_springs: list[BendingSpring] = []
+        self.variable_bending_springs: list[VariableBendingSpring] = []
         self.arms: list[HookArm] = []
         self.cycle_keys: dict[int, list[HookArm]] = {}
         self.vspring_keys: dict[int, list[VariableSpring]] = {}
         self.vparticle_keys: dict[int, list[VariableParticle]] = {}
+        self.vbend_keys: dict[int, list[VariableBendingSpring]] = {}
         self.selected = None
         self.selection_start: pygame.Vector2 | None = None
         self.selection_rect: pygame.Rect | None = None
@@ -69,6 +73,7 @@ class BuilderApp:
         self.spring = SpringParams()
         self.vspring = VariableSpringParams()
         self.vparticle = VariableParticleParams()
+        self.vbend = VariableBendParams()
         self.environment = EnvironmentParams()
         self.grid_enabled = False
         self.grid_size = 40.0
@@ -149,6 +154,8 @@ class BuilderApp:
             self.ui.variable_particle_tool.cancel()
         if self.mode == "bend" and mode != "bend":
             self.ui.bend_tool.cancel()
+        if self.mode == "vbend" and mode != "vbend":
+            self.ui.variable_bend_tool.cancel()
         if self.mode == "env" and mode != "env":
             self.ui.env_tool.cancel()
         if self.mode == "grid" and mode != "grid":
@@ -173,6 +180,8 @@ class BuilderApp:
             self.ui.variable_particle_tool.start()
         if mode == "bend":
             self.ui.bend_tool.start()
+        if mode == "vbend":
+            self.ui.variable_bend_tool.start()
         if mode == "env":
             self.ui.env_tool.start()
         if mode == "grid":
@@ -305,7 +314,7 @@ class BuilderApp:
         allowed: set[str]
         if self.mode in ("drag",):
             allowed = {"particle"}
-        elif self.mode in ("spring", "vspring", "bend"):
+        elif self.mode in ("spring", "vspring", "bend", "vbend"):
             allowed = {"particle"}
         elif self.mode in ("delete", "inspect"):
             allowed = {"particle", "spring", "bend"}
@@ -515,7 +524,19 @@ class BuilderApp:
                 "p3": index[b.p3],
                 "angle": b.rest_angle,
                 "stiffness": b.stiffness,
+                "type": "variable" if isinstance(b, VariableBendingSpring) else "bend",
             }
+            if isinstance(b, VariableBendingSpring):
+                data.update(
+                    {
+                        "base_angle": b.base_angle,
+                        "alt_angle": b.alt_angle,
+                        "key": b.key,
+                        "mode": b.mode,
+                        "change_speed": b.change_speed,
+                        "active": b.active,
+                    }
+                )
             self.clipboard["bends"].append(data)
         for arm in self.arms:
             if all(p in index for p in arm.particles) and all(s in spring_index for s in arm.springs):
@@ -605,7 +626,22 @@ class BuilderApp:
             p1 = index_map[bdata["p1"]]
             p2 = index_map[bdata["p2"]]
             p3 = index_map[bdata["p3"]]
-            b = BendingSpring(p1, p2, p3, bdata["angle"], bdata["stiffness"])
+            if bdata.get("type") == "variable":
+                b = VariableBendingSpring(
+                    p1,
+                    p2,
+                    p3,
+                    bdata["base_angle"],
+                    bdata["alt_angle"],
+                    bdata["stiffness"],
+                    key=bdata["key"],
+                    mode=bdata["mode"],
+                    change_speed=bdata["change_speed"],
+                )
+                b.rest_angle = bdata["angle"]
+                b.active = bdata["active"]
+            else:
+                b = BendingSpring(p1, p2, p3, bdata["angle"], bdata["stiffness"])
             new_bends.append(b)
         for adata in self.clipboard["arms"]:
             arm = HookArm.__new__(HookArm)
@@ -643,6 +679,10 @@ class BuilderApp:
             if isinstance(s, VariableSpring):
                 self.variable_springs.append(s)
                 self.register_variable_spring(s)
+        for b in new_bends:
+            if isinstance(b, VariableBendingSpring):
+                self.variable_bending_springs.append(b)
+                self.register_variable_bend(b)
         self.clear_selection()
         for p in new_particles:
             p.selected = True
@@ -732,14 +772,26 @@ class BuilderApp:
 
         # remove bending springs tied to removed particles or specified directly
         if parts_set or bends_set:
-            self.bending_springs[:] = [
-                bs
-                for bs in self.bending_springs
-                if bs not in bends_set
-                and bs.p1 not in parts_set
-                and bs.p2 not in parts_set
-                and bs.p3 not in parts_set
-            ]
+            new_bends = []
+            for bs in self.bending_springs:
+                if (
+                    bs not in bends_set
+                    and bs.p1 not in parts_set
+                    and bs.p2 not in parts_set
+                    and bs.p3 not in parts_set
+                ):
+                    new_bends.append(bs)
+                else:
+                    if isinstance(bs, VariableBendingSpring):
+                        if bs in self.variable_bending_springs:
+                            self.variable_bending_springs.remove(bs)
+                        if bs.key is not None and bs.key in self.vbend_keys:
+                            lst = self.vbend_keys[bs.key]
+                            if bs in lst:
+                                lst.remove(bs)
+                            if not lst:
+                                del self.vbend_keys[bs.key]
+            self.bending_springs[:] = new_bends
 
         # finally drop particles themselves
         for p in parts_set:
@@ -776,6 +828,15 @@ class BuilderApp:
             self.bending_springs.remove(bend)
         if bend in self.selected_bends:
             self.selected_bends.remove(bend)
+        if isinstance(bend, VariableBendingSpring):
+            if bend in self.variable_bending_springs:
+                self.variable_bending_springs.remove(bend)
+            if bend.key is not None and bend.key in self.vbend_keys:
+                lst = self.vbend_keys[bend.key]
+                if bend in lst:
+                    lst.remove(bend)
+                if not lst:
+                    del self.vbend_keys[bend.key]
         self.physics.bending_springs = self.bending_springs
 
     def _restore_particle(self, p: Particle, springs: list[Spring]):
@@ -808,6 +869,10 @@ class BuilderApp:
         self.springs.extend(springs)
         if bends:
             self.bending_springs.extend(bends)
+            for b in bends:
+                if isinstance(b, VariableBendingSpring):
+                    self.variable_bending_springs.append(b)
+                    self.register_variable_bend(b)
         for p in particles:
             if isinstance(p, VariableParticle):
                 self.variable_particles.append(p)
@@ -889,13 +954,30 @@ class BuilderApp:
             ],
             "springs": self._build_springs(),
             "bending": [
-                {
-                    "p1": self.particles.index(bs.p1),
-                    "p2": self.particles.index(bs.p2),
-                    "p3": self.particles.index(bs.p3),
-                    "angle": bs.rest_angle,
-                    "stiff": bs.stiffness,
-                }
+                (
+                    {
+                        "p1": self.particles.index(bs.p1),
+                        "p2": self.particles.index(bs.p2),
+                        "p3": self.particles.index(bs.p3),
+                        "angle": bs.rest_angle,
+                        "stiff": bs.stiffness,
+                    }
+                    if not isinstance(bs, VariableBendingSpring)
+                    else {
+                        "p1": self.particles.index(bs.p1),
+                        "p2": self.particles.index(bs.p2),
+                        "p3": self.particles.index(bs.p3),
+                        "type": "variable",
+                        "angle": bs.base_angle,
+                        "alt": bs.alt_angle,
+                        "speed": bs.change_speed,
+                        "key": bs.key,
+                        "mode": bs.mode,
+                        "active": bs.active,
+                        "curr": bs.rest_angle,
+                        "stiff": bs.stiffness,
+                    }
+                )
                 for bs in self.bending_springs
             ],
             "arms": [
@@ -1002,15 +1084,35 @@ class BuilderApp:
                 self.springs.append(s)
 
         self.bending_springs = []
+        self.variable_bending_springs = []
+        self.vbend_keys = {}
         for bd in data.get("bending", []):
-            bs = BendingSpring(
-                self.particles[bd["p1"]],
-                self.particles[bd["p2"]],
-                self.particles[bd["p3"]],
-                bd.get("angle", 0),
-                bd.get("stiff", 0),
-            )
-            self.bending_springs.append(bs)
+            if bd.get("type") == "variable":
+                bs = VariableBendingSpring(
+                    self.particles[bd["p1"]],
+                    self.particles[bd["p2"]],
+                    self.particles[bd["p3"]],
+                    bd.get("angle", 0),
+                    bd.get("alt", 0),
+                    bd.get("stiff", 0),
+                    key=bd.get("key"),
+                    mode=bd.get("mode", "hold"),
+                    change_speed=bd.get("speed", math.radians(240.0)),
+                )
+                bs.active = bd.get("active", False)
+                bs.rest_angle = bd.get("curr", bs.base_angle)
+                self.bending_springs.append(bs)
+                self.variable_bending_springs.append(bs)
+                self.register_variable_bend(bs)
+            else:
+                bs = BendingSpring(
+                    self.particles[bd["p1"]],
+                    self.particles[bd["p2"]],
+                    self.particles[bd["p3"]],
+                    bd.get("angle", 0),
+                    bd.get("stiff", 0),
+                )
+                self.bending_springs.append(bs)
 
         self.arms = []
         self.cycle_keys = {}
@@ -1331,6 +1433,24 @@ class BuilderApp:
         if key is not None:
             self.vparticle_keys.setdefault(key, []).append(part)
 
+    def register_variable_bend(self, bend: VariableBendingSpring) -> None:
+        """Register ``bend`` under its control key if any."""
+        if bend.key is not None:
+            self.vbend_keys.setdefault(bend.key, []).append(bend)
+
+    def update_vbend_key(self, bend: VariableBendingSpring, key: int | None) -> None:
+        """Update the control key mapping for ``bend``."""
+        old = bend.key
+        if old is not None:
+            lst = self.vbend_keys.get(old, [])
+            if bend in lst:
+                lst.remove(bend)
+            if not lst and old in self.vbend_keys:
+                del self.vbend_keys[old]
+        bend.key = key
+        if key is not None:
+            self.vbend_keys.setdefault(key, []).append(bend)
+
     def create_hook_arm(
         self,
         base: Particle,
@@ -1544,6 +1664,9 @@ class BuilderApp:
                             vparts = self.vparticle_keys.get(e.key, [])
                             for p in vparts:
                                 p.on_keydown()
+                            vbends = self.vbend_keys.get(e.key, [])
+                            for b in vbends:
+                                b.on_keydown()
 
                 elif e.type == pygame.KEYUP:
                     arms = self.cycle_keys.get(e.key, [])
@@ -1556,6 +1679,9 @@ class BuilderApp:
                     vparts = self.vparticle_keys.get(e.key, [])
                     for p in vparts:
                         p.on_keyup()
+                    vbends = self.vbend_keys.get(e.key, [])
+                    for b in vbends:
+                        b.on_keyup()
 
                 elif e.type == pygame.MOUSEBUTTONUP and e.button == 1:
                     if self.selected:
@@ -1581,6 +1707,8 @@ class BuilderApp:
                     s.update(dt)
                 for p in self.variable_particles:
                     p.update(dt)
+                for b in self.variable_bending_springs:
+                    b.update(dt)
 
             # keep particles inside the world play area (independent of screen size)
             left, top, width, height = self.play_area
