@@ -33,11 +33,11 @@ class VariableBendingSpringTool(Tool):
         )
         y += 40
         self.alt_field = SliderField(
-            "Factor",
-            0.2,
-            5.0,
-            lambda: self.app.vbend.alt_factor,
-            lambda v: setattr(self.app.vbend, "alt_factor", max(0.01, v)),
+            "AltAng",
+            0,
+            180,
+            lambda: self.app.vbend.alt_angle,
+            lambda v: setattr(self.app.vbend, "alt_angle", max(0, v)),
             x,
             y,
             width,
@@ -117,7 +117,7 @@ class VariableBendingSpringTool(Tool):
                 angle = math.acos(dot)
         else:
             angle = math.radians(self.angle)
-        alt = angle * self.app.vbend.alt_factor
+        alt = math.radians(self.app.vbend.alt_angle)
         bs = VariableBendingSpring(
             self.selected[0],
             self.selected[1],

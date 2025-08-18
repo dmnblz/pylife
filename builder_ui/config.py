@@ -132,9 +132,24 @@ class EnvironmentParams:
 
 @dataclass
 class VariableBendParams:
-    """Parameters for variable bending springs."""
+    """Parameters for variable bending springs.
 
-    alt_factor: float = 0.5
+    Attributes
+    ----------
+    alt_angle:
+        Alternate angle in degrees used when creating new variable bends.
+    speed:
+        Rate in degrees per second at which the bend approaches the target
+        angle.
+    key:
+        Keyboard key activating the alternate angle. ``None`` disables key
+        control.
+    mode:
+        ``"hold"`` requires the key to be held, while ``"toggle"`` switches
+        state on each press.
+    """
+
+    alt_angle: float = 45.0
     speed: float = 240.0
     key: int | None = pygame.K_b
     mode: str = "hold"

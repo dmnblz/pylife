@@ -586,7 +586,7 @@ class InspectTool(Tool):
                 old.p2,
                 old.p3,
                 angle,
-                angle * cfg.alt_factor,
+                math.radians(cfg.alt_angle),
                 old.stiffness,
                 key=cfg.key,
                 mode=cfg.mode,
