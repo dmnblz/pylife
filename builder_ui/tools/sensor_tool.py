@@ -52,8 +52,10 @@ class SensorTool(ParticleTool):
         )
 
     def draw_ui(self, offset: int = 0) -> None:
-        if not super().draw_ui(offset):
+        """Render sensor configuration sliders."""
+        if not Tool.draw_ui(self, offset):
             return
+        ParticleTool.draw_ui(self, offset)
         self.range_field.draw(self.sidebar.screen, offset)
         self.angle_field.draw(self.sidebar.screen, offset)
         self.dir_field.draw(self.sidebar.screen, offset)
