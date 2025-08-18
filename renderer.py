@@ -159,7 +159,7 @@ class Renderer:
         # draw bending springs if provided
         if bending_springs:
             for bs in bending_springs:
-                color = (200, 200, 0)
+                color = bs.get_color() if hasattr(bs, "get_color") else (200, 200, 0)
                 self._draw_dashed_line(bs.p1.pos, bs.p2.pos, color, 3)
                 self._draw_dashed_line(bs.p2.pos, bs.p3.pos, color, 3)
                 a = self.world_to_screen(bs.p1.pos)
