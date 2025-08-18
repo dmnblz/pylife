@@ -13,6 +13,7 @@ from .tools.environment_tool import EnvironmentTool
 from .tools.circle_tool import CircleTool
 from .tools.rod_tool import RodTool
 from .tools.hook_arm_tool import HookArmTool
+from .tools.sensor_tool import SensorTool
 from .tools.inspect_tool import InspectTool
 from . import theme
 
@@ -53,6 +54,7 @@ class SidebarUI:
         self.circle_tool = CircleTool(self)
         self.rod_tool = RodTool(self)
         self.arm_tool = HookArmTool(self)
+        self.sensor_tool = SensorTool(self)
         self.grid_tool = GridTool(self)
         self.env_tool = EnvironmentTool(self)
         self.inspect_tool = InspectTool(self)
@@ -107,6 +109,7 @@ class SidebarUI:
         add_button("Circle", lambda: self.app.set_mode("circle"), "5", "circle")
         add_button("Rod", lambda: self.app.set_mode("rod"), "6", "rod")
         add_button("Arm", lambda: self.app.set_mode("arm"), "7", "arm")
+        add_button("Sensor", lambda: self.app.set_mode("sensor"), mode="sensor")
         add_button("Inspect", lambda: self.app.set_mode("inspect"), "8", "inspect")
         add_button("Grid", lambda: self.app.set_mode("grid"), "9", "grid")
         add_button("Env", lambda: self.app.set_mode("env"), "0", "env")
@@ -157,6 +160,7 @@ class SidebarUI:
             self.circle_tool,
             self.rod_tool,
             self.arm_tool,
+            self.sensor_tool,
             self.grid_tool,
             self.env_tool,
             self.inspect_tool,
@@ -219,6 +223,7 @@ class SidebarUI:
             self.circle_tool.draw_ui(self.scroll_offset)
             self.rod_tool.draw_ui(self.scroll_offset)
             self.arm_tool.draw_ui(self.scroll_offset)
+            self.sensor_tool.draw_ui(self.scroll_offset)
             self.grid_tool.draw_ui(self.scroll_offset)
             self.env_tool.draw_ui(self.scroll_offset)
             self.inspect_tool.draw_ui(self.scroll_offset)
@@ -310,6 +315,8 @@ class SidebarUI:
         if self.rod_tool.handle_event(event, self.scroll_offset):
             return True
         if self.arm_tool.handle_event(event, self.scroll_offset):
+            return True
+        if self.sensor_tool.handle_event(event, self.scroll_offset):
             return True
         if self.grid_tool.handle_event(event, self.scroll_offset):
             return True

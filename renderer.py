@@ -95,8 +95,16 @@ class Renderer:
             e = start + direction * min(i + dash_px, length)
             pygame.draw.line(self.screen, color, s, e, width)
 
-    def draw(self, particles: list, springs: list, bending_springs: list | None = None,
-             hover_particle=None, hover_spring=None, hover_bend=None):
+    def draw(
+        self,
+        particles: list,
+        springs: list,
+        bending_springs: list | None = None,
+        sensors: list | None = None,
+        hover_particle=None,
+        hover_spring=None,
+        hover_bend=None,
+    ):
         """Render the simulation objects to the screen.
 
         Parameters
@@ -108,6 +116,8 @@ class Renderer:
         bending_springs:
             Optional list of ``BendingSpring`` objects which will be rendered as
             two connected segments.
+        sensors:
+            Optional list of :class:`sensor.Sensor` objects to outline.
         """
         screen_rect = self.screen.get_rect()
 
@@ -187,6 +197,23 @@ class Renderer:
                         pygame.draw.line(self.screen, (255, 255, 255), b, c, 2)
                         pygame.draw.arc(self.screen, theme.ACCENT, rect, start, end, 4)
 
+        if sensors:
+            for s in sensors:
+                center = self.world_to_screen(s.pos)
+                radius = max(1, int(s.radius * self.zoom))
+                col = (180, 180, 80)
+                pygame.draw.circle(self.screen, col, (int(center.x), int(center.y)), radius, 1)
+                if s.half_angle < math.pi:
+                    start = math.atan2(-s.forward.y, s.forward.x) - s.half_angle
+                    end = start + 2 * s.half_angle
+                    rect = pygame.Rect(0, 0, radius * 2, radius * 2)
+                    rect.center = (int(center.x), int(center.y))
+                    pygame.draw.arc(self.screen, col, rect, start, end, 1)
+                    p1 = center + pygame.Vector2(math.cos(start), math.sin(start)) * radius
+                    p2 = center + pygame.Vector2(math.cos(end), math.sin(end)) * radius
+                    pygame.draw.line(self.screen, col, center, p1, 1)
+                    pygame.draw.line(self.screen, col, center, p2, 1)
+
         # draw particles with culling and simplified effects at high zoom
         for p in particles:
             color = p.color if p.color else (0, 114, 255)
@@ -194,10 +221,8 @@ class Renderer:
             radius = max(1, int(base_radius * self.zoom))
             center = self.world_to_screen(p.pos)
             cx, cy = int(center.x), int(center.y)
-            # cull off-screen circles
             if cx + radius < 0 or cx - radius > screen_rect.width or cy + radius < 0 or cy - radius > screen_rect.height:
                 continue
-            # body
             use_aa = radius <= 20
             if use_aa:
                 try:
@@ -207,17 +232,14 @@ class Renderer:
                     pygame.draw.circle(self.screen, color, (cx, cy), radius)
             else:
                 pygame.draw.circle(self.screen, color, (cx, cy), radius)
-            # decorative effects only at modest sizes
             if radius <= 18:
                 hi_r = max(1, int(radius * 0.6))
                 hi_surf = pygame.Surface((hi_r * 2 + 4, hi_r * 2 + 4), pygame.SRCALPHA)
                 pygame.draw.circle(hi_surf, (255, 255, 255, 40), (hi_r + 2, hi_r + 2), hi_r)
                 self.screen.blit(hi_surf, (cx - hi_r - 2, cy - hi_r - int(radius * 0.4)))
-            # rings for selection/hover (accent) and high-drag (distinct red)
             is_selected_or_hover = getattr(p, "selected", False) or (hover_particle is p)
             is_high_drag = getattr(p, "drag", 1.0) > 1.0
             if is_selected_or_hover:
-                # crisp accent ring; skip glow surface
                 ring_r = radius + 6
                 if ring_r <= 28:
                     try:

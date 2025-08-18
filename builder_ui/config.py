@@ -131,6 +131,25 @@ class EnvironmentParams:
 
 
 @dataclass
+class SensorParams:
+    """Parameters for sensors created in the builder.
+
+    Attributes
+    ----------
+    radius:
+        Detection radius in world units.
+    half_angle_deg:
+        Half of the field of view in degrees. ``180`` covers a full circle.
+    direction_deg:
+        Direction the sensor faces in degrees.
+    """
+
+    radius: float = 50.0
+    half_angle_deg: float = 180.0
+    direction_deg: float = 0.0
+
+
+@dataclass
 class VariableBendParams:
     """Parameters for variable bending springs.
 
@@ -160,6 +179,7 @@ __all__ = [
     "SpringParams",
     "VariableSpringParams",
     "VariableParticleParams",
-    "VariableBendParams",
     "EnvironmentParams",
+    "VariableBendParams",
+    "SensorParams",
 ]

@@ -8,7 +8,7 @@ This document is the definitive guide for future agents working on this codebase
 
 Pylife is a compact 2D soft‑body sandbox using pygame. It simulates point‑mass particles connected by linear and angular constraints and includes:
 
-- An interactive builder (`start_create.py`) with a sidebar of tools to create/edit particles, springs, bending springs, rods, circles, and flexible hook arms; select multiple objects; adjust environment; save/load; undo; and use a grid for snapping.
+- An interactive builder (`start_create.py`) with a sidebar of tools to create/edit particles, springs, bending springs, rods, circles, flexible hook arms, sensors; select multiple objects; adjust environment; save/load; undo; and use a grid for snapping.
 - A set of demo scenes (`start_*.py`) showcasing common configurations.
 - A small, readable physics/rendering core designed to be extended.
 
@@ -48,6 +48,7 @@ graph TD
   - `bending_spring.py`: Angular constraint maintaining an angle p1–p2–p3.
   - `physics.py`: `PhysicsEngine` orchestrating gravity, springs, bends, short‑range repulsion, viscous drag scaled by per‑particle drag, Brownian noise, wall proximity friction, and integration. Collisions use a spatial hash with a separate configurable cell size.
   - `renderer.py`: World/screen transforms, camera zoom, drawing springs, bends (dashed), particles (with red outline for high‑drag).
+  - `sensor.py`: Circular or sector sensors that run callbacks when tagged objects enter view.
 
 - Structures and helpers
   - `structures.py`: Factories for walls, rods (capsules), and walls with bends.
@@ -147,6 +148,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 - `bending`: list of `{ p1, p2, p3, angle, stiff }`
 - `arms`: list of
   - `particles` (indices), `springs` (indices into global springs), `rest_lengths`, `max_lengths`, `cycle_speed`, `color`, `high_color`, `adhesion` (mass factor), `orig_mass`, `adhesion_drag`, `orig_drag`, `cycle_key`
+- `sensors`: list of `{ pos: [x, y], forward: [dx, dy], radius, half_angle, tags }`
 - `physics`: `{ gravity: [gx, gy], repulsion_radius, repulsion_strength, temperature, damping_coeff, collisions, collision_elasticity, collision_bucket_size, trails_enabled, trail_length }`
   Older save files may omit `trails_enabled` and `trail_length`; they default
   to `false` and `40` on load.
