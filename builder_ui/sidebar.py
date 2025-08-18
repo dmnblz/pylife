@@ -6,6 +6,7 @@ from .tools.particle_tool import ParticleTool
 from .tools.spring_tool import SpringTool
 from .tools.variable_spring_tool import VariableSpringTool
 from .tools.variable_particle_tool import VariableParticleTool
+from .tools.variable_bending_spring_tool import VariableBendingSpringTool
 from .tools.bending_spring_tool import BendingSpringTool
 from .tools.grid_tool import GridTool
 from .tools.environment_tool import EnvironmentTool
@@ -47,6 +48,7 @@ class SidebarUI:
         self.variable_particle_tool = VariableParticleTool(self)
         self.spring_tool = SpringTool(self)
         self.variable_spring_tool = VariableSpringTool(self)
+        self.variable_bend_tool = VariableBendingSpringTool(self)
         self.bend_tool = BendingSpringTool(self)
         self.circle_tool = CircleTool(self)
         self.rod_tool = RodTool(self)
@@ -101,6 +103,7 @@ class SidebarUI:
         add_button("Spring", lambda: self.app.set_mode("spring"), "3", "spring")
         add_button("VarSpr", lambda: self.app.set_mode("vspring"), mode="vspring")
         add_button("Bend", lambda: self.app.set_mode("bend"), "4", "bend")
+        add_button("VarBend", lambda: self.app.set_mode("vbend"), mode="vbend")
         add_button("Circle", lambda: self.app.set_mode("circle"), "5", "circle")
         add_button("Rod", lambda: self.app.set_mode("rod"), "6", "rod")
         add_button("Arm", lambda: self.app.set_mode("arm"), "7", "arm")
@@ -150,6 +153,7 @@ class SidebarUI:
             self.spring_tool,
             self.variable_spring_tool,
             self.bend_tool,
+            self.variable_bend_tool,
             self.circle_tool,
             self.rod_tool,
             self.arm_tool,
@@ -210,6 +214,7 @@ class SidebarUI:
             self.variable_particle_tool.draw_ui(self.scroll_offset)
             self.spring_tool.draw_ui(self.scroll_offset)
             self.variable_spring_tool.draw_ui(self.scroll_offset)
+            self.variable_bend_tool.draw_ui(self.scroll_offset)
             self.bend_tool.draw_ui(self.scroll_offset)
             self.circle_tool.draw_ui(self.scroll_offset)
             self.rod_tool.draw_ui(self.scroll_offset)
@@ -222,6 +227,7 @@ class SidebarUI:
         self.particle_tool.draw_preview()
         self.spring_tool.draw_preview()
         self.variable_spring_tool.draw_preview()
+        self.variable_bend_tool.draw_preview()
         self.bend_tool.draw_preview()
         self.circle_tool.draw_preview()
         self.rod_tool.draw_preview()
@@ -294,6 +300,8 @@ class SidebarUI:
         if self.spring_tool.handle_event(event, self.scroll_offset):
             return True
         if self.variable_spring_tool.handle_event(event, self.scroll_offset):
+            return True
+        if self.variable_bend_tool.handle_event(event, self.scroll_offset):
             return True
         if self.bend_tool.handle_event(event, self.scroll_offset):
             return True

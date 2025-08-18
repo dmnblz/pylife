@@ -130,10 +130,21 @@ class EnvironmentParams:
     trail_length: int = 40
 
 
+@dataclass
+class VariableBendParams:
+    """Parameters for variable bending springs."""
+
+    alt_factor: float = 0.5
+    speed: float = 240.0
+    key: int | None = pygame.K_b
+    mode: str = "hold"
+
+
 __all__ = [
     "ParticleParams",
     "SpringParams",
     "VariableSpringParams",
     "VariableParticleParams",
+    "VariableBendParams",
     "EnvironmentParams",
 ]

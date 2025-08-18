@@ -8,10 +8,12 @@ import pygame
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from builder_ui.tools.inspect_tool import InspectTool
+import math
 from particle import Particle
 from spring import Spring
 from variable_particle import VariableParticle
 from variable_spring import VariableSpring
+from variable_bending_spring import VariableBendingSpring
 
 
 class DummyScreen:
@@ -54,3 +56,13 @@ def test_hover_lines_variable_particle() -> None:
     vparticle = VariableParticle((0, 0), radius=5)
     lines = tool.get_hover_lines(vparticle)
     assert any(line.startswith("V Drag") for line in lines)
+
+
+def test_hover_lines_variable_bend() -> None:
+    tool = make_tool()
+    p1 = Particle((0, 0))
+    p2 = Particle((10, 0))
+    p3 = Particle((10, 10))
+    vbend = VariableBendingSpring(p1, p2, p3, math.radians(90), math.radians(45), 200)
+    lines = tool.get_hover_lines(vbend)
+    assert any(line.startswith("V Ang2") for line in lines)

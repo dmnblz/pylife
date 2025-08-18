@@ -8,6 +8,8 @@ from particle import Particle
 from variable_particle import VariableParticle
 from spring import Spring
 from variable_spring import VariableSpring
+from bending_spring import BendingSpring
+from variable_bending_spring import VariableBendingSpring
 from ..fields import SliderField, ColorField, KeyField, ButtonField
 from .base import Tool
 
@@ -137,6 +139,34 @@ class InspectTool(Tool):
         self.bstiff_field = SliderField(
             "B Stiff", 10, 1000, self._get_bstiff, self._set_bstiff, x, y, width
         )
+        y += 40
+        self.balt_field = SliderField(
+            "V Ang2", 0, 180, self._get_balt, self._set_balt, x, y, width
+        )
+        y += 40
+        self.bspeed_field = SliderField(
+            "V Speed", 10, 1000, self._get_bspeed, self._set_bspeed, x, y, width
+        )
+        y += 40
+        self.bkey_field = KeyField("V Key", self._get_bkey, self._set_bkey, x, y, width)
+        y += 40
+        self.bmode_btn = ButtonField(
+            lambda: f"Mode: {self.bend.mode}" if isinstance(self.bend, VariableBendingSpring) else "Mode",
+            self._toggle_bmode,
+            x,
+            y,
+            width,
+            active=lambda: isinstance(self.bend, VariableBendingSpring) and self.bend.mode == "toggle",
+        )
+        y += 40
+        self.btype_btn = ButtonField(
+            lambda: "Normal" if isinstance(self.bend, VariableBendingSpring) else "Variable",
+            self._convert_bend,
+            x,
+            y,
+            width,
+            active=lambda: isinstance(self.bend, VariableBendingSpring),
+        )
 
     def get_hover_lines(self, obj) -> list[str]:
         """Return sidebar-formatted property lines for ``obj``.
@@ -170,8 +200,15 @@ class InspectTool(Tool):
                 lines.append(f"Mode: {obj.mode}")
         else:
             # treat as bend
-            lines.append(f"B Angle: {math.degrees(obj.rest_angle):.1f}°")
+            angle = obj.base_angle if isinstance(obj, VariableBendingSpring) else obj.rest_angle
+            lines.append(f"B Angle: {math.degrees(angle):.1f}°")
             lines.append(f"B Stiff: {obj.stiffness:.1f}")
+            if isinstance(obj, VariableBendingSpring):
+                lines.append(f"V Ang2: {math.degrees(obj.alt_angle):.1f}°")
+                lines.append(f"V Speed: {math.degrees(obj.change_speed):.1f}")
+                key = pygame.key.name(obj.key) if obj.key else "-"
+                lines.append(f"V Key: {key}")
+                lines.append(f"Mode: {obj.mode}")
         return lines
 
     # ---------------- helpers
@@ -445,6 +482,26 @@ class InspectTool(Tool):
         y += 40
         self.invis_btn.rect.y = y
 
+    def _layout_bend_fields(self) -> None:
+        """Position bend widgets based on bend type."""
+
+        def place_slider(field, top):
+            field.slider_rect.y = top + 18
+            field.box_rect.y = top + 10
+            return top + 40
+
+        y = self.sidebar.extra_start_y
+        y = place_slider(self.bangle_field, y)
+        y = place_slider(self.bstiff_field, y)
+        if isinstance(self.bend, VariableBendingSpring):
+            y = place_slider(self.balt_field, y)
+            y = place_slider(self.bspeed_field, y)
+            self.bkey_field.box_rect.y = y + 10
+            y += 40
+            self.bmode_btn.rect.y = y
+            y += 40
+        self.btype_btn.rect.y = y
+
     def _get_bangle(self) -> float:
         """Return bend rest angle in degrees."""
         return math.degrees(self.bend.rest_angle) if self.bend else 0
@@ -462,6 +519,84 @@ class InspectTool(Tool):
         """Set bend stiffness."""
         if self.bend:
             self.bend.stiffness = max(10, value)
+
+    def _get_balt(self) -> float:
+        """Return alternate bend angle in degrees."""
+        if isinstance(self.bend, VariableBendingSpring):
+            return math.degrees(self.bend.alt_angle)
+        return 0
+
+    def _set_balt(self, value: float) -> None:
+        """Set alternate bend angle in degrees."""
+        if isinstance(self.bend, VariableBendingSpring):
+            self.bend.set_alt_angle(math.radians(max(0, value)))
+
+    def _get_bspeed(self) -> float:
+        """Return bend change speed in degrees per second."""
+        if isinstance(self.bend, VariableBendingSpring):
+            return math.degrees(self.bend.change_speed)
+        return 0
+
+    def _set_bspeed(self, value: float) -> None:
+        """Set bend change speed in degrees per second."""
+        if isinstance(self.bend, VariableBendingSpring):
+            self.bend.change_speed = math.radians(max(10, value))
+
+    def _get_bkey(self) -> int | None:
+        """Return control key for variable bends."""
+        if isinstance(self.bend, VariableBendingSpring):
+            return self.bend.key
+        return None
+
+    def _set_bkey(self, value: int | None) -> None:
+        """Set control key for variable bends."""
+        if isinstance(self.bend, VariableBendingSpring):
+            self.sidebar.app.update_vbend_key(self.bend, value)
+
+    def _toggle_bmode(self) -> None:
+        """Toggle mode for variable bends between hold and toggle."""
+        if isinstance(self.bend, VariableBendingSpring):
+            self.bend.mode = "toggle" if self.bend.mode == "hold" else "hold"
+
+    def _convert_bend(self) -> None:
+        """Toggle the selected bend between variable and normal types."""
+        if not self.bend:
+            return
+        if isinstance(self.bend, VariableBendingSpring):
+            old = self.bend
+            self.sidebar.app.update_vbend_key(old, None)
+            new = BendingSpring(
+                old.p1,
+                old.p2,
+                old.p3,
+                old.base_angle,
+                old.stiffness,
+            )
+            idx = self.app.bending_springs.index(old)
+            self.app.bending_springs[idx] = new
+            if old in self.app.variable_bending_springs:
+                self.app.variable_bending_springs.remove(old)
+            self.bend = new
+        else:
+            old = self.bend
+            cfg = self.app.vbend
+            angle = old.rest_angle
+            new = VariableBendingSpring(
+                old.p1,
+                old.p2,
+                old.p3,
+                angle,
+                angle * cfg.alt_factor,
+                old.stiffness,
+                key=cfg.key,
+                mode=cfg.mode,
+                change_speed=cfg.speed,
+            )
+            idx = self.app.bending_springs.index(old)
+            self.app.bending_springs[idx] = new
+            self.app.variable_bending_springs.append(new)
+            self.sidebar.app.register_variable_bend(new)
+            self.bend = new
 
     def _get_max(self) -> float:
         """Return spring max force or ``0`` if unlimited."""
@@ -524,8 +659,15 @@ class InspectTool(Tool):
             self.type_btn.draw(self.sidebar.screen, offset)
             self.invis_btn.draw(self.sidebar.screen, offset)
         elif self.bend:
+            self._layout_bend_fields()
             self.bangle_field.draw(self.sidebar.screen, offset)
             self.bstiff_field.draw(self.sidebar.screen, offset)
+            if isinstance(self.bend, VariableBendingSpring):
+                self.balt_field.draw(self.sidebar.screen, offset)
+                self.bspeed_field.draw(self.sidebar.screen, offset)
+                self.bkey_field.draw(self.sidebar.screen, offset)
+                self.bmode_btn.draw(self.sidebar.screen, offset)
+            self.btype_btn.draw(self.sidebar.screen, offset)
 
     def draw_preview(self):
         """Highlight the currently selected object."""
@@ -626,9 +768,21 @@ class InspectTool(Tool):
             if self.invis_btn.handle_event(event, offset):
                 return True
         elif self.bend:
+            self._layout_bend_fields()
             if self.bangle_field.handle_event(event, offset):
                 return True
             if self.bstiff_field.handle_event(event, offset):
+                return True
+            if isinstance(self.bend, VariableBendingSpring):
+                if self.balt_field.handle_event(event, offset):
+                    return True
+                if self.bspeed_field.handle_event(event, offset):
+                    return True
+                if self.bkey_field.handle_event(event, offset):
+                    return True
+                if self.bmode_btn.handle_event(event, offset):
+                    return True
+            if self.btype_btn.handle_event(event, offset):
                 return True
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
