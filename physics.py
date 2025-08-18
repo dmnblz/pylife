@@ -294,21 +294,27 @@ class PhysicsEngine:
         self._collision_bucket_size = bs
 
     def _apply_repulsion(self) -> None:
-        # Fast exits
+        """Push particles apart when they come within the repulsion radius."""
+
         if self.repulsion_radius <= 0 or self.repulsion_strength == 0 or len(self.particles) < 2:
             self._collision_buckets.clear()
             return
+
+        radius = self.repulsion_radius
+        inv_radius = 1.0 / radius
+        radius_sq = radius * radius
+
         if not self._use_spatial_hash:
             self._collision_buckets.clear()
-            # fallback O(n^2)
             for i, p1 in enumerate(self.particles):
                 for j in range(i + 1, len(self.particles)):
                     p2 = self.particles[j]
                     delta = p2.pos - p1.pos
-                    dist = delta.length()
-                    if dist > 0 and dist < self.repulsion_radius:
+                    dist_sq = delta.length_squared()
+                    if 0 < dist_sq < radius_sq:
+                        dist = math.sqrt(dist_sq)
                         direction = delta / dist
-                        force_magnitude = self.repulsion_strength * (self.repulsion_radius - dist) / self.repulsion_radius
+                        force_magnitude = self.repulsion_strength * (radius - dist) * inv_radius
                         force = direction * force_magnitude
                         p1.apply_force(-force)
                         p2.apply_force(force)
@@ -333,7 +339,6 @@ class PhysicsEngine:
             (1, -1),  (1, 0),  (1, 1),
         )
 
-        # For each particle, check neighbors in 3x3 surrounding cells; only pairs with j > i
         for i, p1 in enumerate(self.particles):
             cx = int(math.floor(p1.pos.x / bs))
             cy = int(math.floor(p1.pos.y / bs))
@@ -347,10 +352,11 @@ class PhysicsEngine:
                         continue
                     p2 = self.particles[j]
                     delta = p2.pos - p1.pos
-                    dist = delta.length()
-                    if dist > 0 and dist < self.repulsion_radius:
+                    dist_sq = delta.length_squared()
+                    if 0 < dist_sq < radius_sq:
+                        dist = math.sqrt(dist_sq)
                         direction = delta / dist
-                        force_magnitude = self.repulsion_strength * (self.repulsion_radius - dist) / self.repulsion_radius
+                        force_magnitude = self.repulsion_strength * (radius - dist) * inv_radius
                         force = direction * force_magnitude
                         p1.apply_force(-force)
                         p2.apply_force(force)

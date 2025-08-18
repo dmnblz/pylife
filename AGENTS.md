@@ -209,6 +209,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 - Tune stiffness and damping to avoid instability; consider `max_force` to prevent runaway springs.
 - Repulsion is O(n^2); keep radius/particle count in check or disable where not needed.
 - For sticky effects prefer raising `drag` over `fixed=True` during motion.
+- Repulsion skips square roots for distant pairs and reuses the inverse radius for speed.
 
 ---
 
