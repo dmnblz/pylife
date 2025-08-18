@@ -22,7 +22,9 @@ from builder_ui.config import (
     VariableParticleParams,
     VariableBendParams,
     EnvironmentParams,
+    SensorParams,
 )
+from sensor import Sensor
 import builder_io
 from structures import create_rod as structure_create_rod
 from hook_arm import HookArm
@@ -47,6 +49,7 @@ class BuilderApp:
         self.bending_springs: list[BendingSpring] = []
         self.variable_bending_springs: list[VariableBendingSpring] = []
         self.arms: list[HookArm] = []
+        self.sensors: list[Sensor] = []
         self.cycle_keys: dict[int, list[HookArm]] = {}
         self.vspring_keys: dict[int, list[VariableSpring]] = {}
         self.vparticle_keys: dict[int, list[VariableParticle]] = {}
@@ -74,6 +77,7 @@ class BuilderApp:
         self.vspring = VariableSpringParams()
         self.vparticle = VariableParticleParams()
         self.vbend = VariableBendParams()
+        self.sensor = SensorParams()
         self.environment = EnvironmentParams()
         self.grid_enabled = False
         self.grid_size = 40.0
@@ -156,6 +160,8 @@ class BuilderApp:
             self.ui.bend_tool.cancel()
         if self.mode == "vbend" and mode != "vbend":
             self.ui.variable_bend_tool.cancel()
+        if self.mode == "sensor" and mode != "sensor":
+            self.ui.sensor_tool.cancel()
         if self.mode == "env" and mode != "env":
             self.ui.env_tool.cancel()
         if self.mode == "grid" and mode != "grid":
@@ -182,6 +188,8 @@ class BuilderApp:
             self.ui.bend_tool.start()
         if mode == "vbend":
             self.ui.variable_bend_tool.start()
+        if mode == "sensor":
+            self.ui.sensor_tool.start()
         if mode == "env":
             self.ui.env_tool.start()
         if mode == "grid":
@@ -734,6 +742,7 @@ class BuilderApp:
         springs: Iterable[Spring] = (),
         bends: Iterable[BendingSpring] = (),
         arms: Iterable[HookArm] = (),
+        sensors: Iterable[Sensor] = (),
     ) -> None:
         """Remove collections of objects from the simulation.
 
@@ -747,6 +756,7 @@ class BuilderApp:
         springs_set = set(springs)
         bends_set = set(bends)
         arms_set = set(arms)
+        sensors_set = set(sensors)
 
         # remove arms explicitly passed or those referencing removed particles
         for arm in list(self.arms):
@@ -792,6 +802,11 @@ class BuilderApp:
                             if not lst:
                                 del self.vbend_keys[bs.key]
             self.bending_springs[:] = new_bends
+
+        if sensors_set:
+            for s in list(self.sensors):
+                if s in sensors_set:
+                    self.sensors.remove(s)
 
         # finally drop particles themselves
         for p in parts_set:
@@ -997,6 +1012,16 @@ class BuilderApp:
                 }
                 for arm in self.arms
             ],
+            "sensors": [
+                {
+                    "pos": [s.pos.x, s.pos.y],
+                    "forward": [s.forward.x, s.forward.y],
+                    "radius": s.radius,
+                    "half_angle": s.half_angle,
+                    "tags": sorted(s.tags),
+                }
+                for s in self.sensors
+            ],
             "physics": {
                 "gravity": [self.physics.gravity.x, self.physics.gravity.y],
                 "repulsion_radius": self.physics.repulsion_radius,
@@ -1140,6 +1165,17 @@ class BuilderApp:
                 self.cycle_keys.setdefault(arm.cycle_key, []).append(arm)
             arm._set_high_drag(False)
             self.arms.append(arm)
+
+        self.sensors = []
+        for sd in data.get("sensors", []):
+            s = Sensor(
+                sd.get("pos", (0, 0)),
+                forward=sd.get("forward", (1, 0)),
+                radius=sd.get("radius", 1.0),
+                half_angle=sd.get("half_angle", math.pi),
+                tags=sd.get("tags"),
+            )
+            self.sensors.append(s)
 
         phys = data.get("physics", {})
         self.physics.gravity = pygame.Vector2(phys.get("gravity", [0, 0]))
@@ -1773,6 +1809,7 @@ class BuilderApp:
                 self.particles,
                 self.springs,
                 self.bending_springs,
+                self.sensors,
                 hover_particle=self.hover_particle,
                 hover_spring=self.hover_spring,
                 hover_bend=self.hover_bend,
