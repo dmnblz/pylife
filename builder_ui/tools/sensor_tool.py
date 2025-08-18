@@ -82,12 +82,12 @@ class SensorTool(ParticleTool):
                 sensor = SensorParticle(
                     world,
                     forward=forward,
-                    sense_radius=self.app.sensor.radius,
+                    sense_radius=self.app.sensor.sense_radius,
                     half_angle=math.radians(self.app.sensor.half_angle_deg),
-                    mass=self.app.particle.mass,
-                    color=self.app.particle.color,
-                    radius=self.app.particle.radius,
-                    elasticity=self.app.particle.elasticity,
+                    mass=self.app.sensor.mass,
+                    color=self.app.sensor.color,
+                    radius=self.app.sensor.particle_radius,
+                    elasticity=self.app.sensor.elasticity,
                     trail_length=self.app.environment.trail_length,
                 )
                 self.app.particles.append(sensor)
@@ -99,10 +99,10 @@ class SensorTool(ParticleTool):
         return False
 
     def _get_range(self) -> float:
-        return self.app.sensor.radius
+        return self.app.sensor.sense_radius
 
     def _set_range(self, value: float) -> None:
-        self.app.sensor.radius = max(1.0, value)
+        self.app.sensor.sense_radius = max(1.0, value)
 
     def _get_angle(self) -> float:
         return self.app.sensor.half_angle_deg
@@ -115,3 +115,29 @@ class SensorTool(ParticleTool):
 
     def _set_dir(self, value: float) -> None:
         self.app.sensor.direction_deg = value % 360
+
+    # override particle parameter accessors to use sensor defaults
+
+    def _get_color(self) -> tuple[int, int, int]:
+        return self.app.sensor.color
+
+    def _set_color(self, color: tuple[int, int, int]) -> None:
+        self.app.sensor.color = color
+
+    def _get_mass(self) -> float:
+        return self.app.sensor.mass
+
+    def _set_mass(self, value: float) -> None:
+        self.app.sensor.mass = max(0.1, value)
+
+    def _get_radius(self) -> float:
+        return self.app.sensor.particle_radius
+
+    def _set_radius(self, value: float) -> None:
+        self.app.sensor.particle_radius = max(1, int(value))
+
+    def _get_elasticity(self) -> float:
+        return self.app.sensor.elasticity
+
+    def _set_elasticity(self, value: float) -> None:
+        self.app.sensor.elasticity = max(0.0, min(1.0, value))

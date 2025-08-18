@@ -136,7 +136,15 @@ class SensorParams:
 
     Attributes
     ----------
-    radius:
+    mass:
+        Mass assigned to newly created sensors.
+    particle_radius:
+        Rendering and collision radius for the sensor particle.
+    color:
+        RGB colour used when spawning sensors. Defaults to yellow.
+    elasticity:
+        Collision restitution factor for new sensors (0–1).
+    sense_radius:
         Detection radius in world units.
     half_angle_deg:
         Half of the field of view in degrees. ``180`` covers a full circle.
@@ -144,7 +152,11 @@ class SensorParams:
         Direction the sensor faces in degrees.
     """
 
-    radius: float = 50.0
+    mass: float = 1.0
+    particle_radius: int = 10
+    color: tuple[int, int, int] = (255, 255, 0)
+    elasticity: float = 1.0
+    sense_radius: float = 50.0
     half_angle_deg: float = 180.0
     direction_deg: float = 0.0
 
