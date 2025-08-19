@@ -110,6 +110,8 @@ class EnvironmentParams:
         Brownian motion intensity.
     damping:
         Coefficient for viscous damping.
+    integration_damping:
+        Velocity scale applied each integration step (0–1).
     collisions:
         Toggle for particle-particle collision handling.
     collision_bucket_size:
@@ -125,6 +127,7 @@ class EnvironmentParams:
     repulsion_strength: float = 1000.0
     temperature: float = 0.0
     damping: float = 1.0
+    integration_damping: float = 0.98
     collisions: bool = True
     collision_bucket_size: float = 0.0
     trails_enabled: bool = False

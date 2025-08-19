@@ -123,7 +123,7 @@ Other controls:
 - Arm: Attach `HookArm` to a base particle; control segments, spacing, mass, radius, stiffness, cycle speed, colors, adhesion factor, cycle key.
 - Inspect: Click an existing particle, spring, or bend to edit properties in place; hovering shows a tooltip with key properties; convert between normal/variable spring/particle types; toggle spring visibility; set `max_force` (0 means unlimited/None).
 - Grid: Toggle overlay and spacing; new placements snap to intersections. `snap_to_grid` leaves aligned coords unchanged.
-- Env: Adjust gravity, repulsion radius/strength, damping, temperature, toggle collisions, and particle trails.
+- Env: Adjust gravity, repulsion radius/strength, viscous damping, velocity damping, temperature, toggle collisions, and particle trails.
 
 ### Undo and deletion
 
@@ -149,7 +149,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 - `arms`: list of
   - `particles` (indices), `springs` (indices into global springs), `rest_lengths`, `max_lengths`, `cycle_speed`, `color`, `high_color`, `adhesion` (mass factor), `orig_mass`, `adhesion_drag`, `orig_drag`, `cycle_key`
 - Sensor particles appear in `particles` with `type: "sensor"` and fields `forward`, `sense_radius`, `half_angle`, `tags`.
-- `physics`: `{ gravity: [gx, gy], repulsion_radius, repulsion_strength, temperature, damping_coeff, collisions, collision_elasticity, collision_bucket_size, trails_enabled, trail_length }`
+- `physics`: `{ gravity: [gx, gy], repulsion_radius, repulsion_strength, temperature, damping_coeff, integration_damping, collisions, collision_elasticity, collision_bucket_size, trails_enabled, trail_length }`
   Older save files may omit `trails_enabled` and `trail_length`; they default
   to `false` and `40` on load.
 
@@ -166,7 +166,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
   ],
   "bending": [],
   "arms": [],
-  "physics": {"gravity": [0, 0], "repulsion_radius": 30, "repulsion_strength": 1000, "temperature": 0, "damping_coeff": 1, "collisions": true, "collision_elasticity": 1.0, "collision_bucket_size": 0}
+ "physics": {"gravity": [0, 0], "repulsion_radius": 30, "repulsion_strength": 1000, "temperature": 0, "damping_coeff": 1, "integration_damping": 0.98, "collisions": true, "collision_elasticity": 1.0, "collision_bucket_size": 0}
 }
 ```
 
@@ -208,7 +208,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 ## Performance and stability
 
 - Reduce particle count and spring density for heavier scenes.
-- Tune stiffness and damping to avoid instability; consider `max_force` to prevent runaway springs.
+- Tune stiffness and damping to avoid instability; consider `max_force` and adjust velocity damping to prevent runaway springs.
 - Repulsion is O(n^2); keep radius/particle count in check or disable where not needed.
 - For sticky effects prefer raising `drag` over `fixed=True` during motion.
 - Repulsion skips square roots for distant pairs and reuses the inverse radius for speed.

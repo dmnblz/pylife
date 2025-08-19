@@ -74,6 +74,17 @@ class EnvironmentTool(Tool):
             width,
         )
         y += 40
+        self.vel_damp_field = SliderField(
+            "Vel Damp",
+            0,
+            1,
+            lambda: self.app.environment.integration_damping,
+            self._set_integration_damping,
+            x,
+            y,
+            width,
+        )
+        y += 40
         self.temp_field = SliderField(
             "Temp",
             0,
@@ -147,6 +158,12 @@ class EnvironmentTool(Tool):
         self.app.environment.damping = val
         self.app.physics.damping_coeff = val
 
+    def _set_integration_damping(self, value: float):
+        """Adjust velocity damping applied during integration."""
+        val = max(0, min(1, value))
+        self.app.environment.integration_damping = val
+        self.app.physics.integration_damping = val
+
     def _set_temperature(self, value: float):
         """Set Brownian motion intensity."""
         val = max(0, value)
@@ -186,6 +203,7 @@ class EnvironmentTool(Tool):
         self.rep_rad_field.draw(self.sidebar.screen, offset)
         self.rep_str_field.draw(self.sidebar.screen, offset)
         self.damp_field.draw(self.sidebar.screen, offset)
+        self.vel_damp_field.draw(self.sidebar.screen, offset)
         self.temp_field.draw(self.sidebar.screen, offset)
         self.coll_field.draw(self.sidebar.screen, offset)
         self.trail_toggle_field.draw(self.sidebar.screen, offset)
@@ -205,6 +223,8 @@ class EnvironmentTool(Tool):
         if self.rep_str_field.handle_event(event, offset):
             return True
         if self.damp_field.handle_event(event, offset):
+            return True
+        if self.vel_damp_field.handle_event(event, offset):
             return True
         if self.temp_field.handle_event(event, offset):
             return True
