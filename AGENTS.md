@@ -84,6 +84,7 @@ graph TD
 ### PhysicsEngine.update(dt)
 
 - Applies: gravity; spring forces; bending forces; O(n^2) short‑range repulsion; radius‑based collision resolution with per-particle elasticity and optional restitution; viscous drag scaled by per‑particle `drag`; Brownian random force; Verlet integration; increased friction near boundaries based on either window size or a configured play area.
+- `total_energy()` returns the sum of kinetic and spring potential energy for diagnostics.
 
 ---
 
