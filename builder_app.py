@@ -1853,7 +1853,8 @@ class BuilderApp:
                 pygame.draw.circle(self.screen, _theme.ACCENT, (int(c.x), int(c.y)), int(self.spring_first.radius * self.camera_zoom) + 6, 2)
             # HUD card (no heavy shadow)
             fps = self.clock.get_fps()
-            hud_w, hud_h = 320, 72
+            energy = self.physics.total_energy()
+            hud_w, hud_h = 320, 96
             hud = pygame.Surface((hud_w, hud_h), pygame.SRCALPHA)
             # glass panel
             pygame.draw.rect(hud, (30, 36, 48, 170), hud.get_rect(), border_radius=10)
@@ -1865,9 +1866,11 @@ class BuilderApp:
                 True,
                 (220, 230, 240),
             )
+            energy_txt = self.font.render(f"Energy: {energy:.2f}", True, (220, 230, 240))
             mode_txt = self.font.render(f"Mode: {self.mode}", True, (150, 200, 255))
             hud.blit(stat_txt, (12, 10))
-            hud.blit(mode_txt, (12, 36))
+            hud.blit(energy_txt, (12, 36))
+            hud.blit(mode_txt, (12, 62))
             self.screen.blit(hud, (12, 12))
             pygame.display.flip()
 

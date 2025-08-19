@@ -101,6 +101,8 @@ class PhysicsEngine:
         # Spatial hash reused by collisions when repulsion builds it
         self._collision_buckets: dict[tuple[int, int], list[int]] = {}
         self._collision_bucket_size: float = 0.0
+        # time delta of the most recent integration step
+        self._last_dt: float = 1.0
 
     def set_fixed_timestep(
         self,
@@ -168,6 +170,8 @@ class PhysicsEngine:
 
     def _step(self, dt: float) -> None:
         """Execute one physics step of duration ``dt`` (seconds)."""
+        # record step duration for energy calculations
+        self._last_dt = max(1e-8, float(dt))
 
         # apply gravity
         for p in self.particles:
@@ -490,3 +494,17 @@ class PhysicsEngine:
         if not p2.fixed:
             v2 += j_imp * inv2 * n
             p2.prev_pos = p2.pos - v2
+
+    def total_energy(self) -> float:
+        """Return total kinetic and spring potential energy."""
+
+        dt = self._last_dt if self._last_dt > 0 else 1.0
+        inv_dt = 1.0 / dt
+        kinetic = 0.0
+        for p in self.particles:
+            vel = (p.pos - p.prev_pos) * inv_dt
+            kinetic += 0.5 * p.mass * vel.length_squared()
+        potential = 0.0
+        for s in self.springs:
+            potential += s.potential_energy()
+        return kinetic + potential

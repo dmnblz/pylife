@@ -196,12 +196,19 @@ class CellWallApp:
             self.renderer.draw(self.particles, self.springs)
             # HUD card (no heavy shadow)
             fps = self.clock.get_fps()
-            hud_w, hud_h = 280, 62
+            energy = self.physics.total_energy()
+            hud_w, hud_h = 280, 88
             hud = pygame.Surface((hud_w, hud_h), pygame.SRCALPHA)
             pygame.draw.rect(hud, (30, 36, 48, 170), hud.get_rect(), border_radius=10)
             pygame.draw.rect(hud, (255, 255, 255, 40), hud.get_rect().inflate(-2, -2), width=1, border_radius=8)
-            txt = self.font.render(f"{fps:5.1f} FPS  |  {len(self.particles)} P  {len(self.springs)} S", True, (220, 230, 240))
-            hud.blit(txt, (12, 18))
+            txt = self.font.render(
+                f"{fps:5.1f} FPS  |  {len(self.particles)} P  {len(self.springs)} S",
+                True,
+                (220, 230, 240),
+            )
+            energy_txt = self.font.render(f"Energy: {energy:.2f}", True, (220, 230, 240))
+            hud.blit(txt, (12, 10))
+            hud.blit(energy_txt, (12, 40))
             self.screen.blit(hud, (12, 12))
             pygame.display.flip()
 
