@@ -5,6 +5,7 @@ from typing import Callable
 import pygame
 from color_picker import choose_color
 from . import theme
+from .fonts import get_font
 
 
 class SliderField:
@@ -44,7 +45,7 @@ class SliderField:
         self.max = max_val
         self.get_value: Callable[[], float] = get_value
         self.set_value: Callable[[float], None] = set_value
-        self.font = pygame.font.SysFont(None, 22)
+        self.font = get_font(22)
 
         slider_width = width - self.BOX_WIDTH - 10
         self.slider_rect = pygame.Rect(x, y + 18, slider_width, 6)
@@ -226,7 +227,7 @@ class ColorField:
         self.label = label
         self.get_color: Callable[[], tuple[int, int, int]] = get_color
         self.set_color: Callable[[tuple[int, int, int]], None] = set_color
-        self.font = pygame.font.SysFont(None, 22)
+        self.font = get_font(22)
 
         self.color_rect = pygame.Rect(x, y + 14, self.COLOR_SIZE, self.COLOR_SIZE)
         self.box_rect = pygame.Rect(
@@ -369,7 +370,7 @@ class KeyField:
         self.label = label
         self.get_key: Callable[[], int | None] = get_key
         self.set_key: Callable[[int | None], None] = set_key
-        self.font = pygame.font.SysFont(None, 22)
+        self.font = get_font(22)
 
         self.box_rect = pygame.Rect(x, y + 10, self.BOX_WIDTH, 22)
         self.editing = False
@@ -468,7 +469,7 @@ class ButtonField:
         self.action = action
         self.active = active
         self.rect = pygame.Rect(x, y, width, self.HEIGHT)
-        self.font = pygame.font.SysFont(None, 24)
+        self.font = get_font(24)
         self.pressed = 0
 
     def draw(self, screen, offset: int = 0) -> None:
