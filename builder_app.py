@@ -1866,7 +1866,7 @@ class BuilderApp:
                 True,
                 (220, 230, 240),
             )
-            energy_txt = self.font.render(f"Energy: {energy:.2f}", True, (220, 230, 240))
+            energy_txt = self.font.render(f"Energy: {energy:.2E}", True, (220, 230, 240))
             mode_txt = self.font.render(f"Mode: {self.mode}", True, (150, 200, 255))
             hud.blit(stat_txt, (12, 10))
             hud.blit(energy_txt, (12, 36))
