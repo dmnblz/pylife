@@ -2,6 +2,7 @@
 
 import pygame
 
+from .fonts import get_font
 from .tools.particle_tool import ParticleTool
 from .tools.spring_tool import SpringTool
 from .tools.variable_spring_tool import VariableSpringTool
@@ -37,7 +38,7 @@ class SidebarUI:
 
         self.screen = screen
         self.app = app
-        self.font = pygame.font.SysFont(None, 24)
+        self.font = get_font(24)
         self.buttons = []
         self.fields = []
         self.visible = True
