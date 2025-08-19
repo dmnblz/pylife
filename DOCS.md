@@ -17,7 +17,7 @@ A compact, extensible 2D soft‑body sandbox built on pygame. It simulates parti
 
 ### Interactive builder
 - Run: `python start_create.py`
-- Create circles, rods, variable springs/particles, bending springs, hook arms; tweak gravity, temperature, damping, repulsion; save/load, undo.
+- Create circles, rods, variable springs/particles, bending springs, hook arms; tweak gravity, temperature, viscous damping, velocity damping, repulsion; save/load, undo.
 - Number keys map to modes in the sidebar (1–0 in order). Buttons show their shortcuts.
 
 ### Demos
@@ -109,7 +109,7 @@ The builder (`start_create.py`) manages the simulation and a sidebar of tools.
 - **Arm**: attach a `HookArm`; configure mass, radius, stiffness, colors, adhesion factor, cycle speed, cycle key.
 - **Inspect**: click an existing particle, spring, or bend to edit properties; convert between normal/variable; toggle spring visibility; set max force.
 - **Grid**: toggle grid and spacing; creation snaps to intersections.
-- **Env**: adjust gravity, repulsion radius/strength, damping, temperature.
+- **Env**: adjust gravity, repulsion radius/strength, viscous damping, velocity damping, temperature.
 - **Delete**: remove closest particle or spring (undo supported).
 
 ### Sidebar/events
@@ -125,7 +125,7 @@ The builder (`start_create.py`) manages the simulation and a sidebar of tools.
 - Springs (endpoints by index, rest, stiffness, max force, invisible; variable springs add base/alt rest, speed, key, mode, active, current rest).
 - Bending springs (p1/p2/p3 indices, angle, stiffness).
 - Hook arms (particle indices, spring indices, rest/max lengths, cycle speed, colors, adhesion, tip original mass/drag, cycle key).
-- Physics globals (gravity, repulsion, temperature, damping).
+- Physics globals (gravity, repulsion, temperature, viscous damping, velocity damping).
 
 Loading rebuilds references and re‑registers variable elements and key bindings.
 
@@ -149,7 +149,7 @@ Loading rebuilds references and re‑registers variable elements and key binding
 
 ## Performance and stability tips
 
-- Reduce particle count or spring density; tune `stiffness` and `damping` to avoid instability.
+- Reduce particle count or spring density; tune `stiffness`, viscous `damping`, and `integration_damping` to avoid instability.
 - Use `repulsion_radius` sparingly; it’s O(n^2).
 - Consider breaking springs via `max_force` to avoid runaway configurations.
 - For “sticky” effects, prefer raising `drag` instead of setting `fixed=True` during motion.
@@ -163,7 +163,7 @@ Loading rebuilds references and re‑registers variable elements and key binding
 - `BendingSpring(p1, p2, p3, rest_angle_rad, stiffness)`
 - `VariableSpring(..., alt_rest_length, key=None, mode='hold'|'toggle', change_speed=..., ...)`
 - `VariableParticle(..., base_drag=..., alt_drag=..., key=None, mode='hold'|'toggle', change_speed=...)`
-- `PhysicsEngine(particles, springs, bending_springs=None, gravity=(0,0), repulsion_radius=..., repulsion_strength=..., temperature=..., damping_coeff=..., collision_bucket_size=...)`
+- `PhysicsEngine(particles, springs, bending_springs=None, gravity=(0,0), repulsion_radius=..., repulsion_strength=..., temperature=..., damping_coeff=..., integration_damping=0.98, collision_bucket_size=...)`
   - `set_screen_size(w, h)`, `set_play_area(pygame.Rect)`, `update(dt)`
 
 ---
@@ -201,6 +201,7 @@ engine = PhysicsEngine(
     repulsion_strength=800,
     temperature=200,
     damping_coeff=1.0,
+    integration_damping=0.98,
     collision_bucket_size=max_r * 2,
 )
 engine.set_screen_size(*screen.get_size())
@@ -239,7 +240,7 @@ pygame.quit()
 
 - Window resize glitches: update `renderer.screen` and `physics.set_screen_size`.
 - Tkinter errors: disable color/file pickers or install a Python build with Tk.
-- Jitter/instability: increase damping, lower stiffness, increase integration damping (damping=0.98 in `Particle.integrate`), or reduce time step (increase FPS).
+- Jitter/instability: increase viscous damping, lower stiffness, adjust `integration_damping` (default 0.98, configurable in the builder), or reduce time step (increase FPS).
 
 ---
 

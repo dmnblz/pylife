@@ -92,6 +92,7 @@ class BuilderApp:
             repulsion_strength=self.environment.repulsion_strength,
             temperature=self.environment.temperature,
             damping_coeff=self.environment.damping,
+            integration_damping=self.environment.integration_damping,
             collisions_enabled=self.environment.collisions,
             collision_bucket_size=self.environment.collision_bucket_size,
         )
@@ -1039,6 +1040,7 @@ class BuilderApp:
                 "repulsion_strength": self.physics.repulsion_strength,
                 "temperature": self.physics.temperature,
                 "damping_coeff": self.physics.damping_coeff,
+                "integration_damping": self.physics.integration_damping,
                 "collisions": self.physics.collisions_enabled,
                 "collision_elasticity": self.physics.collision_elasticity,
                 "collision_bucket_size": self.physics.collision_bucket_size or 0,
@@ -1205,6 +1207,8 @@ class BuilderApp:
         self.environment.temperature = self.physics.temperature
         self.physics.damping_coeff = phys.get("damping_coeff", 1)
         self.environment.damping = self.physics.damping_coeff
+        self.physics.integration_damping = phys.get("integration_damping", 0.98)
+        self.environment.integration_damping = self.physics.integration_damping
         self.physics.collisions_enabled = phys.get("collisions", True)
         self.environment.collisions = self.physics.collisions_enabled
         self.physics.collision_elasticity = phys.get("collision_elasticity", 1.0)

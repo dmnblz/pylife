@@ -37,6 +37,8 @@ class PhysicsEngine:
         Scales the Brownian noise applied to particles.
     damping_coeff:
         Coefficient for viscous drag and the Brownian noise variance.
+    integration_damping:
+        Velocity scaling factor applied during Verlet integration.
     collisions_enabled:
         If ``True`` (default) resolve overlapping particles after integration.
     collision_elasticity:
@@ -57,7 +59,8 @@ class PhysicsEngine:
         repulsion_strength=100,
         temperature=1.0,
         damping_coeff=1.0,
-    collisions_enabled: bool = True,
+        integration_damping: float = 0.98,
+        collisions_enabled: bool = True,
         collision_elasticity: float = 1.0,
         collision_bucket_size: float | None = None,
     ):
@@ -69,6 +72,7 @@ class PhysicsEngine:
         self.repulsion_strength = repulsion_strength
         self.temperature = temperature
         self.damping_coeff = damping_coeff
+        self.integration_damping = integration_damping
         self.collisions_enabled = bool(collisions_enabled)
         self.collision_elasticity = float(collision_elasticity)
         self.collision_bucket_size = (
@@ -229,7 +233,7 @@ class PhysicsEngine:
 
         # integrate motion
         for p in self.particles:
-            p.integrate(dt, damping=0.98)
+            p.integrate(dt, damping=self.integration_damping)
         # resolve direct particle collisions
         self._resolve_collisions()
         # apply wall friction
