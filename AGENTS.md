@@ -203,7 +203,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 - Control flow with early returns; avoid deep nesting.
 - No inline commentary inside code; place comments above complex logic blocks.
 - Match existing formatting; wrap long lines; don’t reformat unrelated code.
-- Reuse the default pygame font via ``builder_ui.fonts.get_font`` rather than
+- Reuse the bundled Roboto font via ``builder_ui.fonts.get_font`` rather than
   calling ``pygame.font.SysFont`` repeatedly to avoid leaking file handles.
 
 ---

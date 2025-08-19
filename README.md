@@ -43,7 +43,7 @@ Number keys **1–0** switch between the first ten sidebar tools in order and ea
     and creation script.
   * **Typed callbacks** – sidebar widgets declare explicit ``Callable``
     signatures for getters and setters, aiding static type checkers.
-  * **Cached fonts** – sidebar and field widgets reuse the default pygame font
+  * **Cached fonts** – sidebar and field widgets reuse a bundled Roboto font
     to prevent leaking file descriptors on some systems.
 
 ### Using high-drag particles
