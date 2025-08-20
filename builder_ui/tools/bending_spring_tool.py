@@ -30,7 +30,7 @@ class BendingSpringTool(Tool):
         )
         y += 40
         self.stiff_field = SliderField(
-            "Stiff", 10, 1000, lambda: self.stiffness, self._set_stiff, x, y, width
+            "Stiff", 10, 5000, lambda: self.stiffness, self._set_stiff, x, y, width
         )
         y += 40
         self.auto_button = ButtonField(

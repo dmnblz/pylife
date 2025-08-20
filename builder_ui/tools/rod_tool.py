@@ -61,7 +61,7 @@ class RodTool(Tool):
         )
         y += self.sidebar.BUTTON_HEIGHT + 4
         self.bstiff_field = SliderField(
-            "BStiff", 10, 1000, lambda: self.bend_stiffness, self._set_bstiff, x, y, width
+            "BStiff", 10, 5000, lambda: self.bend_stiffness, self._set_bstiff, x, y, width
         )
         y += 40
         self.cyto_button = ButtonField(

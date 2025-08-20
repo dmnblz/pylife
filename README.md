@@ -38,7 +38,8 @@ Number keys **1–0** switch between the first ten sidebar tools in order and ea
   key in hold or toggle mode. Inspect mode can also convert existing particles
   to or from this type.
 * **Variable bending springs** – bends can alternate between two angles via a
-  key in hold or toggle mode. Their arcs tint blue when compressed and red when stretched.
+  key in hold or toggle mode. Their arcs tint blue when compressed and red when stretched. Stiffness
+  sliders now reach 5000 for creating especially rigid bends.
   * **Developer-friendly** – comprehensive docstrings document the builder UI
     and creation script.
   * **Typed callbacks** – sidebar widgets declare explicit ``Callable``
