@@ -29,7 +29,7 @@ class VariableBendingSpringTool(Tool):
         )
         y += 40
         self.stiff_field = SliderField(
-            "Stiff", 10, 1000, self._get_stiff, self._set_stiff, x, y, width
+            "Stiff", 10, 5000, self._get_stiff, self._set_stiff, x, y, width
         )
         y += 40
         self.alt_field = SliderField(

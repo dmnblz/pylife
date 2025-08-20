@@ -159,7 +159,7 @@ class InspectTool(Tool):
         )
         y += 40
         self.bstiff_field = SliderField(
-            "B Stiff", 10, 1000, self._get_bstiff, self._set_bstiff, x, y, width
+            "B Stiff", 10, 5000, self._get_bstiff, self._set_bstiff, x, y, width
         )
         y += 40
         self.balt_field = SliderField(
