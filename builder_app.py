@@ -984,7 +984,7 @@ class BuilderApp:
                             "tags": sorted(p.tags),
                         }
                         if isinstance(p, SensorParticle)
-                        else {},
+                        else {}
                     ),
                   }
                   for p in self.particles
