@@ -231,6 +231,13 @@ class BuilderApp:
         """Pause or resume the simulation."""
         self.paused = not self.paused
 
+    def toggle_theme(self) -> None:
+        """Switch between dark and light UI themes."""
+        self.theme_name = (
+            "light" if theme.get_theme_name() == "dark" else "dark"
+        )
+        theme.set_theme(self.theme_name)
+
     def toggle_grid(self):
         """Enable or disable the placement grid."""
         self.grid_enabled = not self.grid_enabled
@@ -1719,12 +1726,6 @@ class BuilderApp:
                                 self.pasting = True
                         elif e.key == pygame.K_SPACE:
                             self.toggle_pause()
-                        elif e.key == pygame.K_t:
-                            # toggle theme
-                            self.theme_name = (
-                                "light" if theme.get_theme_name() == "dark" else "dark"
-                            )
-                            theme.set_theme(self.theme_name)
                         else:
                             arms = self.cycle_keys.get(e.key, [])
                             for arm in arms:
