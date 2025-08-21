@@ -128,8 +128,6 @@ class SensorTool(ParticleTool):
                     trail_length=self.app.environment.trail_length,
                     trigger=self.app.sensor.trigger,
                 )
-                if sensor.trigger:
-                    sensor.add_callback(lambda s, o: print("Sensor triggered"))
                 self.app.particles.append(sensor)
                 self.app.sensors.append(sensor)
                 self.app.register_sensor(sensor)

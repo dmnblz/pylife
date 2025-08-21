@@ -898,7 +898,6 @@ class InspectTool(Tool):
                     mouse = self.app.screen_to_world(event.pos)
                     p = min(self.app.particles, key=lambda q: (q.pos - mouse).length())
                     self.particle.trigger = p
-                    self.particle.add_callback(lambda s, o: print("Sensor triggered"))
             self.choose_trigger = False
             return True
         if self.particle:

@@ -55,6 +55,7 @@ class BuilderApp:
         self.vparticle_keys: dict[int, list[VariableParticle]] = {}
         self.vbend_keys: dict[int, list[VariableBendingSpring]] = {}
         self.channels: dict[int, list[object]] = {}
+        self.active_channels: set[int] = set()
         self.selected = None
         self.selection_start: pygame.Vector2 | None = None
         self.selection_rect: pygame.Rect | None = None
@@ -1559,14 +1560,21 @@ class BuilderApp:
             self.channels.setdefault(channel, []).append(obj)
 
     def register_sensor(self, sensor: SensorParticle) -> None:
-        sensor.add_callback(lambda s, o: self._trigger_channel(s.channel))
+        sensor.add_callback(lambda s, o: self._signal_channel(s.channel))
 
-    def _trigger_channel(self, channel: int | None) -> None:
-        if channel is None:
-            return
-        for obj in list(self.channels.get(channel, [])):
-            if hasattr(obj, "on_keydown"):
-                obj.on_keydown()
+    def _signal_channel(self, channel: int | None) -> None:
+        """Mark *channel* as active for the current frame."""
+        if channel is not None:
+            self.active_channels.add(channel)
+
+    def _apply_channel_signals(self) -> None:
+        """Update variable objects and clear the per-frame channel state."""
+        for ch, objs in self.channels.items():
+            state = ch in self.active_channels
+            for obj in list(objs):
+                if hasattr(obj, "active"):
+                    obj.active = state
+        self.active_channels.clear()
 
     def create_hook_arm(
         self,
@@ -1836,6 +1844,7 @@ class BuilderApp:
             for s in self.sensors:
                 if s.trigger:
                     s.check(s.trigger)
+            self._apply_channel_signals()
 
             # keep particles inside the world play area (independent of screen size)
             left, top, width, height = self.play_area
