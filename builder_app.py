@@ -430,10 +430,16 @@ class BuilderApp:
             y = sh - height - 5
         rect = pygame.Rect(x, y, width, height)
         panel = pygame.Surface(rect.size, pygame.SRCALPHA)
-        pygame.draw.rect(panel, (30, 36, 48, 200), panel.get_rect(), border_radius=8)
-        pygame.draw.rect(panel, (255, 255, 255, 40), panel.get_rect().inflate(-2, -2), width=1, border_radius=6)
+        pygame.draw.rect(panel, (*theme.BG_SIDEBAR, 200), panel.get_rect(), border_radius=8)
+        pygame.draw.rect(
+            panel,
+            (*theme.TEXT, 40),
+            panel.get_rect().inflate(-2, -2),
+            width=1,
+            border_radius=6,
+        )
         for i, line in enumerate(lines):
-            txt = self.font.render(line, True, (220, 230, 240))
+            txt = self.font.render(line, True, theme.TEXT)
             panel.blit(txt, (padding, padding + i * line_h))
         self.screen.blit(panel, rect)
 
@@ -1805,16 +1811,18 @@ class BuilderApp:
 
             self.renderer.draw_background(self.play_area)
             # draw play area boundary
-            self.renderer.draw_play_area(self.play_area, color=(70, 75, 90))
+            self.renderer.draw_play_area(self.play_area)
             if self.grid_enabled:
                 # draw grid in world space so it zooms/pans with camera
                 # fade with zoom for subtlety
                 z = self.camera_zoom
                 fade = max(0.15, min(1.0, (z - 0.4) / 0.8))
+
                 def with_alpha(rgb: tuple[int, int, int], a: float) -> tuple[int, int, int, int]:
                     return (rgb[0], rgb[1], rgb[2], int(255 * max(0.0, min(1.0, a))))
-                minor_rgb = (50, 52, 60)
-                major_rgb = (70, 72, 82)
+
+                minor_rgb = theme.BORDER
+                major_rgb = theme.BORDER_ACTIVE
                 minor = with_alpha(minor_rgb, 0.35 * fade)
                 major = with_alpha(major_rgb, 0.6 * fade)
                 grid_surf = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
@@ -1872,17 +1880,28 @@ class BuilderApp:
             hud_w, hud_h = 320, 96
             hud = pygame.Surface((hud_w, hud_h), pygame.SRCALPHA)
             # glass panel
-            pygame.draw.rect(hud, (30, 36, 48, 170), hud.get_rect(), border_radius=10)
+            pygame.draw.rect(
+                hud,
+                (*theme.BG_SIDEBAR, 170),
+                hud.get_rect(),
+                border_radius=10,
+            )
             # inner light stroke
-            pygame.draw.rect(hud, (255, 255, 255, 40), hud.get_rect().inflate(-2, -2), width=1, border_radius=8)
+            pygame.draw.rect(
+                hud,
+                (*theme.TEXT, 40),
+                hud.get_rect().inflate(-2, -2),
+                width=1,
+                border_radius=8,
+            )
             # text
             stat_txt = self.font.render(
                 f"{fps:5.1f} FPS  |  {len(self.particles)} P  {len(self.springs)} S",
                 True,
-                (220, 230, 240),
+                theme.TEXT,
             )
-            energy_txt = self.font.render(f"Energy: {energy:.2E}", True, (220, 230, 240))
-            mode_txt = self.font.render(f"Mode: {self.mode}", True, (150, 200, 255))
+            energy_txt = self.font.render(f"Energy: {energy:.2E}", True, theme.TEXT)
+            mode_txt = self.font.render(f"Mode: {self.mode}", True, theme.ACCENT)
             hud.blit(stat_txt, (12, 10))
             hud.blit(energy_txt, (12, 36))
             hud.blit(mode_txt, (12, 62))
