@@ -62,6 +62,8 @@ class VariableSpringParams:
     mode:
         ``"hold"`` requires the key to be held, while ``"toggle"`` switches
         state on each press.
+    channel:
+        Input channel reacting to sensor signals.
     """
 
     stiffness: float = 200.0
@@ -69,6 +71,7 @@ class VariableSpringParams:
     speed: float = 240.0
     key: int | None = pygame.K_v
     mode: str = "hold"
+    channel: int | None = 0
 
 
 @dataclass
@@ -86,12 +89,15 @@ class VariableParticleParams:
     mode:
         ``"hold"`` requires the key to be held, while ``"toggle"`` switches
         state on each press.
+    channel:
+        Input channel reacting to sensor signals.
     """
 
     alt_drag: float = 100.0
     speed: float = 240.0
     key: int | None = pygame.K_g
     mode: str = "hold"
+    channel: int | None = 0
 
 
 @dataclass
@@ -156,6 +162,8 @@ class SensorParams:
         Direction the sensor faces in degrees.
     trigger:
         Particle selected to trigger the sensor when within range.
+    channel:
+        Output channel used to signal variable objects.
     """
 
     mass: float = 1.0
@@ -166,6 +174,7 @@ class SensorParams:
     half_angle_deg: float = 180.0
     direction_deg: float = 0.0
     trigger: Particle | None = None
+    channel: int | None = 0
 
 
 @dataclass
@@ -185,12 +194,15 @@ class VariableBendParams:
     mode:
         ``"hold"`` requires the key to be held, while ``"toggle"`` switches
         state on each press.
+    channel:
+        Input channel reacting to sensor signals.
     """
 
     alt_angle: float = 45.0
     speed: float = 240.0
     key: int | None = pygame.K_b
     mode: str = "hold"
+    channel: int | None = 0
 
 
 __all__ = [

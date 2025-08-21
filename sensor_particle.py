@@ -27,6 +27,8 @@ class SensorParticle(Particle):
         Optional set of strings limiting which objects trigger the sensor.
     trigger:
         Particle that can activate this sensor when within range.
+    channel:
+        Optional integer identifying an output channel for signalling.
     """
 
     def __init__(
@@ -38,6 +40,7 @@ class SensorParticle(Particle):
         half_angle: float = math.pi,
         tags: Optional[Iterable[str]] = None,
         trigger: Particle | None = None,
+        channel: int | None = None,
         mass: float = 1.0,
         color=None,
         radius: float | None = None,
@@ -62,6 +65,7 @@ class SensorParticle(Particle):
         self.tags = set(tags) if tags else set()
         self.callbacks: list[Callable[["SensorParticle", object], None]] = []
         self.trigger: Particle | None = trigger
+        self.channel: int | None = channel
 
     def add_callback(self, fn: Callable[["SensorParticle", object], None]) -> None:
         """Register a function called with ``(sensor, obj)`` when triggered."""
