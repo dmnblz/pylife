@@ -1572,7 +1572,9 @@ class BuilderApp:
         for ch, objs in self.channels.items():
             state = ch in self.active_channels
             for obj in list(objs):
-                if hasattr(obj, "active"):
+                if hasattr(obj, "set_channel_active"):
+                    obj.set_channel_active(state)
+                elif hasattr(obj, "active"):
                     obj.active = state
         self.active_channels.clear()
 
