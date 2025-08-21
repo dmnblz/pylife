@@ -118,6 +118,7 @@ class SidebarUI:
         add_button("Undo", self.app.undo)
         add_button("Save", self.app.save_state_dialog)
         add_button("Load", self.app.load_state_dialog)
+        add_button(lambda: "Light" if self.app.theme_name == "dark" else "Dark", self.app.toggle_theme)
         add_button(lambda: "Resume" if self.app.paused else "Pause", self.app.toggle_pause, "Space")
 
         y += 10
@@ -208,7 +209,7 @@ class SidebarUI:
                 if hint:
                     cap_img = self.font.render(hint, True, theme.TEXT)
                     cap_rect = cap_img.get_rect(midright=(rect.right - 8, rect.centery))
-                    pygame.draw.rect(self.screen, (80, 85, 100), cap_rect.inflate(12, 6), border_radius=6)
+                    pygame.draw.rect(self.screen, theme.BORDER, cap_rect.inflate(12, 6), border_radius=6)
                     self.screen.blit(cap_img, cap_rect)
 
             for field in self.fields:
@@ -243,9 +244,9 @@ class SidebarUI:
         self.inspect_tool.draw_preview()
 
         # toggle button (always visible)
-        pygame.draw.rect(self.screen, (100, 100, 100), self.toggle_rect, border_radius=theme.RADIUS)
+        pygame.draw.rect(self.screen, theme.BORDER, self.toggle_rect, border_radius=theme.RADIUS)
         arrow = "<" if self.visible else ">"
-        img = self.font.render(arrow, True, (255, 255, 255))
+        img = self.font.render(arrow, True, theme.TEXT)
         rect = img.get_rect(center=self.toggle_rect.center)
         self.screen.blit(img, rect)
 
