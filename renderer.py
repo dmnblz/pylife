@@ -4,6 +4,7 @@ import math
 import pygame
 from pygame import gfxdraw
 from builder_ui import theme
+from builder_ui.fonts import get_font
 
 class Renderer:
     """Simple helper that draws particles, springs and bending springs."""
@@ -133,6 +134,9 @@ class Renderer:
     ):
         """Render the simulation objects to the screen.
 
+        Channel numbers are shown next to sensors and variable elements. When
+        hovering a sensor, all objects on its channel highlight.
+
         Parameters
         ----------
         particles:
@@ -147,6 +151,10 @@ class Renderer:
             to outline.
         """
         screen_rect = self.screen.get_rect()
+        font = get_font(18)
+        hover_channel = None
+        if hover_particle is not None and getattr(hover_particle, "sense_radius", None) is not None:
+            hover_channel = getattr(hover_particle, "channel", None)
 
         if self.trails_enabled:
             trail_surf = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
@@ -168,11 +176,9 @@ class Renderer:
                 continue
             if getattr(s, "invisible", False):
                 continue
-            # Use the spring's color based on stretch/compression if available
             color = s.get_color() if hasattr(s, "get_color") else (200, 200, 220)
             p1 = self.world_to_screen(s.p1.pos)
             p2 = self.world_to_screen(s.p2.pos)
-            # thickness based on strain
             try:
                 rest = float(s.rest_length)
             except Exception:
@@ -180,18 +186,27 @@ class Renderer:
             curr = (s.p2.pos - s.p1.pos).length()
             strain = abs(curr - rest) / max(1.0, rest)
             width = max(1, min(6, int(1 + 2 * self.zoom + 3 * strain)))
-            # cull if segment bbox is off-screen with a small margin
             seg_min_x = int(min(p1.x, p2.x)) - width
             seg_max_x = int(max(p1.x, p2.x)) + width
             seg_min_y = int(min(p1.y, p2.y)) - width
             seg_max_y = int(max(p1.y, p2.y)) + width
             if seg_max_x < 0 or seg_min_x > screen_rect.width or seg_max_y < 0 or seg_min_y > screen_rect.height:
                 continue
-            # draw single line for consistent perceived thickness
             pygame.draw.line(self.screen, color, p1, p2, width)
-            if getattr(s, "selected", False):
+            is_highlight = getattr(s, "selected", False) or (
+                hover_channel is not None and getattr(s, "channel", None) == hover_channel
+            )
+            if is_highlight:
                 pygame.draw.line(self.screen, theme.ACCENT, p1, p2, 8)
                 pygame.draw.line(self.screen, (255, 255, 255), p1, p2, 2)
+            ch = getattr(s, "channel", None)
+            if ch is not None:
+                label = font.render(str(ch), True, theme.TEXT)
+                rect = label.get_rect(
+                    center=((p1.x + p2.x) / 2, (p1.y + p2.y) / 2)
+                )
+                rect.y -= 10
+                self.screen.blit(label, rect)
 
         # draw bending springs if provided
         if bending_springs:
@@ -217,18 +232,27 @@ class Renderer:
                     start = (start + math.tau) % math.tau
                     end = (end + math.tau) % math.tau
                     pygame.draw.arc(self.screen, color, rect, start, end, 3)
-                    if getattr(bs, "selected", False):
+                    is_highlight = getattr(bs, "selected", False) or (
+                        hover_channel is not None and getattr(bs, "channel", None) == hover_channel
+                    )
+                    if is_highlight:
                         pygame.draw.line(self.screen, theme.ACCENT, a, b, 6)
                         pygame.draw.line(self.screen, theme.ACCENT, b, c, 6)
                         pygame.draw.line(self.screen, (255, 255, 255), a, b, 2)
                         pygame.draw.line(self.screen, (255, 255, 255), b, c, 2)
                         pygame.draw.arc(self.screen, theme.ACCENT, rect, start, end, 4)
+                    ch = getattr(bs, "channel", None)
+                    if ch is not None:
+                        label = font.render(str(ch), True, theme.TEXT)
+                        text_rect = label.get_rect(center=(int(b.x), int(b.y)))
+                        text_rect.y -= int(radius) + 10
+                        self.screen.blit(label, text_rect)
 
         if sensors:
             for s in sensors:
                 center = self.world_to_screen(s.pos)
                 radius = max(1, int(s.sense_radius * self.zoom))
-                col = (180, 180, 80)
+                col = theme.ACCENT if hover_channel is not None and getattr(s, "channel", None) == hover_channel else (180, 180, 80)
                 pygame.draw.circle(self.screen, col, (int(center.x), int(center.y)), radius, 1)
                 if s.half_angle < math.pi:
                     start = math.atan2(-s.forward.y, s.forward.x) - s.half_angle
@@ -240,6 +264,12 @@ class Renderer:
                     p2 = center + pygame.Vector2(math.cos(end), math.sin(end)) * radius
                     pygame.draw.line(self.screen, col, center, p1, 1)
                     pygame.draw.line(self.screen, col, center, p2, 1)
+                ch = getattr(s, "channel", None)
+                if ch is not None:
+                    label = font.render(str(ch), True, theme.TEXT)
+                    rect = label.get_rect(center=(int(center.x), int(center.y)))
+                    rect.y -= radius + 10
+                    self.screen.blit(label, rect)
 
         # draw particles with culling and simplified effects at high zoom
         for p in particles:
@@ -264,7 +294,8 @@ class Renderer:
                 hi_surf = pygame.Surface((hi_r * 2 + 4, hi_r * 2 + 4), pygame.SRCALPHA)
                 pygame.draw.circle(hi_surf, (255, 255, 255, 40), (hi_r + 2, hi_r + 2), hi_r)
                 self.screen.blit(hi_surf, (cx - hi_r - 2, cy - hi_r - int(radius * 0.4)))
-            is_selected_or_hover = getattr(p, "selected", False) or (hover_particle is p)
+            is_channel = hover_channel is not None and getattr(p, "channel", None) == hover_channel
+            is_selected_or_hover = getattr(p, "selected", False) or (hover_particle is p) or is_channel
             is_high_drag = getattr(p, "drag", 1.0) > 1.0
             if is_selected_or_hover:
                 ring_r = radius + 6
@@ -287,6 +318,12 @@ class Renderer:
                         pygame.draw.circle(self.screen, ring_color, (cx, cy), ring_r, width=2)
                 else:
                     pygame.draw.circle(self.screen, ring_color, (cx, cy), ring_r, width=2)
+            ch = getattr(p, "channel", None)
+            if ch is not None:
+                label = font.render(str(ch), True, theme.TEXT)
+                rect = label.get_rect(center=(cx, cy))
+                rect.y -= radius + 10
+                self.screen.blit(label, rect)
 
         # overlay hover highlights for springs/bends
         if hover_spring is not None:
