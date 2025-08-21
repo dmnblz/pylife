@@ -224,7 +224,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 
 - Builder (`start_create.py`):
   - Place particle, spring, var‑particle, var‑spring, bend, sensor; create circle/rod; attach arm; use inspect to edit/convert, including sensor range/angle/direction/colour; delete; undo works across all; grid snapping; env sliders; pause.
-  - Theme button switches between light and dark palettes for sidebar, canvas, grid and HUD.
+  - Theme button switches between light and dark palettes for sidebar, canvas, grid and HUD. The HUD renders on a translucent panel.
   - Save → Load roundtrip maintains: positions, prev positions, types, keys/modes, active flags, arm data, physics globals.
   - Zoom near sidebar vs world behaves as expected; sidebar scroll clamps to bounds.
 - Demos: Run all `start_*.py` and verify documented keybindings.
