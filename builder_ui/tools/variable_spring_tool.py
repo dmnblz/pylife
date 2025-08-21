@@ -50,6 +50,17 @@ class VariableSpringTool(Tool):
             width,
         )
         y += 40
+        self.channel_field = SliderField(
+            "Channel",
+            0,
+            9,
+            lambda: float(self.app.vspring.channel or 0),
+            lambda v: setattr(self.app.vspring, "channel", int(v)),
+            x,
+            y,
+            width,
+        )
+        y += 40
         self.key_field = KeyField(
             "Key",
             lambda: self.app.vspring.key,
@@ -81,6 +92,7 @@ class VariableSpringTool(Tool):
         self.stiff_field.draw(self.sidebar.screen, offset)
         self.alt_field.draw(self.sidebar.screen, offset)
         self.speed_field.draw(self.sidebar.screen, offset)
+        self.channel_field.draw(self.sidebar.screen, offset)
         self.key_field.draw(self.sidebar.screen, offset)
         self.mode_button.draw(self.sidebar.screen, offset)
 
@@ -93,6 +105,8 @@ class VariableSpringTool(Tool):
         if self.alt_field.handle_event(event, offset):
             return True
         if self.speed_field.handle_event(event, offset):
+            return True
+        if self.channel_field.handle_event(event, offset):
             return True
         if self.key_field.handle_event(event, offset):
             return True
@@ -117,6 +131,7 @@ class VariableSpringTool(Tool):
                             rest_length=rest,
                             alt_rest_length=alt,
                             stiffness=app.vspring.stiffness,
+                            channel=app.vspring.channel,
                             key=app.vspring.key,
                             mode=app.vspring.mode,
                             change_speed=app.vspring.speed,

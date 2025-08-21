@@ -31,6 +31,7 @@ class VariableSpring(Spring):
         key: int | None = None,
         mode: str = "hold",
         change_speed: float = 240.0,
+        channel: int | None = None,
         max_force: float | None = None,
         invisible: bool = False,
     ):
@@ -68,6 +69,7 @@ class VariableSpring(Spring):
         self.mode = mode
         self.change_speed = change_speed
         self.active = False
+        self.channel: int | None = channel
 
     def on_keydown(self):
         """Handle a ``KEYDOWN`` event for the spring's control key."""

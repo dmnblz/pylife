@@ -54,6 +54,17 @@ class VariableBendingSpringTool(Tool):
             width,
         )
         y += 40
+        self.channel_field = SliderField(
+            "Channel",
+            0,
+            9,
+            lambda: float(self.app.vbend.channel or 0),
+            lambda v: setattr(self.app.vbend, "channel", int(v)),
+            x,
+            y,
+            width,
+        )
+        y += 40
         self.key_field = KeyField(
             "Key",
             lambda: self.app.vbend.key,
@@ -125,6 +136,7 @@ class VariableBendingSpringTool(Tool):
             angle,
             alt,
             self.stiffness,
+            channel=self.app.vbend.channel,
             key=self.app.vbend.key,
             mode=self.app.vbend.mode,
             change_speed=self.app.vbend.speed,
@@ -155,6 +167,7 @@ class VariableBendingSpringTool(Tool):
         self.stiff_field.draw(self.sidebar.screen, offset)
         self.alt_field.draw(self.sidebar.screen, offset)
         self.speed_field.draw(self.sidebar.screen, offset)
+        self.channel_field.draw(self.sidebar.screen, offset)
         self.key_field.draw(self.sidebar.screen, offset)
         self.mode_button.draw(self.sidebar.screen, offset)
         self.auto_button.draw(self.sidebar.screen, offset)
@@ -218,6 +231,8 @@ class VariableBendingSpringTool(Tool):
         if self.alt_field.handle_event(event, offset):
             return True
         if self.speed_field.handle_event(event, offset):
+            return True
+        if self.channel_field.handle_event(event, offset):
             return True
         if self.key_field.handle_event(event, offset):
             return True

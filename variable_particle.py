@@ -36,6 +36,7 @@ class VariableParticle(Particle):
         key: int | None = None,
         mode: str = "hold",
         change_speed: float = 240.0,
+        channel: int | None = None,
         elasticity: float = 1.0,
         trail_length: int = 40,
     ):
@@ -54,6 +55,7 @@ class VariableParticle(Particle):
         self.mode = mode
         self.change_speed = change_speed
         self.active = False
+        self.channel: int | None = channel
 
     def on_keydown(self) -> None:
         """React to a ``KEYDOWN`` event for the particle's control key."""

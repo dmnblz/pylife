@@ -81,6 +81,17 @@ class VariableParticleTool(Tool):
             width,
         )
         y += 40
+        self.channel_field = SliderField(
+            "Channel",
+            0,
+            9,
+            lambda: float(self.app.vparticle.channel or 0),
+            lambda v: setattr(self.app.vparticle, "channel", int(v)),
+            x,
+            y,
+            width,
+        )
+        y += 40
         self.key_field = KeyField(
             "Key",
             lambda: self.app.vparticle.key,
@@ -140,6 +151,7 @@ class VariableParticleTool(Tool):
         self.elasticity_field.draw(self.sidebar.screen, offset)
         self.drag_field.draw(self.sidebar.screen, offset)
         self.speed_field.draw(self.sidebar.screen, offset)
+        self.channel_field.draw(self.sidebar.screen, offset)
         self.key_field.draw(self.sidebar.screen, offset)
         self.mode_button.draw(self.sidebar.screen, offset)
 
@@ -159,6 +171,8 @@ class VariableParticleTool(Tool):
             return True
         if self.speed_field.handle_event(event, offset):
             return True
+        if self.channel_field.handle_event(event, offset):
+            return True
         if self.key_field.handle_event(event, offset):
             return True
         if self.mode_button.handle_event(event, offset):
@@ -177,6 +191,7 @@ class VariableParticleTool(Tool):
                     elasticity=app.particle.elasticity,
                     base_drag=1.0,
                     alt_drag=app.vparticle.alt_drag,
+                    channel=app.vparticle.channel,
                     key=app.vparticle.key,
                     mode=app.vparticle.mode,
                     change_speed=app.vparticle.speed,

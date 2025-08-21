@@ -51,6 +51,17 @@ class SensorTool(ParticleTool):
             width,
         )
         y += 40
+        self.channel_field = SliderField(
+            "Channel",
+            0,
+            9,
+            self._get_channel,
+            self._set_channel,
+            x,
+            y,
+            width,
+        )
+        y += 40
         self.trigger_btn = ButtonField(
             lambda: f"Trigger: {self._trigger_label()}",
             self._start_choose_trigger,
@@ -68,6 +79,7 @@ class SensorTool(ParticleTool):
         self.range_field.draw(self.sidebar.screen, offset)
         self.angle_field.draw(self.sidebar.screen, offset)
         self.dir_field.draw(self.sidebar.screen, offset)
+        self.channel_field.draw(self.sidebar.screen, offset)
         self.trigger_btn.draw(self.sidebar.screen, offset)
 
     def handle_event(self, event, offset: int = 0) -> bool:
@@ -86,6 +98,8 @@ class SensorTool(ParticleTool):
         if self.angle_field.handle_event(event, offset):
             return True
         if self.dir_field.handle_event(event, offset):
+            return True
+        if self.channel_field.handle_event(event, offset):
             return True
         if self.trigger_btn.handle_event(event, offset):
             return True
@@ -106,6 +120,7 @@ class SensorTool(ParticleTool):
                     forward=forward,
                     sense_radius=self.app.sensor.sense_radius,
                     half_angle=math.radians(self.app.sensor.half_angle_deg),
+                    channel=self.app.sensor.channel,
                     mass=self.app.sensor.mass,
                     color=self.app.sensor.color,
                     radius=self.app.sensor.particle_radius,
@@ -117,6 +132,7 @@ class SensorTool(ParticleTool):
                     sensor.add_callback(lambda s, o: print("Sensor triggered"))
                 self.app.particles.append(sensor)
                 self.app.sensors.append(sensor)
+                self.app.register_sensor(sensor)
                 self.app.push_undo(
                     lambda s=sensor: self.app.remove_entities([s], sensors=[s])
                 )
@@ -140,6 +156,12 @@ class SensorTool(ParticleTool):
 
     def _set_dir(self, value: float) -> None:
         self.app.sensor.direction_deg = value % 360
+
+    def _get_channel(self) -> float:
+        return float(self.app.sensor.channel or 0)
+
+    def _set_channel(self, value: float) -> None:
+        self.app.sensor.channel = int(value)
 
     def _trigger_label(self) -> str:
         t = self.app.sensor.trigger

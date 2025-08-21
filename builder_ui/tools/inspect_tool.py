@@ -65,6 +65,10 @@ class InspectTool(Tool):
             "S Dir", 0, 360, self._get_sense_dir, self._set_sense_dir, x, y, width
         )
         y += 40
+        self.schannel_field = SliderField(
+            "S Chan", 0, 9, self._get_schan, self._set_schan, x, y, width
+        )
+        y += 40
         self.trigger_btn = ButtonField(
             lambda: f"Trigger: {self._trigger_label()}",
             self._start_choose_trigger,
@@ -79,6 +83,10 @@ class InspectTool(Tool):
         y += 40
         self.vspeed_field = SliderField(
             "V Speed", 50, 1000, self._get_vspeed, self._set_vspeed, x, y, width
+        )
+        y += 40
+        self.vchan_field = SliderField(
+            "V Chan", 0, 9, self._get_vchan, self._set_vchan, x, y, width
         )
         y += 40
         self.vkey_field = KeyField("V Key", self._get_vkey, self._set_vkey, x, y, width)
@@ -121,6 +129,10 @@ class InspectTool(Tool):
         y += 40
         self.speed_field = SliderField(
             "V Speed", 10, 1000, self._get_speed, self._set_speed, x, y, width
+        )
+        y += 40
+        self.schan_field = SliderField(
+            "V Chan", 0, 9, self._get_chan, self._set_chan, x, y, width
         )
         y += 40
         self.key_field = KeyField("V Key", self._get_key, self._set_key, x, y, width)
@@ -170,6 +182,10 @@ class InspectTool(Tool):
             "V Speed", 10, 1000, self._get_bspeed, self._set_bspeed, x, y, width
         )
         y += 40
+        self.bchan_field = SliderField(
+            "V Chan", 0, 9, self._get_bchan, self._set_bchan, x, y, width
+        )
+        y += 40
         self.bkey_field = KeyField("V Key", self._get_bkey, self._set_bkey, x, y, width)
         y += 40
         self.bmode_btn = ButtonField(
@@ -207,6 +223,7 @@ class InspectTool(Tool):
                 lines.append(f"V Speed: {obj.change_speed:.0f}")
                 key = pygame.key.name(obj.key) if obj.key else "-"
                 lines.append(f"V Key: {key}")
+                lines.append(f"V Chan: {obj.channel or 0}")
                 lines.append(f"Mode: {obj.mode}")
             if isinstance(obj, SensorParticle):
                 lines.append(f"S Range: {obj.sense_radius:.1f}")
@@ -214,6 +231,7 @@ class InspectTool(Tool):
                     lines.append(f"S HalfAng: {math.degrees(obj.half_angle):.1f}°")
                 direction = math.degrees(math.atan2(obj.forward.y, obj.forward.x)) % 360
                 lines.append(f"S Dir: {direction:.1f}°")
+                lines.append(f"S Chan: {obj.channel or 0}")
         elif isinstance(obj, Spring):
             rest = obj.base_rest_length if isinstance(obj, VariableSpring) else obj.rest_length
             lines.append(f"S Rest: {rest:.1f}")
@@ -225,6 +243,7 @@ class InspectTool(Tool):
                 lines.append(f"V Speed: {obj.change_speed:.1f}")
                 key = pygame.key.name(obj.key) if obj.key else "-"
                 lines.append(f"V Key: {key}")
+                lines.append(f"V Chan: {obj.channel or 0}")
                 lines.append(f"Mode: {obj.mode}")
         else:
             # treat as bend
@@ -236,6 +255,7 @@ class InspectTool(Tool):
                 lines.append(f"V Speed: {math.degrees(obj.change_speed):.1f}")
                 key = pygame.key.name(obj.key) if obj.key else "-"
                 lines.append(f"V Key: {key}")
+                lines.append(f"V Chan: {obj.channel or 0}")
                 lines.append(f"Mode: {obj.mode}")
         return lines
 
@@ -322,6 +342,17 @@ class InspectTool(Tool):
         if isinstance(self.particle, SensorParticle):
             self.particle.forward = pygame.Vector2(1, 0).rotate(value)
 
+    def _get_schan(self) -> float:
+        """Return output channel for the selected sensor."""
+        if isinstance(self.particle, SensorParticle):
+            return float(self.particle.channel or 0)
+        return 0
+
+    def _set_schan(self, value: float) -> None:
+        """Set output channel for the selected sensor."""
+        if isinstance(self.particle, SensorParticle):
+            self.particle.channel = int(value)
+
     def _trigger_label(self) -> str:
         if isinstance(self.particle, SensorParticle) and self.particle.trigger in self.app.particles:
             return str(self.app.particles.index(self.particle.trigger))
@@ -352,6 +383,17 @@ class InspectTool(Tool):
         if isinstance(self.particle, VariableParticle):
             self.particle.change_speed = max(10, value)
 
+    def _get_vchan(self) -> float:
+        """Return input channel for variable particles."""
+        if isinstance(self.particle, VariableParticle):
+            return float(self.particle.channel or 0)
+        return 0
+
+    def _set_vchan(self, value: float) -> None:
+        """Set input channel for variable particles."""
+        if isinstance(self.particle, VariableParticle):
+            self.app.update_channel(self.particle, int(value))
+
     def _get_vkey(self) -> int | None:
         """Return control key for variable particles."""
         if isinstance(self.particle, VariableParticle):
@@ -375,6 +417,7 @@ class InspectTool(Tool):
         if isinstance(self.particle, VariableParticle):
             old = self.particle
             self.app.update_vparticle_key(old, None)
+            self.app.update_channel(old, None)
             if old in self.app.variable_particles:
                 self.app.variable_particles.remove(old)
             try:
@@ -392,6 +435,7 @@ class InspectTool(Tool):
             p.key = cfg.key
             p.mode = cfg.mode
             p.active = False
+            p.channel = cfg.channel
             self.app.variable_particles.append(p)
             self.app.register_variable_particle(p)
 
@@ -423,6 +467,9 @@ class InspectTool(Tool):
             self.sense_dir_field.slider_rect.y = y + 18
             self.sense_dir_field.box_rect.y = y + 10
             y += 40
+            self.schannel_field.slider_rect.y = y + 18
+            self.schannel_field.box_rect.y = y + 10
+            y += 40
             self.trigger_btn.rect.y = y
             y += 40
         if isinstance(self.particle, VariableParticle):
@@ -431,6 +478,9 @@ class InspectTool(Tool):
             y += 40
             self.vspeed_field.slider_rect.y = y + 18
             self.vspeed_field.box_rect.y = y + 10
+            y += 40
+            self.vchan_field.slider_rect.y = y + 18
+            self.vchan_field.box_rect.y = y + 10
             y += 40
             self.vkey_field.box_rect.y = y + 10
             y += 40
@@ -482,6 +532,17 @@ class InspectTool(Tool):
         if isinstance(self.spring, VariableSpring):
             self.spring.change_speed = max(10, value)
 
+    def _get_chan(self) -> float:
+        """Return input channel for variable springs."""
+        if isinstance(self.spring, VariableSpring):
+            return float(self.spring.channel or 0)
+        return 0
+
+    def _set_chan(self, value: float) -> None:
+        """Set input channel for variable springs."""
+        if isinstance(self.spring, VariableSpring):
+            self.sidebar.app.update_channel(self.spring, int(value))
+
     def _get_key(self) -> int | None:
         """Return control key for variable springs."""
         if isinstance(self.spring, VariableSpring):
@@ -505,6 +566,7 @@ class InspectTool(Tool):
         if isinstance(self.spring, VariableSpring):
             old = self.spring
             self.sidebar.app.update_vspring_key(old, None)
+            self.sidebar.app.update_channel(old, None)
             new = Spring(
                 old.p1,
                 old.p2,
@@ -527,6 +589,7 @@ class InspectTool(Tool):
                 old.rest_length,
                 old.rest_length * cfg.alt_factor,
                 old.stiffness,
+                channel=cfg.channel,
                 key=cfg.key,
                 mode=cfg.mode,
                 change_speed=cfg.speed,
@@ -555,6 +618,7 @@ class InspectTool(Tool):
         if isinstance(self.spring, VariableSpring):
             y = place_slider(self.alt_field, y)
             y = place_slider(self.speed_field, y)
+            y = place_slider(self.schan_field, y)
             self.key_field.box_rect.y = y + 10
             y += 40
             self.mode_btn.rect.y = y
@@ -577,6 +641,7 @@ class InspectTool(Tool):
         if isinstance(self.bend, VariableBendingSpring):
             y = place_slider(self.balt_field, y)
             y = place_slider(self.bspeed_field, y)
+            y = place_slider(self.bchan_field, y)
             self.bkey_field.box_rect.y = y + 10
             y += 40
             self.bmode_btn.rect.y = y
@@ -623,6 +688,17 @@ class InspectTool(Tool):
         if isinstance(self.bend, VariableBendingSpring):
             self.bend.change_speed = math.radians(max(10, value))
 
+    def _get_bchan(self) -> float:
+        """Return input channel for variable bends."""
+        if isinstance(self.bend, VariableBendingSpring):
+            return float(self.bend.channel or 0)
+        return 0
+
+    def _set_bchan(self, value: float) -> None:
+        """Set input channel for variable bends."""
+        if isinstance(self.bend, VariableBendingSpring):
+            self.sidebar.app.update_channel(self.bend, int(value))
+
     def _get_bkey(self) -> int | None:
         """Return control key for variable bends."""
         if isinstance(self.bend, VariableBendingSpring):
@@ -646,6 +722,7 @@ class InspectTool(Tool):
         if isinstance(self.bend, VariableBendingSpring):
             old = self.bend
             self.sidebar.app.update_vbend_key(old, None)
+            self.sidebar.app.update_channel(old, None)
             new = BendingSpring(
                 old.p1,
                 old.p2,
@@ -669,6 +746,7 @@ class InspectTool(Tool):
                 angle,
                 math.radians(cfg.alt_angle),
                 old.stiffness,
+                channel=cfg.channel,
                 key=cfg.key,
                 mode=cfg.mode,
                 change_speed=cfg.speed,
@@ -725,10 +803,12 @@ class InspectTool(Tool):
                 self.sense_radius_field.draw(self.sidebar.screen, offset)
                 self.sense_angle_field.draw(self.sidebar.screen, offset)
                 self.sense_dir_field.draw(self.sidebar.screen, offset)
+                self.schannel_field.draw(self.sidebar.screen, offset)
                 self.trigger_btn.draw(self.sidebar.screen, offset)
             if isinstance(self.particle, VariableParticle):
                 self.alt_drag_field.draw(self.sidebar.screen, offset)
                 self.vspeed_field.draw(self.sidebar.screen, offset)
+                self.vchan_field.draw(self.sidebar.screen, offset)
                 self.vkey_field.draw(self.sidebar.screen, offset)
                 self.vmode_btn.draw(self.sidebar.screen, offset)
             if not isinstance(self.particle, SensorParticle):
@@ -741,6 +821,7 @@ class InspectTool(Tool):
             if isinstance(self.spring, VariableSpring):
                 self.alt_field.draw(self.sidebar.screen, offset)
                 self.speed_field.draw(self.sidebar.screen, offset)
+                self.schan_field.draw(self.sidebar.screen, offset)
                 self.key_field.draw(self.sidebar.screen, offset)
                 self.mode_btn.draw(self.sidebar.screen, offset)
             self.type_btn.draw(self.sidebar.screen, offset)
@@ -752,6 +833,7 @@ class InspectTool(Tool):
             if isinstance(self.bend, VariableBendingSpring):
                 self.balt_field.draw(self.sidebar.screen, offset)
                 self.bspeed_field.draw(self.sidebar.screen, offset)
+                self.bchan_field.draw(self.sidebar.screen, offset)
                 self.bkey_field.draw(self.sidebar.screen, offset)
                 self.bmode_btn.draw(self.sidebar.screen, offset)
             self.btype_btn.draw(self.sidebar.screen, offset)
@@ -838,12 +920,16 @@ class InspectTool(Tool):
                     return True
                 if self.sense_dir_field.handle_event(event, offset):
                     return True
+                if self.schannel_field.handle_event(event, offset):
+                    return True
                 if self.trigger_btn.handle_event(event, offset):
                     return True
             if isinstance(self.particle, VariableParticle):
                 if self.alt_drag_field.handle_event(event, offset):
                     return True
                 if self.vspeed_field.handle_event(event, offset):
+                    return True
+                if self.vchan_field.handle_event(event, offset):
                     return True
                 if self.vkey_field.handle_event(event, offset):
                     return True
@@ -865,6 +951,8 @@ class InspectTool(Tool):
                     return True
                 if self.speed_field.handle_event(event, offset):
                     return True
+                if self.schan_field.handle_event(event, offset):
+                    return True
                 if self.key_field.handle_event(event, offset):
                     return True
                 if self.mode_btn.handle_event(event, offset):
@@ -883,6 +971,8 @@ class InspectTool(Tool):
                 if self.balt_field.handle_event(event, offset):
                     return True
                 if self.bspeed_field.handle_event(event, offset):
+                    return True
+                if self.bchan_field.handle_event(event, offset):
                     return True
                 if self.bkey_field.handle_event(event, offset):
                     return True

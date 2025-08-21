@@ -54,6 +54,7 @@ class BuilderApp:
         self.vspring_keys: dict[int, list[VariableSpring]] = {}
         self.vparticle_keys: dict[int, list[VariableParticle]] = {}
         self.vbend_keys: dict[int, list[VariableBendingSpring]] = {}
+        self.channels: dict[int, list[object]] = {}
         self.selected = None
         self.selection_start: pygame.Vector2 | None = None
         self.selection_rect: pygame.Rect | None = None
@@ -803,6 +804,7 @@ class BuilderApp:
                                 lst.remove(s)
                             if not lst:
                                 del self.vspring_keys[s.key]
+                        self.update_channel(s, None)
 
         # remove bending springs tied to removed particles or specified directly
         if parts_set or bends_set:
@@ -825,6 +827,7 @@ class BuilderApp:
                                 lst.remove(bs)
                             if not lst:
                                 del self.vbend_keys[bs.key]
+                        self.update_channel(bs, None)
             self.bending_springs[:] = new_bends
 
         if sensors_set:
@@ -844,6 +847,7 @@ class BuilderApp:
                         lst.remove(p)
                     if not lst:
                         del self.vparticle_keys[p.key]
+                self.update_channel(p, None)
 
     def _remove_arm(self, arm: HookArm):
         """Detach and delete ``arm`` along with its parts."""
@@ -891,6 +895,7 @@ class BuilderApp:
             self.register_variable_particle(p)
         if isinstance(p, SensorParticle):
             self.sensors.append(p)
+            self.register_sensor(p)
 
     def _restore_spring(self, s: Spring):
         """Reinsert ``s`` into the simulation."""
@@ -946,6 +951,8 @@ class BuilderApp:
                 "max": s.max_force,
                 "invis": s.invisible,
             }
+            if getattr(s, "channel", None) is not None:
+                sd["channel"] = s.channel
             if isinstance(s, VariableSpring):
                 sd.update(
                     {
@@ -975,6 +982,7 @@ class BuilderApp:
                     "tag": p.tag,
                     "fixed": p.fixed,
                     "drag": p.drag,
+                    "channel": getattr(p, "channel", None),
                     "elasticity": getattr(p, "elasticity", 1.0),
                     **(
                         {
@@ -1028,6 +1036,7 @@ class BuilderApp:
                         "active": bs.active,
                         "curr": bs.rest_angle,
                         "stiff": bs.stiffness,
+                        "channel": bs.channel,
                     }
                 )
                 for bs in self.bending_springs
@@ -1080,6 +1089,7 @@ class BuilderApp:
                     elasticity=pd.get("elasticity", 1.0),
                     base_drag=pd.get("base", 1.0),
                     alt_drag=pd.get("alt", 100.0),
+                    channel=pd.get("channel"),
                     key=pd.get("key"),
                     mode=pd.get("mode", "hold"),
                     change_speed=pd.get("speed", 240.0),
@@ -1096,6 +1106,7 @@ class BuilderApp:
                     sense_radius=pd.get("sense_radius", 1.0),
                     half_angle=pd.get("half_angle", math.pi),
                     tags=pd.get("tags"),
+                    channel=pd.get("channel"),
                     mass=pd.get("mass", 1.0),
                     color=tuple(pd["color"]) if pd.get("color") else None,
                     radius=pd.get("radius"),
@@ -1105,6 +1116,7 @@ class BuilderApp:
                     trail_length=self.environment.trail_length,
                 )
                 self.sensors.append(p)
+                self.register_sensor(p)
             else:
                 p = Particle(
                     pd["pos"],
@@ -1131,6 +1143,7 @@ class BuilderApp:
                     sd.get("rest", 0),
                     sd.get("alt", 0),
                     sd.get("stiff", 200.0),
+                    channel=sd.get("channel"),
                     key=sd.get("key"),
                     mode=sd.get("mode", "hold"),
                     change_speed=sd.get("speed", 240.0),
@@ -1165,6 +1178,7 @@ class BuilderApp:
                     bd.get("angle", 0),
                     bd.get("alt", 0),
                     bd.get("stiff", 0),
+                    channel=bd.get("channel"),
                     key=bd.get("key"),
                     mode=bd.get("mode", "hold"),
                     change_speed=bd.get("speed", math.radians(240.0)),
@@ -1473,6 +1487,7 @@ class BuilderApp:
         """Register ``spring`` under its control key if any."""
         if spring.key is not None:
             self.vspring_keys.setdefault(spring.key, []).append(spring)
+        self._register_channel(spring)
 
     def update_vspring_key(self, spring: VariableSpring, key: int | None) -> None:
         """Update the control key mapping for ``spring``."""
@@ -1491,6 +1506,7 @@ class BuilderApp:
         """Register ``part`` under its control key if any."""
         if part.key is not None:
             self.vparticle_keys.setdefault(part.key, []).append(part)
+        self._register_channel(part)
 
     def update_vparticle_key(self, part: VariableParticle, key: int | None) -> None:
         """Update the control key mapping for ``part``."""
@@ -1509,6 +1525,7 @@ class BuilderApp:
         """Register ``bend`` under its control key if any."""
         if bend.key is not None:
             self.vbend_keys.setdefault(bend.key, []).append(bend)
+        self._register_channel(bend)
 
     def update_vbend_key(self, bend: VariableBendingSpring, key: int | None) -> None:
         """Update the control key mapping for ``bend``."""
@@ -1522,6 +1539,34 @@ class BuilderApp:
         bend.key = key
         if key is not None:
             self.vbend_keys.setdefault(key, []).append(bend)
+
+    # channel registration -------------------------------------------------
+    def _register_channel(self, obj) -> None:
+        ch = getattr(obj, "channel", None)
+        if ch is not None:
+            self.channels.setdefault(ch, []).append(obj)
+
+    def update_channel(self, obj, channel: int | None) -> None:
+        old = getattr(obj, "channel", None)
+        if old is not None:
+            lst = self.channels.get(old, [])
+            if obj in lst:
+                lst.remove(obj)
+            if not lst and old in self.channels:
+                del self.channels[old]
+        obj.channel = channel
+        if channel is not None:
+            self.channels.setdefault(channel, []).append(obj)
+
+    def register_sensor(self, sensor: SensorParticle) -> None:
+        sensor.add_callback(lambda s, o: self._trigger_channel(s.channel))
+
+    def _trigger_channel(self, channel: int | None) -> None:
+        if channel is None:
+            return
+        for obj in list(self.channels.get(channel, [])):
+            if hasattr(obj, "on_keydown"):
+                obj.on_keydown()
 
     def create_hook_arm(
         self,

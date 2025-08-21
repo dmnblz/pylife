@@ -33,6 +33,7 @@ class VariableBendingSpring(BendingSpring):
         key: int | None = None,
         mode: str = "hold",
         change_speed: float = math.radians(240.0),
+        channel: int | None = None,
     ):
         """Create a variable bending spring for the particle trio.
 
@@ -64,6 +65,7 @@ class VariableBendingSpring(BendingSpring):
         self.mode = mode
         self.change_speed = change_speed
         self.active = False
+        self.channel: int | None = channel
 
     def on_keydown(self) -> None:
         """Handle a ``KEYDOWN`` event for the bend's control key."""

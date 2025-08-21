@@ -9,6 +9,7 @@ This document is the definitive guide for future agents working on this codebase
 Pylife is a compact 2D soft‑body sandbox using pygame. It simulates point‑mass particles connected by linear and angular constraints and includes:
 
 - An interactive builder (`start_create.py`) with a sidebar of tools to create/edit particles, springs, bending springs, rods, circles, flexible hook arms and sensor particles. The Sensor tool exposes range, half-angle, direction and colour sliders so sensors can be fully configured before placement, spawning yellow sensors by default. A Trigger button selects another particle that activates the sensor when it enters the sensing radius and currently prints a message to the console, highlighting the candidate while choosing. Inspect existing particles, springs, bends and sensors; select multiple objects; adjust environment; save/load; undo; and use a grid for snapping.
+  Sensors and variable elements support integer channels; when a sensor with a channel fires, all variable particles, springs and bends on that channel toggle.
 - A set of demo scenes (`start_*.py`) showcasing common configurations.
 - A small, readable physics/rendering core designed to be extended.
 
@@ -143,15 +144,16 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 - `particles`: list of
   - `pos`, `prev`: [x, y]
   - `mass`, `radius`, `color` (RGB or null), `tag`, `fixed`, `drag`, `elasticity`
-  - variable particle extras (when `type == "variable"`): `base`, `alt`, `speed`, `key`, `mode` ("hold"|"toggle"), `active`, `curr`
+  - variable particle extras (when `type == "variable"`): `base`, `alt`, `speed`, `key`, `mode` ("hold"|"toggle"), `active`, `curr`, `channel`
 - `springs`: list of
   - `p1`, `p2` (indices into particles), `rest`, `stiff`, `max`, `invis`
-  - variable spring extras (when `type == "variable"`): `alt`, `speed`, `key`, `mode`, `active`, `curr`
-  - variable bend extras (when `type == "variable"`): `alt`, `speed`, `key`, `mode`, `active`, `curr`
-- `bending`: list of `{ p1, p2, p3, angle, stiff }`
+  - variable spring extras (when `type == "variable"`): `alt`, `speed`, `key`, `mode`, `active`, `curr`, `channel`
+ - `bending`: list of `{ p1, p2, p3, angle, stiff }`
+  - variable bend extras (when `type == "variable"`): `alt`, `speed`, `key`, `mode`, `active`, `curr`, `channel`
 - `arms`: list of
   - `particles` (indices), `springs` (indices into global springs), `rest_lengths`, `max_lengths`, `cycle_speed`, `color`, `high_color`, `adhesion` (mass factor), `orig_mass`, `adhesion_drag`, `orig_drag`, `cycle_key`
 - Sensor particles appear in `particles` with `type: "sensor"` and fields `forward`, `sense_radius`, `half_angle`, `tags`.
+  They also include an optional `channel` used to signal variable objects.
 - `physics`: `{ gravity: [gx, gy], repulsion_radius, repulsion_strength, temperature, damping_coeff, integration_damping, collisions, collision_elasticity, collision_bucket_size, trails_enabled, trail_length }`
   Older save files may omit `trails_enabled` and `trail_length`; they default
   to `false` and `40` on load.
