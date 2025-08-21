@@ -15,6 +15,7 @@ class Renderer:
         self.zoom = 1.0
         # cache for expensive background composition
         self._bg_cache_size: tuple[int, int] | None = None
+        self._bg_theme: str | None = None
         self._bg_surface: pygame.Surface | None = None
         self.trails_enabled: bool = False
 
@@ -42,7 +43,12 @@ class Renderer:
         """
         w, h = self.screen.get_size()
         size = (w, h)
-        if self._bg_cache_size != size or self._bg_surface is None:
+        current_theme = theme.get_theme_name()
+        if (
+            self._bg_cache_size != size
+            or self._bg_surface is None
+            or self._bg_theme != current_theme
+        ):
             # rebuild cache
             bg = pygame.Surface(size)
             top = theme.BG_CANVAS_TOP
@@ -63,21 +69,35 @@ class Renderer:
             bg.blit(vignette, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
             self._bg_surface = bg
             self._bg_cache_size = size
+            self._bg_theme = current_theme
         # blit cached background
         if self._bg_surface is not None:
             self.screen.blit(self._bg_surface, (0, 0))
 
-    def draw_play_area(self, rect: pygame.Rect, color=(80, 80, 90)) -> None:
+    def draw_play_area(self, rect: pygame.Rect) -> None:
         """Draw the world-space playable area rectangle.
 
-        Optimized: remove expensive shadow/fill alpha surfaces. Keep light strokes only.
+        Colors adapt to the active theme and avoid expensive alpha fills by using
+        light strokes only.
         """
         tl = self.world_to_screen((rect.left, rect.top))
         br = self.world_to_screen((rect.right, rect.bottom))
         screen_rect = pygame.Rect(int(tl.x), int(tl.y), int(br.x - tl.x), int(br.y - tl.y))
         # simple inner and outer strokes only
-        pygame.draw.rect(self.screen, (120, 125, 140), screen_rect, width=1, border_radius=8)
-        pygame.draw.rect(self.screen, color, screen_rect.inflate(2, 2), width=2, border_radius=8)
+        pygame.draw.rect(
+            self.screen,
+            theme.BORDER_ACTIVE,
+            screen_rect,
+            width=1,
+            border_radius=8,
+        )
+        pygame.draw.rect(
+            self.screen,
+            theme.BORDER,
+            screen_rect.inflate(2, 2),
+            width=2,
+            border_radius=8,
+        )
 
     def _draw_dashed_line(self, start, end, color, width=1, dash=6):
         start = self.world_to_screen(start)
