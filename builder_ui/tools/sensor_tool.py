@@ -70,6 +70,7 @@ class SensorTool(ParticleTool):
             width,
         )
         self.await_trigger = False
+        self.linking_trigger: SensorParticle | None = None
 
     def draw_ui(self, offset: int = 0) -> None:
         """Render sensor configuration sliders."""
@@ -85,6 +86,28 @@ class SensorTool(ParticleTool):
     def handle_event(self, event, offset: int = 0) -> bool:
         if not Tool.handle_event(self, event, offset):
             return False
+        if self.linking_trigger is not None:
+            if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
+                    if self.app.particles:
+                        mouse = self.app.screen_to_world(event.pos)
+                        target = min(
+                            self.app.particles, key=lambda q: (q.pos - mouse).length()
+                        )
+                        if target is not self.linking_trigger:
+                            self.linking_trigger.trigger = target
+                self.linking_trigger = None
+                return True
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                self.linking_trigger = None
+                return True
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_t:
+            if self.app.sensors:
+                mouse = self.app.screen_to_world(pygame.mouse.get_pos())
+                s = min(self.app.sensors, key=lambda q: (q.pos - mouse).length())
+                if (s.pos - mouse).length() <= (s.radius or 10):
+                    self.linking_trigger = s
+                    return True
         if self.color_field.handle_event(event, offset):
             return True
         if self.mass_field.handle_event(event, offset):
@@ -113,6 +136,12 @@ class SensorTool(ParticleTool):
             return True
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
+                mouse = self.sidebar.app.screen_to_world(event.pos)
+                if self.app.sensors:
+                    s = min(self.app.sensors, key=lambda q: (q.pos - mouse).length())
+                    if (s.pos - mouse).length() <= (s.radius or 10):
+                        self.linking_trigger = s
+                        return True
                 world = self.sidebar.app.screen_to_world(event.pos)
                 forward = pygame.Vector2(1, 0).rotate(self.app.sensor.direction_deg)
                 sensor = SensorParticle(
