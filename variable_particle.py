@@ -54,20 +54,29 @@ class VariableParticle(Particle):
         self.key = key
         self.mode = mode
         self.change_speed = change_speed
+        self.key_active = False
+        self.channel_active = False
         self.active = False
         self.channel: int | None = channel
 
     def on_keydown(self) -> None:
         """React to a ``KEYDOWN`` event for the particle's control key."""
         if self.mode == "hold":
-            self.active = True
+            self.key_active = True
         elif self.mode == "toggle":
-            self.active = not self.active
+            self.key_active = not self.key_active
+        self.active = self.key_active or self.channel_active
 
     def on_keyup(self) -> None:
         """React to a ``KEYUP`` event for the particle's control key."""
         if self.mode == "hold":
-            self.active = False
+            self.key_active = False
+        self.active = self.key_active or self.channel_active
+
+    def set_channel_active(self, state: bool) -> None:
+        """Update the channel-driven activation state."""
+        self.channel_active = state
+        self.active = self.key_active or self.channel_active
 
     def update(self, dt: float) -> None:
         """Move the drag value toward the active target."""

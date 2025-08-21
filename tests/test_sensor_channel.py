@@ -23,3 +23,15 @@ def test_sensor_channel_toggles_variable():
     app._apply_channel_signals()
     assert vp.active is False
     pygame.quit()
+
+
+def test_channelled_variable_respects_key():
+    app = BuilderApp()
+    vp = VariableParticle((0, 0), mode="toggle", key=pygame.K_a, channel=1)
+    app.variable_particles.append(vp)
+    app.register_variable_particle(vp)
+    vp.on_keydown()
+    assert vp.active is True
+    app._apply_channel_signals()
+    assert vp.active is True
+    pygame.quit()

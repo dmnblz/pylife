@@ -68,20 +68,24 @@ class VariableSpring(Spring):
         self.key = key
         self.mode = mode
         self.change_speed = change_speed
+        self.key_active = False
+        self.channel_active = False
         self.active = False
         self.channel: int | None = channel
 
     def on_keydown(self):
         """Handle a ``KEYDOWN`` event for the spring's control key."""
         if self.mode == "hold":
-            self.active = True
+            self.key_active = True
         elif self.mode == "toggle":
-            self.active = not self.active
+            self.key_active = not self.key_active
+        self.active = self.key_active or self.channel_active
 
     def on_keyup(self):
         """Handle a ``KEYUP`` event for the spring's control key."""
         if self.mode == "hold":
-            self.active = False
+            self.key_active = False
+        self.active = self.key_active or self.channel_active
 
     def update(self, dt: float):
         """Move the rest length toward the active target at ``change_speed``."""
@@ -90,6 +94,11 @@ class VariableSpring(Spring):
             self.rest_length = min(target, self.rest_length + self.change_speed * dt)
         elif self.rest_length > target:
             self.rest_length = max(target, self.rest_length - self.change_speed * dt)
+
+    def set_channel_active(self, state: bool) -> None:
+        """Update the channel-driven activation state."""
+        self.channel_active = state
+        self.active = self.key_active or self.channel_active
 
     # --- helpers used by the inspector
     def set_base_rest_length(self, value: float) -> None:
