@@ -18,7 +18,8 @@ def test_sensor_channel_toggles_variable():
     app.sensors.append(sensor)
     app.register_sensor(sensor)
     sensor.check(trigger)
+    app._apply_channel_signals()
     assert vp.active is True
-    sensor.check(trigger)
+    app._apply_channel_signals()
     assert vp.active is False
     pygame.quit()
