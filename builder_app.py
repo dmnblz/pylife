@@ -107,6 +107,7 @@ class BuilderApp:
         self.camera_offset = pygame.Vector2(0, 0)
         self.camera_zoom = 1.0
         self.renderer.set_camera(self.camera_offset, self.camera_zoom)
+        self.panning = False
         # inform physics of current window size for boundary effects
         self.physics.set_screen_size(*self.screen.get_size())
         self.physics.set_play_area(self.play_area)
@@ -1666,6 +1667,19 @@ class BuilderApp:
                     if e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
                         self.pasting = False
                         continue
+
+                # pan camera with right mouse drag when cursor is over world area
+                if e.type == pygame.MOUSEBUTTONDOWN and e.button == 3:
+                    if e.pos[0] < self.screen.get_width() - self.ui.visible_width():
+                        self.panning = True
+                    continue
+                if e.type == pygame.MOUSEMOTION and self.panning:
+                    self.camera_offset -= pygame.Vector2(e.rel) / self.camera_zoom
+                    self.renderer.set_camera(self.camera_offset, self.camera_zoom)
+                    continue
+                if e.type == pygame.MOUSEBUTTONUP and e.button == 3 and self.panning:
+                    self.panning = False
+                    continue
 
                 if e.type == pygame.QUIT:
                     running = False

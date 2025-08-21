@@ -93,6 +93,7 @@ graph TD
 
 - World/screen transforms live in `renderer.py` with `set_camera`, `world_to_screen`, `screen_to_world`.
 - The builder zooms with mouse wheel when the cursor is over the world area, anchoring the zoom at the mouse position.
+- Right-click dragging pans the camera.
 - Play area is rendered as a rectangle; simulation boundary clamping uses either the play area or the screen size.
 - Renderer can optionally draw fading particle trails when enabled via the environment tool.
 
