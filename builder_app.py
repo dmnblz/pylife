@@ -1882,7 +1882,7 @@ class BuilderApp:
             # glass panel
             pygame.draw.rect(
                 hud,
-                (*theme.BG_SIDEBAR, 170),
+                (*theme.BG_SIDEBAR, 150),
                 hud.get_rect(),
                 border_radius=10,
             )
