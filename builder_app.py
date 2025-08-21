@@ -54,7 +54,7 @@ class BuilderApp:
         self.vspring_keys: dict[int, list[VariableSpring]] = {}
         self.vparticle_keys: dict[int, list[VariableParticle]] = {}
         self.vbend_keys: dict[int, list[VariableBendingSpring]] = {}
-        self.channels: dict[int, list[object]] = {}
+        self.channels: dict[int, set[object]] = {}
         self.active_channels: set[int] = set()
         self.selected = None
         self.selection_start: pygame.Vector2 | None = None
@@ -1542,22 +1542,24 @@ class BuilderApp:
             self.vbend_keys.setdefault(key, []).append(bend)
 
     # channel registration -------------------------------------------------
-    def _register_channel(self, obj) -> None:
+    def _register_channel(self, obj: object) -> None:
+        """Add *obj* to the channel map if it has a channel."""
         ch = getattr(obj, "channel", None)
         if ch is not None:
-            self.channels.setdefault(ch, []).append(obj)
+            self.channels.setdefault(ch, set()).add(obj)
 
-    def update_channel(self, obj, channel: int | None) -> None:
+    def update_channel(self, obj: object, channel: int | None) -> None:
+        """Move *obj* to *channel* in the channel map."""
         old = getattr(obj, "channel", None)
         if old is not None:
-            lst = self.channels.get(old, [])
-            if obj in lst:
-                lst.remove(obj)
-            if not lst and old in self.channels:
-                del self.channels[old]
+            objs = self.channels.get(old)
+            if objs:
+                objs.discard(obj)
+                if not objs:
+                    del self.channels[old]
         obj.channel = channel
         if channel is not None:
-            self.channels.setdefault(channel, []).append(obj)
+            self.channels.setdefault(channel, set()).add(obj)
 
     def register_sensor(self, sensor: SensorParticle) -> None:
         sensor.add_callback(lambda s, o: self._signal_channel(s.channel))
@@ -1571,7 +1573,7 @@ class BuilderApp:
         """Update variable objects and clear the per-frame channel state."""
         for ch, objs in self.channels.items():
             state = ch in self.active_channels
-            for obj in list(objs):
+            for obj in set(objs):
                 if hasattr(obj, "set_channel_active"):
                     obj.set_channel_active(state)
                 elif hasattr(obj, "active"):
