@@ -421,7 +421,16 @@ class InspectTool(Tool):
             if old in self.app.variable_particles:
                 self.app.variable_particles.remove(old)
             try:
-                del old.base_drag, old.alt_drag, old.change_speed, old.key, old.mode, old.active
+                del (
+                    old.base_drag,
+                    old.alt_drag,
+                    old.change_speed,
+                    old.key,
+                    old.mode,
+                    old.key_active,
+                    old.channel_active,
+                    old.active,
+                )
             except AttributeError:
                 pass
             old.__class__ = Particle
@@ -434,6 +443,8 @@ class InspectTool(Tool):
             p.change_speed = cfg.speed
             p.key = cfg.key
             p.mode = cfg.mode
+            p.key_active = False
+            p.channel_active = False
             p.active = False
             p.channel = cfg.channel
             self.app.variable_particles.append(p)
