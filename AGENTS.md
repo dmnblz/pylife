@@ -8,7 +8,7 @@ This document is the definitive guide for future agents working on this codebase
 
 Pylife is a compact 2D soft‑body sandbox using pygame. It simulates point‑mass particles connected by linear and angular constraints and includes:
 
-- An interactive builder (`start_create.py`) with a sidebar of tools to create/edit particles, springs, bending springs, rods, circles, flexible hook arms and sensor particles. The Sensor tool exposes range, half-angle, direction and colour sliders so sensors can be fully configured before placement, spawning yellow sensors by default. A Trigger button selects another particle that activates the sensor when it enters the sensing radius and currently prints a message to the console, highlighting the candidate while choosing. Inspect existing particles, springs, bends and sensors; select multiple objects; adjust environment; save/load; undo; and use a grid for snapping.
+- An interactive builder (`start_create.py`) with a sidebar of tools to create/edit particles, springs, bending springs, rods, circles, flexible hook arms and sensor particles. The Sensor tool exposes range, half-angle, direction and colour sliders so sensors can be fully configured before placement, spawning yellow sensors by default. A Trigger button selects another particle that activates the sensor when it enters the sensing radius and currently prints a message to the console, highlighting the candidate while choosing. Inspect existing particles, springs, bends and sensors; select multiple objects; adjust environment; save/load; undo; and use a grid for snapping. Press **F1** to toggle a help overlay listing common key controls.
   Sensors and variable elements support integer channels; a sensor activates all variable particles, springs and bends on its channel while the trigger remains in range. Channel numbers render next to these objects and hovering a sensor highlights everything on its channel. Channel activation is additive, so variables still respond to their assigned keys.
 - A set of demo scenes (`start_*.py`) showcasing common configurations.
 - A small, readable physics/rendering core designed to be extended.
@@ -106,13 +106,14 @@ graph TD
 
 - Number keys select tools (shown on buttons):
   - 1 Drag, 2 Particle, 3 Spring, 4 Bend, 5 Circle, 6 Rod, 7 Arm, 8 Inspect, 9 Grid, 0 Env
-Other controls:
-  - Ctrl+S Select tool
-  - Ctrl+C copy selection of particles, springs, bends and hook arms
-  - Ctrl+V paste selection
-  - Space pause/resume
-  - Backspace/Delete delete selection (particles, springs, bends, hook arms) or switch to Delete tool
-  - Sidebar: Save, Load, Theme, Undo buttons; mouse‑wheel scroll within sidebar
+  Other controls:
+    - Ctrl+S Select tool
+    - Ctrl+C copy selection of particles, springs, bends and hook arms
+    - Ctrl+V paste selection
+    - Space pause/resume
+    - F1 toggle help overlay
+    - Backspace/Delete delete selection (particles, springs, bends, hook arms) or switch to Delete tool
+    - Sidebar: Save, Load, Theme, Undo buttons; mouse‑wheel scroll within sidebar
 
 ### Tools (sidebar)
 
@@ -231,6 +232,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
   - Theme button switches between light and dark palettes for sidebar, canvas, grid and HUD. Light mode uses a softer palette and the HUD renders on a translucent panel.
   - Save → Load roundtrip maintains: positions, prev positions, types, keys/modes, active flags, arm data, physics globals.
   - Zoom near sidebar vs world behaves as expected; sidebar scroll clamps to bounds.
+  - F1 toggles a help overlay listing key controls.
 - Demos: Run all `start_*.py` and verify documented keybindings.
 
 ---

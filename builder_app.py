@@ -16,6 +16,7 @@ from bending_spring import BendingSpring
 from renderer import Renderer
 from builder_ui.sidebar import SidebarUI
 from builder_ui import theme
+from builder_ui.fonts import get_font
 from builder_ui.config import (
     ParticleParams,
     SpringParams,
@@ -72,6 +73,7 @@ class BuilderApp:
         self.pasting = False
         self.spring_first = None
         self.paused = False
+        self.show_help = False
 
         # configuration dataclasses for creation
         self.mode = "drag"  # drag, particle, spring, rod
@@ -85,7 +87,7 @@ class BuilderApp:
         self.grid_enabled = False
         self.grid_size = 40.0
 
-        self.font = pygame.font.SysFont(None, 24)
+        self.font = get_font(24)
         self.physics = PhysicsEngine(
             self.particles,
             self.springs,
@@ -245,6 +247,10 @@ class BuilderApp:
     def toggle_grid(self):
         """Enable or disable the placement grid."""
         self.grid_enabled = not self.grid_enabled
+
+    def toggle_help(self) -> None:
+        """Flip the visibility of the help overlay."""
+        self.show_help = not self.show_help
 
     def set_grid_size(self, value: float):
         """Set the grid spacing in pixels."""
@@ -761,6 +767,38 @@ class BuilderApp:
             pygame.draw.line(overlay, col, a, b, 1)
             pygame.draw.line(overlay, col, b, c, 1)
         self.screen.blit(overlay, (0, 0))
+
+    def draw_help_overlay(self) -> None:
+        """Draw a translucent panel with common key bindings."""
+        if not self.show_help:
+            return
+        lines = [
+            "F1  - toggle this help",
+            "Space - pause/resume",
+            "1-0 - switch tools",
+            "Ctrl+S - select tool",
+            "Ctrl+C / Ctrl+V - copy/paste",
+            "Delete - delete selection",
+        ]
+        font = get_font(20)
+        line_h = font.get_linesize()
+        width = max(font.size(t)[0] for t in lines) + 24
+        height = line_h * len(lines) + 24
+        surf = pygame.Surface((width, height), pygame.SRCALPHA)
+        pygame.draw.rect(surf, (*theme.BG_SIDEBAR, 200), surf.get_rect(), border_radius=10)
+        pygame.draw.rect(
+            surf,
+            (*theme.TEXT, 40),
+            surf.get_rect().inflate(-2, -2),
+            width=1,
+            border_radius=8,
+        )
+        for i, line in enumerate(lines):
+            txt = font.render(line, True, theme.TEXT)
+            surf.blit(txt, (12, 12 + i * line_h))
+        x = (self.screen.get_width() - width) // 2
+        y = (self.screen.get_height() - height) // 2
+        self.screen.blit(surf, (x, y))
 
     def remove_entities(
         self,
@@ -1786,6 +1824,8 @@ class BuilderApp:
                         elif ctrl and e.key == pygame.K_v:
                             if self.clipboard["particles"]:
                                 self.pasting = True
+                        elif e.key == pygame.K_F1:
+                            self.toggle_help()
                         elif e.key == pygame.K_SPACE:
                             self.toggle_pause()
                         else:
@@ -1963,6 +2003,7 @@ class BuilderApp:
             hud.blit(energy_txt, (12, 36))
             hud.blit(mode_txt, (12, 62))
             self.screen.blit(hud, (12, 12))
+            self.draw_help_overlay()
             pygame.display.flip()
 
         pygame.quit()
