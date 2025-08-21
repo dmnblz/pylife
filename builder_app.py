@@ -237,6 +237,7 @@ class BuilderApp:
             "light" if theme.get_theme_name() == "dark" else "dark"
         )
         theme.set_theme(self.theme_name)
+        self.renderer.reset_cache()
 
     def toggle_grid(self):
         """Enable or disable the placement grid."""

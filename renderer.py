@@ -36,6 +36,12 @@ class Renderer:
         """Show or hide particle trails."""
         self.trails_enabled = bool(enabled)
 
+    def reset_cache(self) -> None:
+        """Drop cached background so it rebuilds on next draw."""
+        self._bg_cache_size = None
+        self._bg_theme = None
+        self._bg_surface = None
+
     def draw_background(self, play_area: pygame.Rect) -> None:
         """Draw a smooth vertical gradient background with a subtle vignette.
 
