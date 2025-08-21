@@ -5,9 +5,10 @@ from __future__ import annotations
 import math
 
 from bending_spring import BendingSpring
+from channel import ChannelControlled
 
 
-class VariableBendingSpring(BendingSpring):
+class VariableBendingSpring(BendingSpring, ChannelControlled):
     """A bending spring that can smoothly switch between two angles.
 
     The bend behaves like a regular :class:`~bending_spring.BendingSpring` but

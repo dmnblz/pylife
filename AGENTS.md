@@ -196,6 +196,8 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 ### New variable elements or key‑driven behavior
 
 - Follow `variable_spring.py` and `variable_particle.py` patterns. Ensure registration maps (`vspring_keys`, `vparticle_keys`, `vbend_keys`, `cycle_keys`) are updated in create/convert/save/load paths.
+- Channel-aware objects must implement the ``ChannelControlled`` protocol
+  which defines ``set_channel_active(state: bool)``.
 
 ---
 

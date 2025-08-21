@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from particle import Particle
+from channel import ChannelControlled
 
 
-class VariableParticle(Particle):
+class VariableParticle(Particle, ChannelControlled):
     """A particle that can smoothly switch between two drag values.
 
     The particle behaves like a standard :class:`~particle.Particle` but

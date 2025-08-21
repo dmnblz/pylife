@@ -10,6 +10,7 @@ from spring import Spring
 from variable_spring import VariableSpring
 from variable_particle import VariableParticle
 from variable_bending_spring import VariableBendingSpring
+from channel import ChannelControlled
 from physics import PhysicsEngine
 from bending_spring import BendingSpring
 from renderer import Renderer
@@ -54,7 +55,7 @@ class BuilderApp:
         self.vspring_keys: dict[int, list[VariableSpring]] = {}
         self.vparticle_keys: dict[int, list[VariableParticle]] = {}
         self.vbend_keys: dict[int, list[VariableBendingSpring]] = {}
-        self.channels: dict[int, set[object]] = {}
+        self.channels: dict[int, set[ChannelControlled]] = {}
         self.active_channels: set[int] = set()
         self.selected = None
         self.selection_start: pygame.Vector2 | None = None
@@ -1542,15 +1543,15 @@ class BuilderApp:
             self.vbend_keys.setdefault(key, []).append(bend)
 
     # channel registration -------------------------------------------------
-    def _register_channel(self, obj: object) -> None:
+    def _register_channel(self, obj: ChannelControlled) -> None:
         """Add *obj* to the channel map if it has a channel."""
-        ch = getattr(obj, "channel", None)
+        ch = obj.channel
         if ch is not None:
             self.channels.setdefault(ch, set()).add(obj)
 
-    def update_channel(self, obj: object, channel: int | None) -> None:
+    def update_channel(self, obj: ChannelControlled, channel: int | None) -> None:
         """Move *obj* to *channel* in the channel map."""
-        old = getattr(obj, "channel", None)
+        old = obj.channel
         if old is not None:
             objs = self.channels.get(old)
             if objs:
@@ -1574,10 +1575,7 @@ class BuilderApp:
         for ch, objs in self.channels.items():
             state = ch in self.active_channels
             for obj in set(objs):
-                if hasattr(obj, "set_channel_active"):
-                    obj.set_channel_active(state)
-                elif hasattr(obj, "active"):
-                    obj.active = state
+                obj.set_channel_active(state)
         self.active_channels.clear()
 
     def create_hook_arm(
