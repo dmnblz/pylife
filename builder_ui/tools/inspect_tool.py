@@ -26,6 +26,8 @@ class InspectTool(Tool):
         self.spring = None
         self.bend = None
         self.choose_trigger = False
+        self.linking_trigger: SensorParticle | None = None
+        self._drag_sensor: SensorParticle | None = None
 
         x = sidebar.screen.get_width() - sidebar.WIDTH + 10
         width = sidebar.WIDTH - 20
@@ -903,6 +905,32 @@ class InspectTool(Tool):
         """Process selection and slider events."""
         if not super().handle_event(event, offset):
             return False
+        if self.linking_trigger is not None:
+            if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
+                    if self.app.particles:
+                        mouse = self.app.screen_to_world(event.pos)
+                        target = min(
+                            self.app.particles, key=lambda q: (q.pos - mouse).length()
+                        )
+                        if target is not self.linking_trigger:
+                            self.linking_trigger.trigger = target
+                self.linking_trigger = None
+                return True
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                self.linking_trigger = None
+                return True
+            return True
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_t:
+            if isinstance(self.particle, SensorParticle):
+                self.linking_trigger = self.particle
+                return True
+        if event.type == pygame.MOUSEMOTION and self._drag_sensor:
+            self.linking_trigger = self._drag_sensor
+            self._drag_sensor = None
+            return True
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            self._drag_sensor = None
         if self.choose_trigger and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if event.pos[0] < self.sidebar.screen.get_width() - self.sidebar.visible_width():
                 if self.app.particles and isinstance(self.particle, SensorParticle):
@@ -1026,6 +1054,8 @@ class InspectTool(Tool):
                         self.particle = nearest_p
                         self.spring = None
                         self.bend = None
+                        if isinstance(self.particle, SensorParticle):
+                            self._drag_sensor = self.particle
                         return True
                 elif dist_s <= dist_b:
                     if nearest_s is not None:

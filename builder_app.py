@@ -343,10 +343,12 @@ class BuilderApp:
             allowed = {"particle"}
         elif self.mode in ("spring", "vspring", "bend", "vbend"):
             allowed = {"particle"}
-        elif self.mode == "sensor" and self.ui.sensor_tool.await_trigger:
+        elif self.mode == "sensor" and (
+            self.ui.sensor_tool.await_trigger or self.ui.sensor_tool.linking_trigger
+        ):
             allowed = {"particle"}
         elif self.mode == "inspect":
-            if self.ui.inspect_tool.choose_trigger:
+            if self.ui.inspect_tool.choose_trigger or self.ui.inspect_tool.linking_trigger:
                 allowed = {"particle"}
             else:
                 allowed = {"particle", "spring", "bend"}
@@ -1958,6 +1960,16 @@ class BuilderApp:
                 hover_spring=self.hover_spring,
                 hover_bend=self.hover_bend,
             )
+            link = self.ui.sensor_tool.linking_trigger or self.ui.inspect_tool.linking_trigger
+            if link is not None:
+                start = self.world_to_screen(link.pos)
+                pygame.draw.line(
+                    self.screen,
+                    theme.ACCENT,
+                    start,
+                    pygame.mouse.get_pos(),
+                    2,
+                )
             self.draw_paste_preview()
             if self.selection_rect:
                 pygame.draw.rect(self.screen, theme.ACCENT, self.selection_rect, width=1)
