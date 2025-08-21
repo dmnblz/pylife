@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import pygame
 from spring import Spring
+from channel import ChannelControlled
 
 
-class VariableSpring(Spring):
+class VariableSpring(Spring, ChannelControlled):
     """A spring that can smoothly switch between two rest lengths.
 
     The spring behaves like a regular :class:`~spring.Spring` but tracks a

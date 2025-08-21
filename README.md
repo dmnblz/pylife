@@ -45,6 +45,9 @@ Number keys **1–0** switch between the first ten sidebar tools in order and ea
     and creation script.
   * **Typed callbacks** – sidebar widgets declare explicit ``Callable``
     signatures for getters and setters, aiding static type checkers.
+  * **Channel protocol** – variable elements conform to a shared
+    ``ChannelControlled`` protocol exposing ``set_channel_active`` for
+    type-safe channel signalling.
   * **Cached fonts** – sidebar and field widgets reuse the default pygame font
     to prevent leaking file descriptors on some systems.
 
