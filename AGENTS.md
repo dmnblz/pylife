@@ -156,6 +156,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
 - Sensor particles appear in `particles` with `type: "sensor"` and fields `forward`, `sense_radius`, `half_angle`, `tags`.
   They also include an optional `channel` used to signal variable objects.
 - `physics`: `{ gravity: [gx, gy], repulsion_radius, repulsion_strength, temperature, damping_coeff, integration_damping, collisions, collision_elasticity, collision_bucket_size, trails_enabled, trail_length }`
+  Now also includes `play_area: { width, height }` controlling the world field size. Older files may omit this; they default to the current window size on load.
   Older save files may omit `trails_enabled` and `trail_length`; they default
   to `false` and `40` on load.
 

@@ -110,6 +110,9 @@ class BuilderApp:
         self.ui = SidebarUI(self.screen, self)
         # camera / play area
         self.play_area = pygame.Rect(0, 0, SCREEN_SIZE[0], SCREEN_SIZE[1])
+        # sync play area size to environment params
+        self.environment.play_width = self.play_area.width
+        self.environment.play_height = self.play_area.height
         self.camera_offset = pygame.Vector2(0, 0)
         self.camera_zoom = 1.0
         self.camera_angle = 0.0
@@ -1117,6 +1120,10 @@ class BuilderApp:
                 "collision_bucket_size": self.physics.collision_bucket_size or 0,
                 "trails_enabled": self.environment.trails_enabled,
                 "trail_length": self.environment.trail_length,
+                "play_area": {
+                    "width": int(self.play_area.width),
+                    "height": int(self.play_area.height),
+                },
             },
         }
 
@@ -1301,6 +1308,16 @@ class BuilderApp:
         self.physics.particles = self.particles
         self.physics.springs = self.springs
         self.physics.bending_springs = self.bending_springs
+        # play area size (backwards compatible default)
+        pa = phys.get("play_area") or {}
+        w = int(pa.get("width", self.play_area.width))
+        h = int(pa.get("height", self.play_area.height))
+        w = max(50, w)
+        h = max(50, h)
+        self.play_area.size = (w, h)
+        self.environment.play_width = w
+        self.environment.play_height = h
+        self.physics.set_play_area(self.play_area)
 
     # ------------------------------------------------------------------ circle creation
     def create_circle(

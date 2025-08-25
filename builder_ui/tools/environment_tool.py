@@ -128,6 +128,28 @@ class EnvironmentTool(Tool):
             y,
             width,
         )
+        y += 40
+        self.play_w_field = SliderField(
+            "Field W",
+            200,
+            6000,
+            lambda: float(self.app.environment.play_width),
+            self._set_play_width,
+            x,
+            y,
+            width,
+        )
+        y += 40
+        self.play_h_field = SliderField(
+            "Field H",
+            200,
+            6000,
+            lambda: float(self.app.environment.play_height),
+            self._set_play_height,
+            x,
+            y,
+            width,
+        )
 
     # ---------------- value setters
     def _set_gravity_x(self, value: float):
@@ -193,6 +215,21 @@ class EnvironmentTool(Tool):
         for p in self.app.particles:
             p.trail = deque(p.trail, maxlen=length)
 
+    def _set_play_width(self, value: float) -> None:
+        """Update play area width and notify physics/renderer."""
+        w = int(max(50, min(6000, value)))
+        self.app.environment.play_width = w
+        # keep left at 0; adjust rect size only
+        self.app.play_area.width = w
+        self.app.physics.set_play_area(self.app.play_area)
+
+    def _set_play_height(self, value: float) -> None:
+        """Update play area height and notify physics/renderer."""
+        h = int(max(50, min(6000, value)))
+        self.app.environment.play_height = h
+        self.app.play_area.height = h
+        self.app.physics.set_play_area(self.app.play_area)
+
     # ---------------- drawing
     def draw_ui(self, offset: int = 0):
         """Render sliders for environment parameters."""
@@ -208,6 +245,8 @@ class EnvironmentTool(Tool):
         self.coll_field.draw(self.sidebar.screen, offset)
         self.trail_toggle_field.draw(self.sidebar.screen, offset)
         self.trail_len_field.draw(self.sidebar.screen, offset)
+        self.play_w_field.draw(self.sidebar.screen, offset)
+        self.play_h_field.draw(self.sidebar.screen, offset)
 
     # ---------------- event handling
     def handle_event(self, event, offset: int = 0):
@@ -233,5 +272,9 @@ class EnvironmentTool(Tool):
         if self.trail_toggle_field.handle_event(event, offset):
             return True
         if self.trail_len_field.handle_event(event, offset):
+            return True
+        if self.play_w_field.handle_event(event, offset):
+            return True
+        if self.play_h_field.handle_event(event, offset):
             return True
         return False

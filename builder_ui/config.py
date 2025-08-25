@@ -138,6 +138,9 @@ class EnvironmentParams:
     collision_bucket_size: float = 0.0
     trails_enabled: bool = False
     trail_length: int = 40
+    # Play area size (world-space); left/top are fixed at 0 for now
+    play_width: int = 1300
+    play_height: int = 900
 
 
 @dataclass
