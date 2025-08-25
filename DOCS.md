@@ -66,7 +66,8 @@ Key files:
 
 ## Rendering and camera
 
-`renderer.py` supports world/screen transforms, zoom, and draws particles, springs, and bending springs. Compressed/extended springs are color‑coded; high‑drag particles get a red outline.
+`renderer.py` supports world/screen transforms, zoom and rotation, and draws particles, springs, and bending springs. Compressed/extended springs are color‑coded; high‑drag particles get a red outline.
+Right‑click and drag pans the view; middle‑click and drag rotates the camera around the center of the play area. Mouse wheel zooms around the cursor.
 
 ---
 

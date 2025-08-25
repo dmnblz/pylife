@@ -124,6 +124,7 @@ Mouse and keyboard controls allow you to switch modes and modify properties:
 * Hit **Undo** in the sidebar to revert the most recent addition or deletion.
 * Scroll the sidebar with the mouse wheel; scrolling stops at the list bounds.
 * Right-click and drag – pan the camera view.
+* Middle-click and drag – rotate the camera.
 
 Particles can be grabbed with the left mouse button.  When in spring mode, click two particles to connect them. Selecting the **Arm** tool lets you click a particle, drag out a direction and then hit *Create* to spawn a hook arm. The sidebar fields let you set the arm's mass, radius, stiffness, cycle speed, colours and adhesion factor before creation, and any number of arms may share the same cycle key. The **Inspect** tool can select a particle, spring or bending spring so their properties (colour, mass, radius, elasticity, drag, rest length, stiffness, **max force** and visibility) may be edited in place. Springs and particles may also be converted between normal and variable types through this menu. A value of ``0`` for max force disables the limit. Use the Particle, Spring or Env buttons to reveal their respective sliders.
 
