@@ -1943,6 +1943,18 @@ class BuilderApp:
             self.renderer.draw_background(self.play_area)
             # draw play area boundary
             self.renderer.draw_play_area(self.play_area)
+            # draw rotation pivot marker only while rotating (MMB held)
+            if self.rotating:
+                center_s = self.world_to_screen(self.play_area.center)
+                cx, cy = int(center_s.x), int(center_s.y)
+                # target circles
+                pygame.draw.circle(self.screen, theme.BORDER, (cx, cy), 12, 2)
+                pygame.draw.circle(self.screen, theme.BORDER_ACTIVE, (cx, cy), 6, 2)
+                # crosshair ticks
+                pygame.draw.line(self.screen, theme.BORDER, (cx - 18, cy), (cx - 6, cy), 2)
+                pygame.draw.line(self.screen, theme.BORDER, (cx + 6, cy), (cx + 18, cy), 2)
+                pygame.draw.line(self.screen, theme.BORDER, (cx, cy - 18), (cx, cy - 6), 2)
+                pygame.draw.line(self.screen, theme.BORDER, (cx, cy + 6), (cx, cy + 18), 2)
             if self.grid_enabled:
                 # draw grid in world space so it zooms/pans with camera
                 # fade with zoom for subtlety
