@@ -33,6 +33,7 @@ from hook_arm import HookArm
 
 SCREEN_SIZE = (1300, 900)
 FPS = 240
+ZOOM_STEP = 1.015  # per-wheel-notch zoom factor (extra smooth)
 
 
 class BuilderApp:
@@ -111,8 +112,10 @@ class BuilderApp:
         self.play_area = pygame.Rect(0, 0, SCREEN_SIZE[0], SCREEN_SIZE[1])
         self.camera_offset = pygame.Vector2(0, 0)
         self.camera_zoom = 1.0
-        self.renderer.set_camera(self.camera_offset, self.camera_zoom)
+        self.camera_angle = 0.0
+        self.renderer.set_camera(self.camera_offset, self.camera_zoom, self.camera_angle)
         self.panning = False
+        self.rotating = False
         # inform physics of current window size for boundary effects
         self.physics.set_screen_size(*self.screen.get_size())
         self.physics.set_play_area(self.play_area)
@@ -781,6 +784,8 @@ class BuilderApp:
             "Ctrl+S - select tool",
             "Ctrl+C / Ctrl+V - copy/paste",
             "Delete - delete selection",
+            "Right mouse drag - pan camera",
+            "Middle mouse drag - rotate camera",
         ]
         font = get_font(20)
         line_h = font.get_linesize()
@@ -1409,7 +1414,7 @@ class BuilderApp:
     def handle_particle_event(self, event: pygame.event.Event):
         """Spawn a new particle at the clicked position."""
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            mouse = pygame.Vector2(event.pos)
+            mouse = self.screen_to_world(event.pos)
             snap_mouse = self.snap_to_grid(mouse)
             p = Particle(
                 snap_mouse,
@@ -1424,7 +1429,7 @@ class BuilderApp:
     def handle_variable_particle_event(self, event: pygame.event.Event):
         """Spawn a variable particle that can change drag via a key."""
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            mouse = pygame.Vector2(event.pos)
+            mouse = self.screen_to_world(event.pos)
             snap_mouse = self.snap_to_grid(mouse)
             p = VariableParticle(
                 snap_mouse,
@@ -1447,7 +1452,7 @@ class BuilderApp:
         """Connect two particles with a spring or cancel with ``Escape``."""
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.particles:
-                mouse = pygame.Vector2(event.pos)
+                mouse = self.screen_to_world(event.pos)
                 particle = min(
                     self.particles, key=lambda p: (p.pos - mouse).length()
                 )
@@ -1471,7 +1476,7 @@ class BuilderApp:
         """Connect two particles with a variable spring."""
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.particles:
-                mouse = pygame.Vector2(event.pos)
+                mouse = self.screen_to_world(event.pos)
                 particle = min(self.particles, key=lambda p: (p.pos - mouse).length())
                 if self.spring_first is None:
                     self.spring_first = particle
@@ -1499,7 +1504,7 @@ class BuilderApp:
     def handle_delete_event(self, event: pygame.event.Event):
         """Remove the closest particle or spring under the cursor."""
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            mouse = pygame.Vector2(event.pos)
+            mouse = self.screen_to_world(event.pos)
             target_p = None
             target_s = None
             dist_p = float("inf")
@@ -1741,27 +1746,27 @@ class BuilderApp:
                     # ignore zoom if over sidebar toggle/area
                     if mouse_pos[0] < self.screen.get_width() - self.ui.visible_width():
                         # zoom around mouse position
-                        zoom_factor = 1.1 if e.y > 0 else 1/1.1
+                        zoom_factor = pow(ZOOM_STEP, e.y)
                         old_zoom = self.camera_zoom
                         self.camera_zoom = max(0.1, min(10.0, self.camera_zoom * zoom_factor))
                         # keep mouse position anchored in world coordinates
                         mouse_world_before = self.renderer.screen_to_world(mouse_pos)
-                        self.renderer.set_camera(self.camera_offset, self.camera_zoom)
+                        self.renderer.set_camera(self.camera_offset, self.camera_zoom, self.camera_angle)
                         mouse_world_after = self.renderer.screen_to_world(mouse_pos)
                         self.camera_offset += (mouse_world_before - mouse_world_after)
-                        self.renderer.set_camera(self.camera_offset, self.camera_zoom)
+                        self.renderer.set_camera(self.camera_offset, self.camera_zoom, self.camera_angle)
                         continue
                 # legacy scroll buttons 4/5 -> zoom world if cursor over world; otherwise pass to UI
                 if e.type == pygame.MOUSEBUTTONDOWN and e.button in (4, 5):
                     mouse_pos = e.pos
                     if mouse_pos[0] < self.screen.get_width() - self.ui.visible_width():
-                        zoom_factor = 1.1 if e.button == 4 else 1/1.1
+                        zoom_factor = pow(ZOOM_STEP, 1 if e.button == 4 else -1)
                         self.camera_zoom = max(0.1, min(10.0, self.camera_zoom * zoom_factor))
                         mouse_world_before = self.renderer.screen_to_world(mouse_pos)
-                        self.renderer.set_camera(self.camera_offset, self.camera_zoom)
+                        self.renderer.set_camera(self.camera_offset, self.camera_zoom, self.camera_angle)
                         mouse_world_after = self.renderer.screen_to_world(mouse_pos)
                         self.camera_offset += (mouse_world_before - mouse_world_after)
-                        self.renderer.set_camera(self.camera_offset, self.camera_zoom)
+                        self.renderer.set_camera(self.camera_offset, self.camera_zoom, self.camera_angle)
                         continue
 
                 if self.ui.handle_event(e):
@@ -1783,11 +1788,38 @@ class BuilderApp:
                         self.panning = True
                     continue
                 if e.type == pygame.MOUSEMOTION and self.panning:
-                    self.camera_offset -= pygame.Vector2(e.rel) / self.camera_zoom
-                    self.renderer.set_camera(self.camera_offset, self.camera_zoom)
+                    rel = pygame.Vector2(e.rel) / self.camera_zoom
+                    c = math.cos(self.camera_angle)
+                    s = math.sin(self.camera_angle)
+                    # inverse rotate screen delta into world space
+                    world_rel = pygame.Vector2(c * rel.x + s * rel.y, -s * rel.x + c * rel.y)
+                    self.camera_offset -= world_rel
+                    self.renderer.set_camera(self.camera_offset, self.camera_zoom, self.camera_angle)
                     continue
                 if e.type == pygame.MOUSEBUTTONUP and e.button == 3 and self.panning:
                     self.panning = False
+                    continue
+
+                # rotate camera with middle mouse button drag, anchored at cursor
+                if e.type == pygame.MOUSEBUTTONDOWN and e.button == 2:
+                    if e.pos[0] < self.screen.get_width() - self.ui.visible_width():
+                        self.rotating = True
+                    continue
+                if e.type == pygame.MOUSEMOTION and self.rotating:
+                    # rotate around the center of the play area
+                    delta_angle = float(e.rel[0]) * 0.005
+                    pivot = pygame.Vector2(self.play_area.center)
+                    v = pivot - self.camera_offset
+                    c = math.cos(delta_angle)
+                    s = math.sin(delta_angle)
+                    # offset' = P - R(-dA) * (P - offset)
+                    v_rot = pygame.Vector2(c * v.x + s * v.y, -s * v.x + c * v.y)
+                    self.camera_offset = pivot - v_rot
+                    self.camera_angle += delta_angle
+                    self.renderer.set_camera(self.camera_offset, self.camera_zoom, self.camera_angle)
+                    continue
+                if e.type == pygame.MOUSEBUTTONUP and e.button == 2 and self.rotating:
+                    self.rotating = False
                     continue
 
                 if e.type == pygame.QUIT:

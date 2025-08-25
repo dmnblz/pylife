@@ -14,6 +14,8 @@ class Renderer:
         # camera parameters
         self.offset = pygame.Vector2(0, 0)  # world coords at screen (0,0)
         self.zoom = 1.0
+        # rotation in radians
+        self.angle = 0.0
         # cache for expensive background composition
         self._bg_cache_size: tuple[int, int] | None = None
         self._bg_theme: str | None = None
@@ -21,17 +23,34 @@ class Renderer:
         self.trails_enabled: bool = False
 
     # ---------------- camera helpers -----------------------------------------
-    def set_camera(self, offset: pygame.Vector2 | tuple[float, float], zoom: float) -> None:
+    def set_camera(
+        self,
+        offset: pygame.Vector2 | tuple[float, float],
+        zoom: float,
+        angle: float | None = None,
+    ) -> None:
         self.offset = pygame.Vector2(offset)
         self.zoom = max(0.01, float(zoom))
+        if angle is not None:
+            self.angle = float(angle)
+
+    def _rot(self, v: pygame.Vector2) -> pygame.Vector2:
+        c = math.cos(self.angle)
+        s = math.sin(self.angle)
+        return pygame.Vector2(c * v.x - s * v.y, s * v.x + c * v.y)
+
+    def _inv_rot(self, v: pygame.Vector2) -> pygame.Vector2:
+        c = math.cos(self.angle)
+        s = math.sin(self.angle)
+        return pygame.Vector2(c * v.x + s * v.y, -s * v.x + c * v.y)
 
     def world_to_screen(self, v: pygame.Vector2 | tuple[float, float]) -> pygame.Vector2:
         p = pygame.Vector2(v)
-        return (p - self.offset) * self.zoom
+        return self._rot(p - self.offset) * self.zoom
 
     def screen_to_world(self, v: pygame.Vector2 | tuple[float, float]) -> pygame.Vector2:
         p = pygame.Vector2(v)
-        return p / self.zoom + self.offset
+        return self._inv_rot(p / self.zoom) + self.offset
 
     def set_trails_enabled(self, enabled: bool) -> None:
         """Show or hide particle trails."""
@@ -84,27 +103,20 @@ class Renderer:
     def draw_play_area(self, rect: pygame.Rect) -> None:
         """Draw the world-space playable area rectangle.
 
-        Colors adapt to the active theme and avoid expensive alpha fills by using
-        light strokes only.
+        When the camera is rotated, draw a rotated rectangle by transforming
+        each corner instead of rendering the axis-aligned screen bounding box.
         """
-        tl = self.world_to_screen((rect.left, rect.top))
-        br = self.world_to_screen((rect.right, rect.bottom))
-        screen_rect = pygame.Rect(int(tl.x), int(tl.y), int(br.x - tl.x), int(br.y - tl.y))
-        # simple inner and outer strokes only
-        pygame.draw.rect(
-            self.screen,
-            theme.BORDER_ACTIVE,
-            screen_rect,
-            width=1,
-            border_radius=8,
-        )
-        pygame.draw.rect(
-            self.screen,
-            theme.BORDER,
-            screen_rect.inflate(2, 2),
-            width=2,
-            border_radius=8,
-        )
+        # corners in world space (top-left, top-right, bottom-right, bottom-left)
+        corners_ws = [
+            (rect.left, rect.top),
+            (rect.right, rect.top),
+            (rect.right, rect.bottom),
+            (rect.left, rect.bottom),
+        ]
+        corners_ss = [self.world_to_screen(p) for p in corners_ws]
+        # draw two strokes: outer border then active accent on top
+        pygame.draw.lines(self.screen, theme.BORDER, True, corners_ss, 2)
+        pygame.draw.lines(self.screen, theme.BORDER_ACTIVE, True, corners_ss, 1)
 
     def _draw_dashed_line(self, start, end, color, width=1, dash=6):
         start = self.world_to_screen(start)
