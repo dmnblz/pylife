@@ -3,7 +3,7 @@
 import pygame
 from collections import deque
 
-from ..fields import SliderField
+from ..fields import SliderField, ButtonField
 from .base import Tool
 
 
@@ -150,6 +150,14 @@ class EnvironmentTool(Tool):
             y,
             width,
         )
+        y += 40
+        self.reset_rot_btn = ButtonField(
+            "Reset Rotation",
+            self._reset_rotation,
+            x,
+            y,
+            width,
+        )
 
     # ---------------- value setters
     def _set_gravity_x(self, value: float):
@@ -230,6 +238,18 @@ class EnvironmentTool(Tool):
         self.app.play_area.height = h
         self.app.physics.set_play_area(self.app.play_area)
 
+    def _reset_rotation(self) -> None:
+        """Reset camera angle to 0 while keeping the field center anchored on screen."""
+        # anchor at the current screen position of the play-area center
+        pivot_screen = self.app.world_to_screen(self.app.play_area.center)
+        before = self.app.renderer.screen_to_world(pivot_screen)
+        self.app.camera_angle = 0.0
+        self.app.rotating = False
+        self.app.renderer.set_camera(self.app.camera_offset, self.app.camera_zoom, self.app.camera_angle)
+        after = self.app.renderer.screen_to_world(pivot_screen)
+        self.app.camera_offset += (before - after)
+        self.app.renderer.set_camera(self.app.camera_offset, self.app.camera_zoom, self.app.camera_angle)
+
     # ---------------- drawing
     def draw_ui(self, offset: int = 0):
         """Render sliders for environment parameters."""
@@ -247,6 +267,7 @@ class EnvironmentTool(Tool):
         self.trail_len_field.draw(self.sidebar.screen, offset)
         self.play_w_field.draw(self.sidebar.screen, offset)
         self.play_h_field.draw(self.sidebar.screen, offset)
+        self.reset_rot_btn.draw(self.sidebar.screen, offset)
 
     # ---------------- event handling
     def handle_event(self, event, offset: int = 0):
@@ -276,5 +297,7 @@ class EnvironmentTool(Tool):
         if self.play_w_field.handle_event(event, offset):
             return True
         if self.play_h_field.handle_event(event, offset):
+            return True
+        if self.reset_rot_btn.handle_event(event, offset):
             return True
         return False
