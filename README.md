@@ -113,7 +113,7 @@ Mouse and keyboard controls allow you to switch modes and modify properties:
 * **7** – attach a hook arm to a particle
 * **8** – inspect an existing particle, spring or bending spring. Hover a target to preview its key properties.
 * **9** – toggle a grid overlay and adjust its spacing
-* **0** – adjust environment settings (temperature, gravity, repulsion, viscous damping, velocity damping, collisions and particle trails)
+* **0** – adjust environment settings (temperature, gravity, repulsion, viscous damping, velocity damping, collisions, particle trails, and the simulation field size)
 * **Backspace/Delete** – remove selected particles, springs, bends and hook arms or switch to the Delete tool when nothing is selected
 * **Ctrl+C** – copy selected particles, springs, bends and hook arms
 * **Ctrl+V** – paste a copied selection, including hook arms
