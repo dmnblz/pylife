@@ -15,6 +15,7 @@ from physics import PhysicsEngine
 from bending_spring import BendingSpring
 from renderer import Renderer
 from builder_ui.sidebar import SidebarUI
+from builder_ui.events_modal import EventsModal
 from builder_ui import theme
 from builder_ui.fonts import get_font
 from builder_ui.config import (
@@ -117,6 +118,8 @@ class BuilderApp:
         self.physics.trails_enabled = self.environment.trails_enabled
         self.renderer.set_trails_enabled(self.environment.trails_enabled)
         self.ui = SidebarUI(self.screen, self)
+        # centered modal for events
+        self.events_modal = EventsModal(self)
         # camera / play area
         self.play_area = pygame.Rect(0, 0, SCREEN_SIZE[0], SCREEN_SIZE[1])
         # sync play area size to environment params
@@ -151,6 +154,8 @@ class BuilderApp:
 
         # selection manager (delegates selection rectangle logic)
         self.selection = SelectionManager(self)
+        # suppress default rule creation while loading a scene
+        self._loading_state: bool = False
 
         # initialise undo/history and mode handlers
         self.history_stack = UndoStack()
@@ -297,6 +302,13 @@ class BuilderApp:
     def toggle_help(self) -> None:
         """Flip the visibility of the help overlay."""
         self.show_help = not self.show_help
+
+    def open_events_modal(self) -> None:
+        """Open the centered Events editor modal."""
+        try:
+            self.events_modal.open()
+        except Exception:
+            pass
 
     def set_grid_size(self, value: float):
         """Set the grid spacing in pixels."""
@@ -513,7 +525,7 @@ class BuilderApp:
 
     def _build_state(self) -> dict:
         """Return a serialisable representation of the scene."""
-        return {
+        data = {
             "particles": [
                 {
                     "pos": [p.pos.x, p.pos.y],
@@ -618,9 +630,102 @@ class BuilderApp:
                 },
             },
         }
+        # Persist events: sensor/key/timer triggers -> action lists (set/pulse/hold/release/wait)
+        try:
+            from pylife.event_engine import (
+                SensorEdgeTrigger,
+                ChannelSetAction,
+                ChannelPulseAction,
+                ChannelHoldAction,
+                ChannelReleaseAction,
+                DelayAction,
+                SequenceAction,
+                EventRule,
+                KeyTrigger,
+                TimerTrigger,
+            )  # type: ignore
+            events: list[dict] = []
+            version2: bool = False
+
+            def _serialize_actions_list(actions_obj) -> list[dict]:
+                nonlocal version2
+                out: list[dict] = []
+                def _emit(act) -> None:
+                    nonlocal version2
+                    if isinstance(act, ChannelSetAction):
+                        out.append({"type": "channel_set", "channel": act.channel})
+                    elif isinstance(act, ChannelPulseAction):
+                        out.append({"type": "channel_pulse", "channel": act.channel, "duration_ms": act.duration_ms})
+                    elif isinstance(act, ChannelHoldAction):
+                        out.append({"type": "channel_hold", "channel": act.channel})
+                        version2 = True
+                    elif isinstance(act, ChannelReleaseAction):
+                        out.append({"type": "channel_release", "channel": act.channel})
+                        version2 = True
+                    elif isinstance(act, DelayAction):
+                        out.append({"type": "wait", "duration_ms": act.duration_ms})
+                        version2 = True
+                    elif isinstance(act, SequenceAction):
+                        # flatten steps
+                        for step in getattr(act, "steps", []):
+                            _emit(step)
+                        version2 = True
+                    else:
+                        version2 = True
+                acts_list = list(getattr(actions_obj, "__iter__", lambda: [])())
+                if not acts_list and actions_obj is not None:
+                    acts_list = [actions_obj]
+                for a in acts_list:
+                    _emit(a)
+                return out
+
+            for rule in getattr(self.event_engine, "rules", []):
+                if isinstance(rule, EventRule) and isinstance(rule.trigger, SensorEdgeTrigger):
+                    sensor = rule.trigger.sensor
+                    if sensor in self.sensors:
+                        idx = self.sensors.index(sensor)
+                        edge = rule.trigger.edge
+                        acts = _serialize_actions_list(getattr(rule, "actions", []))
+                        if acts:
+                            events.append({
+                                "when": {"type": "sensor", "sensor": idx, "edge": edge},
+                                "then": acts,
+                            })
+                elif isinstance(rule, EventRule) and isinstance(rule.trigger, KeyTrigger):
+                    edge = rule.trigger.edge
+                    key = rule.trigger.key
+                    acts = _serialize_actions_list(getattr(rule, "actions", []))
+                    if acts:
+                        events.append({
+                            "when": {"type": "key", "edge": edge, "key": key},
+                            "then": acts,
+                        })
+                elif isinstance(rule, EventRule) and isinstance(rule.trigger, TimerTrigger):
+                    mode = rule.trigger.mode
+                    interval = rule.trigger.interval_ms
+                    acts = _serialize_actions_list(getattr(rule, "actions", []))
+                    if acts:
+                        events.append({
+                            "when": {"type": "timer", "mode": mode, "interval_ms": interval},
+                            "then": acts,
+                        })
+            if events:
+                data["events_version"] = 2 if version2 else 1
+                data["events"] = events
+        except Exception:
+            # If anything goes wrong, skip events persistence to avoid corrupting saves
+            pass
+        return data
 
     def _apply_state(self, data: dict) -> None:
         """Rebuild the scene from a serialised *data* structure."""
+        # Prevent duplicate default rules while loading
+        self._loading_state = True
+        # Clear existing rules; they'll be reconstructed
+        try:
+            self.event_engine.clear()
+        except Exception:
+            pass
         self.particles = []
         self.variable_particles = []
         self.vparticle_keys = {}
@@ -810,6 +915,93 @@ class BuilderApp:
         self.environment.play_width = w
         self.environment.play_height = h
         self.physics.set_play_area(self.play_area)
+
+        # Rebuild event rules now that sensors exist
+        try:
+            from pylife.event_engine import (
+                SensorEdgeTrigger,
+                ChannelSetAction,
+                ChannelPulseAction,
+                ChannelHoldAction,
+                ChannelReleaseAction,
+                DelayAction,
+                SequenceAction,
+                EventRule,
+                KeyTrigger,
+                TimerTrigger,
+            )  # type: ignore
+            events_data = data.get("events")
+            if events_data:
+                for ed in events_data:
+                    when = ed.get("when", {})
+                    if when.get("type") == "sensor":
+                        idx = when.get("sensor")
+                        edge = when.get("edge", "stay")
+                        if isinstance(idx, int) and 0 <= idx < len(self.sensors):
+                            sensor = self.sensors[idx]
+                            actions = []
+                            for td in ed.get("then", []):
+                                if td.get("type") == "channel_set":
+                                    actions.append(ChannelSetAction(td.get("channel")))
+                                elif td.get("type") == "channel_pulse":
+                                    actions.append(ChannelPulseAction(td.get("channel"), int(td.get("duration_ms", 200))))
+                                elif td.get("type") == "channel_hold":
+                                    actions.append(ChannelHoldAction(td.get("channel")))
+                                elif td.get("type") == "channel_release":
+                                    actions.append(ChannelReleaseAction(td.get("channel")))
+                                elif td.get("type") == "wait":
+                                    actions.append(DelayAction(int(td.get("duration_ms", 0))))
+                            if actions:
+                                if len(actions) > 1 or any(isinstance(a, DelayAction) for a in actions):
+                                    actions = [SequenceAction(actions)]  # type: ignore[list-item]
+                                self.event_engine.add_rule(EventRule(SensorEdgeTrigger(sensor, edge=edge), actions))
+                    elif when.get("type") == "key":
+                        key = int(when.get("key", 0))
+                        edge = when.get("edge", "down")
+                        actions = []
+                        for td in ed.get("then", []):
+                            if td.get("type") == "channel_set":
+                                actions.append(ChannelSetAction(td.get("channel")))
+                            elif td.get("type") == "channel_pulse":
+                                actions.append(ChannelPulseAction(td.get("channel"), int(td.get("duration_ms", 200))))
+                            elif td.get("type") == "channel_hold":
+                                actions.append(ChannelHoldAction(td.get("channel")))
+                            elif td.get("type") == "channel_release":
+                                actions.append(ChannelReleaseAction(td.get("channel")))
+                            elif td.get("type") == "wait":
+                                actions.append(DelayAction(int(td.get("duration_ms", 0))))
+                        if actions:
+                            if len(actions) > 1 or any(isinstance(a, DelayAction) for a in actions):
+                                actions = [SequenceAction(actions)]  # type: ignore[list-item]
+                            self.event_engine.add_rule(EventRule(KeyTrigger(key, edge=edge), actions))
+                    elif when.get("type") == "timer":
+                        mode = when.get("mode", "every")
+                        interval_ms = int(when.get("interval_ms", 1000))
+                        actions = []
+                        for td in ed.get("then", []):
+                            if td.get("type") == "channel_set":
+                                actions.append(ChannelSetAction(td.get("channel")))
+                            elif td.get("type") == "channel_pulse":
+                                actions.append(ChannelPulseAction(td.get("channel"), int(td.get("duration_ms", 200))))
+                            elif td.get("type") == "channel_hold":
+                                actions.append(ChannelHoldAction(td.get("channel")))
+                            elif td.get("type") == "channel_release":
+                                actions.append(ChannelReleaseAction(td.get("channel")))
+                            elif td.get("type") == "wait":
+                                actions.append(DelayAction(int(td.get("duration_ms", 0))))
+                        if actions:
+                            if len(actions) > 1 or any(isinstance(a, DelayAction) for a in actions):
+                                actions = [SequenceAction(actions)]  # type: ignore[list-item]
+                            self.event_engine.add_rule(EventRule(TimerTrigger(mode, interval_ms), actions))
+            else:
+                # Fallback: default behaviour per sensor
+                for s in self.sensors:
+                    self.event_engine.add_rule(EventRule(SensorEdgeTrigger(s, edge="stay"), [ChannelSetAction(getattr(s, "channel", None))]))
+        except Exception:
+            # If building rules fails, engine stays empty; legacy bus still works for direct callbacks
+            pass
+        finally:
+            self._loading_state = False
 
     # ------------------------------------------------------------------ circle creation
     def create_circle(
@@ -1045,13 +1237,14 @@ class BuilderApp:
         """
         # Legacy bus wiring (kept for back-compat in tests/old flows)
         sensor.add_callback(lambda s, _o: self.events.emit("channel_signal", s.channel))
-        # New rule: fire every frame while in view
-        self.event_engine.add_rule(
-            EventRule(
-                SensorEdgeTrigger(sensor, edge="stay"),
-                [ChannelSetAction(getattr(sensor, "channel", None))],
+        # Add default rule unless we're loading a saved scene (rules rebuilt later)
+        if not self._loading_state:
+            self.event_engine.add_rule(
+                EventRule(
+                    SensorEdgeTrigger(sensor, edge="stay"),
+                    [ChannelSetAction(getattr(sensor, "channel", None))],
+                )
             )
-        )
 
     def _signal_channel(self, channel: int | None) -> None:
         """Mark *channel* as active for the current frame."""
@@ -1253,6 +1446,15 @@ class BuilderApp:
                         self.camera_angle = self.camera.angle
                         continue
 
+                # While Events modal is open, route events to it and block world/UI
+                if getattr(self, "events_modal", None) and self.events_modal.visible:
+                    if e.type == pygame.QUIT:
+                        running = False
+                        continue
+                    # let modal consume; ignore rest
+                    self.events_modal.handle_event(e)
+                    continue
+
                 if self.ui.handle_event(e):
                     continue
 
@@ -1335,6 +1537,8 @@ class BuilderApp:
                         ctrl = mods & (pygame.KMOD_CTRL | pygame.KMOD_META)
                         if mode:
                             self.set_mode(mode)
+                        elif e.key == pygame.K_e:
+                            self.open_events_modal()
                         elif ctrl and e.key == pygame.K_s:
                             self.set_mode("select")
                         elif ctrl and e.key == pygame.K_c:
@@ -1351,9 +1555,12 @@ class BuilderApp:
                         elif e.key == pygame.K_SPACE:
                             self.toggle_pause()
                         else:
+                            # feed event engine before variable dispatch so key triggers see edges
+                            self.event_engine.key_down(e.key)
                             self._dispatch_variable_keydown(e.key)
 
                 elif e.type == pygame.KEYUP:
+                    self.event_engine.key_up(e.key)
                     self._dispatch_variable_keyup(e.key)
 
                 elif e.type == pygame.MOUSEBUTTONUP and e.button == 1:
@@ -1382,8 +1589,8 @@ class BuilderApp:
                     p.update(dt)
                 for b in self.variable_bending_springs:
                     b.update(dt)
-            # Evaluate event rules (e.g., sensor stay/enter/exit -> channel signals)
-            self.event_engine.tick()
+            # Evaluate event rules (e.g., sensors, timers, key triggers)
+            self.event_engine.tick(dt)
             self._apply_channel_signals()
 
             # keep particles inside the world play area (independent of screen size)
@@ -1523,6 +1730,9 @@ class BuilderApp:
             hud.blit(energy_txt, (12, 36))
             hud.blit(mode_txt, (12, 62))
             self.screen.blit(hud, (12, 12))
+            # draw modal overlays
+            if getattr(self, "events_modal", None) and self.events_modal.visible:
+                self.events_modal.draw()
             self.draw_help_overlay()
             pygame.display.flip()
 

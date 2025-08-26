@@ -472,7 +472,7 @@ class ButtonField:
         self.font = get_font(24)
         self.pressed = 0
 
-    def draw(self, screen, offset: int = 0) -> None:
+    def draw(self, screen, offset: int = 0, origin: tuple[int, int] = (0, 0)) -> None:
         """Render the button.
 
         Parameters
@@ -489,7 +489,10 @@ class ButtonField:
         active = self.active() if callable(self.active) else self.active
         if active:
             base = theme.BG_BUTTON_ACTIVE
-        if pygame.time.get_ticks() - self.pressed < 150 or rect.collidepoint(pygame.mouse.get_pos()):
+        mx, my = pygame.mouse.get_pos()
+        mx -= origin[0]
+        my -= origin[1]
+        if pygame.time.get_ticks() - self.pressed < 150 or rect.collidepoint((mx, my)):
             base = theme.BG_BUTTON_HOVER
         pygame.draw.rect(screen, base, rect, border_radius=theme.RADIUS)
         img = self.font.render(label, True, theme.TEXT)

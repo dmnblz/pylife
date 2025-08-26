@@ -112,6 +112,7 @@ class SidebarUI:
         add_button("Arm", lambda: self.app.set_mode("arm"), "7", "arm")
         add_button("Sensor", lambda: self.app.set_mode("sensor"), mode="sensor")
         add_button("Inspect", lambda: self.app.set_mode("inspect"), "8", "inspect")
+        add_button("Events", self.app.open_events_modal, None, None)
         add_button("Grid", lambda: self.app.set_mode("grid"), "9", "grid")
         add_button("Env", lambda: self.app.set_mode("env"), "0", "env")
         add_button("Delete", lambda: self.app.set_mode("delete"), "Del", "delete")

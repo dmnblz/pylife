@@ -12,6 +12,7 @@ import pygame
 
 from builder_ui import theme
 from particle import Particle
+from sensor_particle import SensorParticle
 from spring import Spring
 from bending_spring import BendingSpring
 from variable_particle import VariableParticle
@@ -85,7 +86,10 @@ class SelectionManager:
                 "tag": p.tag,
                 "drag": p.drag,
                 "fixed": p.fixed,
-                "type": "variable" if isinstance(p, VariableParticle) else "particle",
+                "type": (
+                    "sensor" if isinstance(p, SensorParticle)
+                    else ("variable" if isinstance(p, VariableParticle) else "particle")
+                ),
             }
             if isinstance(p, VariableParticle):
                 data.update(
@@ -96,6 +100,17 @@ class SelectionManager:
                         "mode": p.mode,
                         "change_speed": p.change_speed,
                         "active": p.active,
+                        "channel": getattr(p, "channel", None),
+                    }
+                )
+            elif isinstance(p, SensorParticle):
+                data.update(
+                    {
+                        "forward": (p.forward.x, p.forward.y),
+                        "sense_radius": p.sense_radius,
+                        "half_angle": p.half_angle,
+                        "tags": sorted(p.tags),
+                        "channel": getattr(p, "channel", None),
                     }
                 )
             self.app.clipboard["particles"].append(data)
@@ -119,6 +134,7 @@ class SelectionManager:
                         "mode": s.mode,
                         "change_speed": s.change_speed,
                         "active": s.active,
+                        "channel": getattr(s, "channel", None),
                     }
                 )
             self.app.clipboard["springs"].append(data)
@@ -141,6 +157,7 @@ class SelectionManager:
                         "mode": b.mode,
                         "change_speed": b.change_speed,
                         "active": b.active,
+                        "channel": getattr(b, "channel", None),
                     }
                 )
             self.app.clipboard["bends"].append(data)
@@ -180,10 +197,26 @@ class SelectionManager:
                     key=pdata["key"],
                     mode=pdata["mode"],
                     change_speed=pdata["change_speed"],
+                    channel=pdata.get("channel"),
                     trail_length=app.environment.trail_length,
                 )
                 p.active = pdata["active"]
                 p.drag = pdata["drag"]
+            elif pdata["type"] == "sensor":
+                p = SensorParticle(
+                    pos,
+                    forward=pdata.get("forward", (1, 0)),
+                    sense_radius=pdata.get("sense_radius", 1.0),
+                    half_angle=pdata.get("half_angle", math.pi),
+                    tags=pdata.get("tags", []),
+                    channel=pdata.get("channel"),
+                    mass=pdata["mass"],
+                    color=pdata["color"],
+                    radius=pdata["radius"],
+                    tag=pdata["tag"],
+                    drag=pdata["drag"],
+                    trail_length=app.environment.trail_length,
+                )
             else:
                 p = Particle(
                     pos,
@@ -196,6 +229,10 @@ class SelectionManager:
                 )
             p.fixed = pdata["fixed"]
             new_particles.append(p)
+            if isinstance(p, SensorParticle):
+                # track and register default rule for this sensor
+                self.app.sensors.append(p)
+                self.app.register_sensor(p)
         index_map = {i: p for i, p in enumerate(new_particles)}
         new_springs: list[Spring] = []
         new_bends: list[BendingSpring] = []
@@ -213,6 +250,7 @@ class SelectionManager:
                     key=sdata["key"],
                     mode=sdata["mode"],
                     change_speed=sdata["change_speed"],
+                    channel=sdata.get("channel"),
                     max_force=sdata["max_force"],
                     invisible=sdata["invisible"],
                 )
@@ -243,6 +281,7 @@ class SelectionManager:
                     key=bdata["key"],
                     mode=bdata["mode"],
                     change_speed=bdata["change_speed"],
+                    channel=bdata.get("channel"),
                 )
                 b.rest_angle = bdata["angle"]
                 b.active = bdata["active"]

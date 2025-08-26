@@ -57,8 +57,9 @@ graph TD
 
 - Builder UI and persistence
   - `start_create.py`: `BuilderApp` main loop, camera, play area, history/undo, mode handlers, and integration of tools.
-  - `builder_ui/`: Sidebar, fields (sliders, color picker, key selector, buttons), and tools (particle, spring, variable variants, bend, variable bend, circle, rod, arm, grid, environment, inspect, delete shortcuts).
-  - `builder_io.py`: JSON save/load helpers; `color_picker.py`, `file_dialog.py` use Tk in a subprocess.
+- `builder_ui/`: Sidebar, fields (sliders, color picker, key selector, buttons), and tools (particle, spring, variable variants, bend, variable bend, circle, rod, arm, grid, environment, inspect, delete shortcuts). The Events editor is a centered modal (see below).
+- `builder_io.py`: JSON save/load helpers; `color_picker.py`, `file_dialog.py` use Tk in a subprocess.
+ - Events: lightweight rule engine (`pylife/event_engine.py`) with a centered Events Editor modal to list, add, edit, and remove rules. Rules support ordered blocks (Set, Pulse, Wait, Hold, Release) and triggers (Sensor, Key, Timer).
 
 - Demos
   - `start.py`, `start_basic.py`, `start_rod.py`, `start_bending_wall.py`, `start_hook_arm.py`, `start_four_rods.py`, `start_gradient_wall.py`.
@@ -129,6 +130,7 @@ graph TD
 - Inspect: Click an existing particle, spring, or bend to edit properties in place; hovering shows a tooltip with key properties; convert between normal/variable spring/particle types; toggle spring visibility; set `max_force` (0 means unlimited/None).
 - Grid: Toggle overlay and spacing; new placements snap to intersections. `snap_to_grid` leaves aligned coords unchanged.
 - Env: Adjust gravity, repulsion radius/strength, viscous damping, velocity damping, temperature, toggle collisions, and particle trails.
+ - Events: Click the "Events" button to open a centered modal. Choose a Trigger (Sensor/Key/Timer) and add ordered blocks: Channel Set, Channel Pulse (duration), Wait (ms), Hold, Release. You can edit or delete existing rules from the same modal. Defaults: placing a sensor creates a rule (Stay → Channel Set) matching current behavior.
 
 ### Undo and deletion
 
@@ -159,6 +161,18 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
   Now also includes `play_area: { width, height }` controlling the world field size. Older files may omit this; they default to the current window size on load.
   Older save files may omit `trails_enabled` and `trail_length`; they default
   to `false` and `40` on load.
+ - `events` (optional): a list of rules persisted by the Events editor. If absent, defaults are synthesised (Sensor stay → Channel set).
+   - `when`: one of
+     - `{ type: "sensor", sensor: <index>, edge: "enter"|"stay"|"exit" }`
+     - `{ type: "key", key: <pygame_keycode>, edge: "down"|"hold"|"up" }`
+     - `{ type: "timer", mode: "every"|"after", interval_ms: <int> }`
+   - `then`: list of ordered actions (all are applied in sequence)
+     - `{ type: "channel_set", channel: <int|null> }`
+     - `{ type: "channel_pulse", channel: <int|null>, duration_ms: <int> }`
+     - `{ type: "channel_hold", channel: <int|null> }`
+     - `{ type: "channel_release", channel: <int|null> }`
+     - `{ type: "wait", duration_ms: <int> }`
+   - `events_version`: integer marker (`1` legacy; `2` when sequences or new action types are present).
 
 ### Example
 
