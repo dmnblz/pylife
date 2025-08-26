@@ -72,16 +72,27 @@ class SensorParticle(Particle):
 
         self.callbacks.append(fn)
 
-    def check(self, obj: object) -> None:
-        """Trigger callbacks if *obj* satisfies the sensor conditions."""
+    def in_view(self, obj: object) -> bool:
+        """Return True if ``obj`` is within the sensor's view.
+
+        This performs the geometric and tag checks without invoking any
+        callbacks. Use :meth:`check` to both test and trigger actions.
+        """
 
         d = pygame.Vector2(obj.pos) - self.pos
         if d.length() > self.sense_radius:
-            return
+            return False
         if self.half_angle < math.pi:
             if d.normalize().dot(self.forward) < math.cos(self.half_angle):
-                return
+                return False
         if self.tags and getattr(obj, "tag", None) not in self.tags:
+            return False
+        return True
+
+    def check(self, obj: object) -> None:
+        """Trigger callbacks if *obj* satisfies the sensor conditions."""
+
+        if not self.in_view(obj):
             return
         for cb in self.callbacks:
             cb(self, obj)

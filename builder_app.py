@@ -36,6 +36,7 @@ from pylife.registry import RegistryManager
 from pylife.scene import Scene
 from pylife.hover import HoverHelper
 from pylife.events import EventBus
+from pylife.event_engine import EventEngine, EventRule, SensorEdgeTrigger, ChannelSetAction
 from pylife.selection import SelectionManager
 
 SCREEN_SIZE = (1300, 900)
@@ -131,9 +132,10 @@ class BuilderApp:
         # inform physics of current window size for boundary effects
         self.physics.set_screen_size(*self.screen.get_size())
         self.physics.set_play_area(self.play_area)
-        # event bus to decouple producers (sensors) from consumers (channels)
+        # event bus (legacy) and event engine (new rules runtime)
         self.events = EventBus()
         self.events.subscribe("channel_signal", self._signal_channel)
+        self.event_engine = EventEngine(self.registry)
         # scene manager for entity operations
         self.scene = Scene(self)
         # hover helper for distance + target updates
@@ -1035,8 +1037,21 @@ class BuilderApp:
         self.registry.update_channel(obj, channel)
 
     def register_sensor(self, sensor: SensorParticle) -> None:
-        # Wire sensor proximity to channel_signal events via event bus
+        """Register sensor for legacy bus and default event rule.
+
+        The default rule maps Sensor(stay) -> ChannelSetAction(sensor.channel)
+        so behaviour matches the existing per-frame channel signalling
+        while the trigger remains in range.
+        """
+        # Legacy bus wiring (kept for back-compat in tests/old flows)
         sensor.add_callback(lambda s, _o: self.events.emit("channel_signal", s.channel))
+        # New rule: fire every frame while in view
+        self.event_engine.add_rule(
+            EventRule(
+                SensorEdgeTrigger(sensor, edge="stay"),
+                [ChannelSetAction(getattr(sensor, "channel", None))],
+            )
+        )
 
     def _signal_channel(self, channel: int | None) -> None:
         """Mark *channel* as active for the current frame."""
@@ -1367,9 +1382,8 @@ class BuilderApp:
                     p.update(dt)
                 for b in self.variable_bending_springs:
                     b.update(dt)
-            for s in self.sensors:
-                if s.trigger:
-                    s.check(s.trigger)
+            # Evaluate event rules (e.g., sensor stay/enter/exit -> channel signals)
+            self.event_engine.tick()
             self._apply_channel_signals()
 
             # keep particles inside the world play area (independent of screen size)
