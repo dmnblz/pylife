@@ -35,6 +35,7 @@ from pylife.history import UndoStack
 from pylife.registry import RegistryManager
 from pylife.scene import Scene
 from pylife.hover import HoverHelper
+from pylife.events import EventBus
 from pylife.selection import SelectionManager
 
 SCREEN_SIZE = (1300, 900)
@@ -130,6 +131,9 @@ class BuilderApp:
         # inform physics of current window size for boundary effects
         self.physics.set_screen_size(*self.screen.get_size())
         self.physics.set_play_area(self.play_area)
+        # event bus to decouple producers (sensors) from consumers (channels)
+        self.events = EventBus()
+        self.events.subscribe("channel_signal", self._signal_channel)
         # scene manager for entity operations
         self.scene = Scene(self)
         # hover helper for distance + target updates
@@ -1031,7 +1035,8 @@ class BuilderApp:
         self.registry.update_channel(obj, channel)
 
     def register_sensor(self, sensor: SensorParticle) -> None:
-        self.registry.register_sensor(sensor, self._signal_channel)
+        # Wire sensor proximity to channel_signal events via event bus
+        sensor.add_callback(lambda s, _o: self.events.emit("channel_signal", s.channel))
 
     def _signal_channel(self, channel: int | None) -> None:
         """Mark *channel* as active for the current frame."""
