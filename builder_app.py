@@ -30,6 +30,9 @@ from sensor_particle import SensorParticle
 import builder_io
 from structures import create_rod as structure_create_rod
 from hook_arm import HookArm
+from pylife.camera import CameraController
+from pylife.history import UndoStack
+from pylife.registry import RegistryManager
 
 SCREEN_SIZE = (1300, 900)
 FPS = 240
@@ -53,12 +56,13 @@ class BuilderApp:
         self.variable_bending_springs: list[VariableBendingSpring] = []
         self.arms: list[HookArm] = []
         self.sensors: list[SensorParticle] = []
-        self.cycle_keys: dict[int, list[HookArm]] = {}
-        self.vspring_keys: dict[int, list[VariableSpring]] = {}
-        self.vparticle_keys: dict[int, list[VariableParticle]] = {}
-        self.vbend_keys: dict[int, list[VariableBendingSpring]] = {}
-        self.channels: dict[int, set[ChannelControlled]] = {}
-        self.active_channels: set[int] = set()
+        # managers
+        self.registry = RegistryManager()
+        # Backward-compatible aliases for existing code paths
+        self.cycle_keys = self.registry.cycle_keys
+        self.vspring_keys = self.registry.vspring_keys
+        self.vparticle_keys = self.registry.vparticle_keys
+        self.vbend_keys = self.registry.vbend_keys
         self.selected = None
         self.selection_start: pygame.Vector2 | None = None
         self.selection_rect: pygame.Rect | None = None
@@ -116,7 +120,8 @@ class BuilderApp:
         self.camera_offset = pygame.Vector2(0, 0)
         self.camera_zoom = 1.0
         self.camera_angle = 0.0
-        self.renderer.set_camera(self.camera_offset, self.camera_zoom, self.camera_angle)
+        # Camera controller keeps renderer in sync; retain legacy fields for compatibility
+        self.camera = CameraController(self.renderer, offset=self.camera_offset, zoom=self.camera_zoom, angle=self.camera_angle)
         self.panning = False
         self.rotating = False
         # inform physics of current window size for boundary effects
@@ -132,7 +137,8 @@ class BuilderApp:
         self.hover_bend: BendingSpring | None = None
 
         # initialise undo/history and mode handlers
-        self.history: list[callable] = []
+        self.history_stack = UndoStack()
+        self.history: list[callable] = []  # kept for backward compatibility
         self.mode_handlers: dict[str, Callable[[pygame.event.Event], None]] = {
             "select": self.handle_select_event,
             "drag": self.handle_drag_event,
@@ -149,6 +155,21 @@ class BuilderApp:
 
     def world_to_screen(self, pos: tuple[float, float] | pygame.Vector2) -> pygame.Vector2:
         return self.renderer.world_to_screen(pos)
+
+    # Camera utilities ---------------------------------------------------
+    def fit_camera_to_selection(self) -> None:
+        """Fit camera around current selection if any particles are selected."""
+        pts = [p.pos for p in self.selected_particles]
+        if not pts:
+            return
+        xs = [p.x for p in pts]
+        ys = [p.y for p in pts]
+        rect = pygame.Rect(min(xs), min(ys), max(1.0, max(xs) - min(xs)), max(1.0, max(ys) - min(ys)))
+        self.camera.fit_world_rect(rect, self.screen.get_size(), padding=48)
+        # keep legacy fields in sync
+        self.camera_offset = self.camera.offset
+        self.camera_zoom = self.camera.zoom
+        self.camera_angle = self.camera.angle
 
     # ------------------------------------------------------------------ parameter helpers
     def set_mode(self, mode: str):
@@ -467,12 +488,15 @@ class BuilderApp:
     # ------------------------------------------------------------------ undo support
     def push_undo(self, action: Callable[[], None]):
         """Record a callable capable of undoing the last change."""
+        # keep both stacks in sync during transition
         self.history.append(action)
+        self.history_stack.push(action)
 
     def undo(self):
         """Undo the most recent change if any exist."""
         if self.history:
-            self.history.pop()()
+            self.history.pop()
+        self.history_stack.undo()
 
     def clear_selection(self) -> None:
         """Remove selection flags from all currently selected objects."""
@@ -1637,96 +1661,101 @@ class BuilderApp:
 
     def register_variable_spring(self, spring: VariableSpring) -> None:
         """Register ``spring`` under its control key if any."""
-        if spring.key is not None:
-            self.vspring_keys.setdefault(spring.key, []).append(spring)
-        self._register_channel(spring)
+        self.registry.register_keyed(self.registry.vspring_keys, spring, spring.key)
+        self.registry.register_channel(spring)
 
     def update_vspring_key(self, spring: VariableSpring, key: int | None) -> None:
         """Update the control key mapping for ``spring``."""
-        old = spring.key
-        if old is not None:
-            lst = self.vspring_keys.get(old, [])
-            if spring in lst:
-                lst.remove(spring)
-            if not lst and old in self.vspring_keys:
-                del self.vspring_keys[old]
-        spring.key = key
-        if key is not None:
-            self.vspring_keys.setdefault(key, []).append(spring)
+        self.registry.update_keyed(self.registry.vspring_keys, spring, key)
 
     def register_variable_particle(self, part: VariableParticle) -> None:
         """Register ``part`` under its control key if any."""
-        if part.key is not None:
-            self.vparticle_keys.setdefault(part.key, []).append(part)
-        self._register_channel(part)
+        self.registry.register_keyed(self.registry.vparticle_keys, part, part.key)
+        self.registry.register_channel(part)
 
     def update_vparticle_key(self, part: VariableParticle, key: int | None) -> None:
         """Update the control key mapping for ``part``."""
-        old = part.key
-        if old is not None:
-            lst = self.vparticle_keys.get(old, [])
-            if part in lst:
-                lst.remove(part)
-            if not lst and old in self.vparticle_keys:
-                del self.vparticle_keys[old]
-        part.key = key
-        if key is not None:
-            self.vparticle_keys.setdefault(key, []).append(part)
+        self.registry.update_keyed(self.registry.vparticle_keys, part, key)
 
     def register_variable_bend(self, bend: VariableBendingSpring) -> None:
         """Register ``bend`` under its control key if any."""
-        if bend.key is not None:
-            self.vbend_keys.setdefault(bend.key, []).append(bend)
-        self._register_channel(bend)
+        self.registry.register_keyed(self.registry.vbend_keys, bend, bend.key)
+        self.registry.register_channel(bend)
 
     def update_vbend_key(self, bend: VariableBendingSpring, key: int | None) -> None:
         """Update the control key mapping for ``bend``."""
-        old = bend.key
-        if old is not None:
-            lst = self.vbend_keys.get(old, [])
-            if bend in lst:
-                lst.remove(bend)
-            if not lst and old in self.vbend_keys:
-                del self.vbend_keys[old]
-        bend.key = key
-        if key is not None:
-            self.vbend_keys.setdefault(key, []).append(bend)
+        self.registry.update_keyed(self.registry.vbend_keys, bend, key)
 
     # channel registration -------------------------------------------------
     def _register_channel(self, obj: ChannelControlled) -> None:
-        """Add *obj* to the channel map if it has a channel."""
-        ch = obj.channel
-        if ch is not None:
-            self.channels.setdefault(ch, set()).add(obj)
+        """(Deprecated) Forward to registry manager."""
+        self.registry.register_channel(obj)
 
     def update_channel(self, obj: ChannelControlled, channel: int | None) -> None:
         """Move *obj* to *channel* in the channel map."""
-        old = obj.channel
-        if old is not None:
-            objs = self.channels.get(old)
-            if objs:
-                objs.discard(obj)
-                if not objs:
-                    del self.channels[old]
-        obj.channel = channel
-        if channel is not None:
-            self.channels.setdefault(channel, set()).add(obj)
+        self.registry.update_channel(obj, channel)
 
     def register_sensor(self, sensor: SensorParticle) -> None:
-        sensor.add_callback(lambda s, o: self._signal_channel(s.channel))
+        self.registry.register_sensor(sensor, self._signal_channel)
 
     def _signal_channel(self, channel: int | None) -> None:
         """Mark *channel* as active for the current frame."""
-        if channel is not None:
-            self.active_channels.add(channel)
+        self.registry.signal_channel(channel)
 
     def _apply_channel_signals(self) -> None:
         """Update variable objects and clear the per-frame channel state."""
-        for ch, objs in self.channels.items():
-            state = ch in self.active_channels
-            for obj in set(objs):
-                obj.set_channel_active(state)
-        self.active_channels.clear()
+        self.registry.apply_channel_signals()
+
+    # variable dispatch -------------------------------------------------
+    def _dispatch_variable_keydown(self, key: int) -> None:
+        """Trigger variable elements bound to ``key``. Falls back to scan."""
+        # cycle/arms
+        for arm in self.cycle_keys.get(key, []):
+            arm.cycle_held = True
+        # springs/particles/bends via registry maps
+        hit = False
+        for s in self.vspring_keys.get(key, []):
+            s.on_keydown(); hit = True
+        for p in self.vparticle_keys.get(key, []):
+            p.on_keydown(); hit = True
+        for b in self.vbend_keys.get(key, []):
+            b.on_keydown(); hit = True
+        if hit:
+            return
+        # Fallback: scan lists in case registry mapping missed updates
+        for s in self.variable_springs:
+            if s.key == key:
+                s.on_keydown()
+        for p in self.variable_particles:
+            if p.key == key:
+                p.on_keydown()
+        for b in self.variable_bending_springs:
+            if b.key == key:
+                b.on_keydown()
+
+    def _dispatch_variable_keyup(self, key: int) -> None:
+        """Release variable elements bound to ``key``. Falls back to scan."""
+        for arm in self.cycle_keys.get(key, []):
+            arm.cycle_held = False
+            arm.reset_inert()
+        hit = False
+        for s in self.vspring_keys.get(key, []):
+            s.on_keyup(); hit = True
+        for p in self.vparticle_keys.get(key, []):
+            p.on_keyup(); hit = True
+        for b in self.vbend_keys.get(key, []):
+            b.on_keyup(); hit = True
+        if hit:
+            return
+        for s in self.variable_springs:
+            if s.key == key:
+                s.on_keyup()
+        for p in self.variable_particles:
+            if p.key == key:
+                p.on_keyup()
+        for b in self.variable_bending_springs:
+            if b.key == key:
+                b.on_keyup()
 
     def create_hook_arm(
         self,
@@ -1850,28 +1879,23 @@ class BuilderApp:
                     mouse_pos = pygame.mouse.get_pos()
                     # ignore zoom if over sidebar toggle/area
                     if mouse_pos[0] < self.screen.get_width() - self.ui.visible_width():
-                        # zoom around mouse position
+                        # zoom around mouse position using camera controller
                         zoom_factor = pow(ZOOM_STEP, e.y)
-                        old_zoom = self.camera_zoom
-                        self.camera_zoom = max(0.1, min(10.0, self.camera_zoom * zoom_factor))
-                        # keep mouse position anchored in world coordinates
-                        mouse_world_before = self.renderer.screen_to_world(mouse_pos)
-                        self.renderer.set_camera(self.camera_offset, self.camera_zoom, self.camera_angle)
-                        mouse_world_after = self.renderer.screen_to_world(mouse_pos)
-                        self.camera_offset += (mouse_world_before - mouse_world_after)
-                        self.renderer.set_camera(self.camera_offset, self.camera_zoom, self.camera_angle)
+                        self.camera.zoom_at_screen(zoom_factor, mouse_pos)
+                        # update legacy mirrors
+                        self.camera_offset = self.camera.offset
+                        self.camera_zoom = self.camera.zoom
+                        self.camera_angle = self.camera.angle
                         continue
                 # legacy scroll buttons 4/5 -> zoom world if cursor over world; otherwise pass to UI
                 if e.type == pygame.MOUSEBUTTONDOWN and e.button in (4, 5):
                     mouse_pos = e.pos
                     if mouse_pos[0] < self.screen.get_width() - self.ui.visible_width():
                         zoom_factor = pow(ZOOM_STEP, 1 if e.button == 4 else -1)
-                        self.camera_zoom = max(0.1, min(10.0, self.camera_zoom * zoom_factor))
-                        mouse_world_before = self.renderer.screen_to_world(mouse_pos)
-                        self.renderer.set_camera(self.camera_offset, self.camera_zoom, self.camera_angle)
-                        mouse_world_after = self.renderer.screen_to_world(mouse_pos)
-                        self.camera_offset += (mouse_world_before - mouse_world_after)
-                        self.renderer.set_camera(self.camera_offset, self.camera_zoom, self.camera_angle)
+                        self.camera.zoom_at_screen(zoom_factor, mouse_pos)
+                        self.camera_offset = self.camera.offset
+                        self.camera_zoom = self.camera.zoom
+                        self.camera_angle = self.camera.angle
                         continue
 
                 if self.ui.handle_event(e):
@@ -1897,13 +1921,10 @@ class BuilderApp:
                             self.panning = True
                     continue
                 if e.type == pygame.MOUSEMOTION and self.panning:
-                    rel = pygame.Vector2(e.rel) / self.camera_zoom
-                    c = math.cos(self.camera_angle)
-                    s = math.sin(self.camera_angle)
-                    # inverse rotate screen delta into world space
-                    world_rel = pygame.Vector2(c * rel.x + s * rel.y, -s * rel.x + c * rel.y)
-                    self.camera_offset -= world_rel
-                    self.renderer.set_camera(self.camera_offset, self.camera_zoom, self.camera_angle)
+                    self.camera.pan_screen_delta(e.rel)
+                    self.camera_offset = self.camera.offset
+                    self.camera_zoom = self.camera.zoom
+                    self.camera_angle = self.camera.angle
                     continue
                 if e.type == pygame.MOUSEBUTTONUP and e.button == 3:
                     if self.rotating:
@@ -1922,14 +1943,10 @@ class BuilderApp:
                     # rotate around the center of the play area
                     delta_angle = float(e.rel[0]) * 0.005
                     pivot = pygame.Vector2(self.play_area.center)
-                    v = pivot - self.camera_offset
-                    c = math.cos(delta_angle)
-                    s = math.sin(delta_angle)
-                    # offset' = P - R(-dA) * (P - offset)
-                    v_rot = pygame.Vector2(c * v.x + s * v.y, -s * v.x + c * v.y)
-                    self.camera_offset = pivot - v_rot
-                    self.camera_angle += delta_angle
-                    self.renderer.set_camera(self.camera_offset, self.camera_zoom, self.camera_angle)
+                    self.camera.rotate_around_point(delta_angle, pivot)
+                    self.camera_offset = self.camera.offset
+                    self.camera_zoom = self.camera.zoom
+                    self.camera_angle = self.camera.angle
                     continue
                 if e.type == pygame.MOUSEBUTTONUP and e.button == 2 and self.rotating:
                     self.rotating = False
@@ -1971,38 +1988,18 @@ class BuilderApp:
                         elif ctrl and e.key == pygame.K_v:
                             if self.clipboard["particles"]:
                                 self.pasting = True
+                        elif ctrl and e.key == pygame.K_f:
+                            # Fit camera to current selection
+                            self.fit_camera_to_selection()
                         elif e.key == pygame.K_F1:
                             self.toggle_help()
                         elif e.key == pygame.K_SPACE:
                             self.toggle_pause()
                         else:
-                            arms = self.cycle_keys.get(e.key, [])
-                            for arm in arms:
-                                arm.cycle_held = True
-                            vsprings = self.vspring_keys.get(e.key, [])
-                            for s in vsprings:
-                                s.on_keydown()
-                            vparts = self.vparticle_keys.get(e.key, [])
-                            for p in vparts:
-                                p.on_keydown()
-                            vbends = self.vbend_keys.get(e.key, [])
-                            for b in vbends:
-                                b.on_keydown()
+                            self._dispatch_variable_keydown(e.key)
 
                 elif e.type == pygame.KEYUP:
-                    arms = self.cycle_keys.get(e.key, [])
-                    for arm in arms:
-                        arm.cycle_held = False
-                        arm.reset_inert()
-                    vsprings = self.vspring_keys.get(e.key, [])
-                    for s in vsprings:
-                        s.on_keyup()
-                    vparts = self.vparticle_keys.get(e.key, [])
-                    for p in vparts:
-                        p.on_keyup()
-                    vbends = self.vbend_keys.get(e.key, [])
-                    for b in vbends:
-                        b.on_keyup()
+                    self._dispatch_variable_keyup(e.key)
 
                 elif e.type == pygame.MOUSEBUTTONUP and e.button == 1:
                     if self.selected:
