@@ -161,6 +161,9 @@ class BuilderApp:
             self.ui.arm_tool.cancel()
         if self.mode == "inspect" and mode != "inspect":
             self.ui.inspect_tool.cancel()
+        if self.mode == "select" and mode != "select":
+            # leaving select mode should clear any highlighted selection
+            self.clear_selection()
         if self.mode == "particle" and mode != "particle":
             self.ui.particle_tool.cancel()
         if self.mode == "spring" and mode != "spring":
@@ -789,6 +792,7 @@ class BuilderApp:
             "Delete - delete selection",
             "Right mouse drag - pan camera",
             "Middle mouse drag - rotate camera",
+            "Shift+Right drag - rotate camera",
         ]
         font = get_font(20)
         line_h = font.get_linesize()
@@ -1391,29 +1395,113 @@ class BuilderApp:
             and event.button == 1
             and self.selection_rect is not None
         ):
-            start = self.screen_to_world(self.selection_rect.topleft)
-            end = self.screen_to_world(self.selection_rect.bottomright)
-            world_rect = pygame.Rect(start, (end.x - start.x, end.y - start.y))
-            world_rect.normalize()
-            self.clear_selection()
-            for p in self.particles:
-                if world_rect.collidepoint(p.pos.x, p.pos.y):
-                    p.selected = True
-                    self.selected_particles.append(p)
-            for s in self.springs:
-                if world_rect.collidepoint(s.p1.pos.x, s.p1.pos.y) and world_rect.collidepoint(
-                    s.p2.pos.x, s.p2.pos.y
-                ):
-                    s.selected = True
-                    self.selected_springs.append(s)
-            for b in self.bending_springs:
-                if (
-                    world_rect.collidepoint(b.p1.pos.x, b.p1.pos.y)
-                    and world_rect.collidepoint(b.p2.pos.x, b.p2.pos.y)
-                    and world_rect.collidepoint(b.p3.pos.x, b.p3.pos.y)
-                ):
-                    b.selected = True
-                    self.selected_bends.append(b)
+            # Determine whether to add to existing selection (Ctrl/Cmd held)
+            mods = pygame.key.get_mods()
+            additive = bool(mods & (pygame.KMOD_CTRL | pygame.KMOD_META))
+            # Small click vs drag rectangle
+            rect_px = self.selection_rect
+            is_click = rect_px.width < 4 and rect_px.height < 4
+            if is_click:
+                # click-pick nearest target under cursor
+                mx, my = int(self.selection_start.x), int(self.selection_start.y)
+                mouse_screen = (mx, my)
+                # thresholds in pixels
+                particle_threshold_px = 30
+                spring_threshold_px = 12
+                # find nearest particle
+                nearest_p = None
+                best_dp = float("inf")
+                for p in self.particles:
+                    ps = self.world_to_screen(p.pos)
+                    dp = ((ps.x - mx) ** 2 + (ps.y - my) ** 2) ** 0.5
+                    if dp < best_dp:
+                        best_dp = dp
+                        nearest_p = p
+                # nearest spring
+                def seg_dist(a_world, b_world):
+                    a = self.world_to_screen(a_world)
+                    b = self.world_to_screen(b_world)
+                    ax, ay = a.x, a.y
+                    bx, by = b.x, b.y
+                    mx_, my_ = float(mx), float(my)
+                    vx, vy = bx - ax, by - ay
+                    seg_len2 = vx * vx + vy * vy
+                    if seg_len2 == 0:
+                        dx, dy = mx_ - ax, my_ - ay
+                        return (dx * dx + dy * dy) ** 0.5
+                    t = ((mx_ - ax) * vx + (my_ - ay) * vy) / seg_len2
+                    t = max(0.0, min(1.0, t))
+                    px, py = ax + t * vx, ay + t * vy
+                    dx, dy = mx_ - px, my_ - py
+                    return (dx * dx + dy * dy) ** 0.5
+                nearest_s = None
+                best_ds = float("inf")
+                for s in self.springs:
+                    ds = seg_dist(s.p1.pos, s.p2.pos)
+                    if ds < best_ds:
+                        best_ds = ds
+                        nearest_s = s
+                # nearest bend (use segment/arc distance helper)
+                nearest_b = None
+                best_db = float("inf")
+                for bs in self.bending_springs:
+                    db = self._screen_bend_distance(bs, mouse_screen)
+                    if db < best_db:
+                        best_db = db
+                        nearest_b = bs
+                # choose by thresholds
+                choice = None
+                if nearest_p is not None and best_dp <= particle_threshold_px:
+                    choice = ("particle", best_dp, nearest_p)
+                if nearest_s is not None and best_ds <= spring_threshold_px and (choice is None or best_ds < choice[1]):
+                    choice = ("spring", best_ds, nearest_s)
+                if nearest_b is not None and best_db <= spring_threshold_px and (choice is None or best_db < choice[1]):
+                    choice = ("bend", best_db, nearest_b)
+                if not additive:
+                    self.clear_selection()
+                if choice is not None:
+                    kind, _, obj = choice
+                    if kind == "particle":
+                        if obj not in self.selected_particles:
+                            self.selected_particles.append(obj)
+                        obj.selected = True
+                    elif kind == "spring":
+                        if obj not in self.selected_springs:
+                            self.selected_springs.append(obj)
+                        obj.selected = True
+                    elif kind == "bend":
+                        if obj not in self.selected_bends:
+                            self.selected_bends.append(obj)
+                        obj.selected = True
+            else:
+                # rectangle selection in world space
+                start = self.screen_to_world(self.selection_rect.topleft)
+                end = self.screen_to_world(self.selection_rect.bottomright)
+                world_rect = pygame.Rect(start, (end.x - start.x, end.y - start.y))
+                world_rect.normalize()
+                if not additive:
+                    self.clear_selection()
+                for p in self.particles:
+                    if world_rect.collidepoint(p.pos.x, p.pos.y):
+                        if p not in self.selected_particles:
+                            self.selected_particles.append(p)
+                        p.selected = True
+                for s in self.springs:
+                    if world_rect.collidepoint(s.p1.pos.x, s.p1.pos.y) and world_rect.collidepoint(
+                        s.p2.pos.x, s.p2.pos.y
+                    ):
+                        if s not in self.selected_springs:
+                            self.selected_springs.append(s)
+                        s.selected = True
+                for b in self.bending_springs:
+                    if (
+                        world_rect.collidepoint(b.p1.pos.x, b.p1.pos.y)
+                        and world_rect.collidepoint(b.p2.pos.x, b.p2.pos.y)
+                        and world_rect.collidepoint(b.p3.pos.x, b.p3.pos.y)
+                    ):
+                        if b not in self.selected_bends:
+                            self.selected_bends.append(b)
+                        b.selected = True
             self.selection_rect = None
             self.selection_start = None
 
@@ -1799,10 +1887,14 @@ class BuilderApp:
                         self.pasting = False
                         continue
 
-                # pan camera with right mouse drag when cursor is over world area
+                # pan/rotate with right mouse drag when cursor is over world area
                 if e.type == pygame.MOUSEBUTTONDOWN and e.button == 3:
                     if e.pos[0] < self.screen.get_width() - self.ui.visible_width():
-                        self.panning = True
+                        mods = pygame.key.get_mods()
+                        if mods & pygame.KMOD_SHIFT:
+                            self.rotating = True
+                        else:
+                            self.panning = True
                     continue
                 if e.type == pygame.MOUSEMOTION and self.panning:
                     rel = pygame.Vector2(e.rel) / self.camera_zoom
@@ -1813,9 +1905,13 @@ class BuilderApp:
                     self.camera_offset -= world_rel
                     self.renderer.set_camera(self.camera_offset, self.camera_zoom, self.camera_angle)
                     continue
-                if e.type == pygame.MOUSEBUTTONUP and e.button == 3 and self.panning:
-                    self.panning = False
-                    continue
+                if e.type == pygame.MOUSEBUTTONUP and e.button == 3:
+                    if self.rotating:
+                        self.rotating = False
+                        continue
+                    if self.panning:
+                        self.panning = False
+                        continue
 
                 # rotate camera with middle mouse button drag, anchored at cursor
                 if e.type == pygame.MOUSEBUTTONDOWN and e.button == 2:
