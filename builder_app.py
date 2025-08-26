@@ -33,6 +33,7 @@ from hook_arm import HookArm
 from pylife.camera import CameraController
 from pylife.history import UndoStack
 from pylife.registry import RegistryManager
+from pylife.scene import Scene
 from pylife.selection import SelectionManager
 
 SCREEN_SIZE = (1300, 900)
@@ -128,6 +129,8 @@ class BuilderApp:
         # inform physics of current window size for boundary effects
         self.physics.set_screen_size(*self.screen.get_size())
         self.physics.set_play_area(self.play_area)
+        # scene manager for entity operations
+        self.scene = Scene(self)
 
         # theme toggle UI state
         self.theme_name = theme.get_theme_name()
@@ -565,141 +568,20 @@ class BuilderApp:
         arms: Iterable[HookArm] = (),
         sensors: Iterable[SensorParticle] = (),
     ) -> None:
-        """Remove collections of objects from the simulation.
-
-        Arms listed in ``arms`` are detached along with their particles and
-        springs.  Springs, bending springs and particles referencing a particle
-        slated for removal are also discarded.  Lists are mutated in place so
-        external references such as the physics engine remain valid.
-        """
-
-        parts_set = set(particles)
-        springs_set = set(springs)
-        bends_set = set(bends)
-        arms_set = set(arms)
-        sensors_set = set(sensors)
-        parts_set.update(sensors_set)
-
-        # remove arms explicitly passed or those referencing removed particles
-        for arm in list(self.arms):
-            if arm in arms_set or any(p in parts_set for p in arm.particles):
-                self._remove_arm(arm)
-                parts_set.difference_update(arm.particles)
-                springs_set.difference_update(arm.springs)
-
-        # remove springs either passed explicitly or attached to removed particles
-        if parts_set or springs_set:
-            for s in list(self.springs):
-                if s in springs_set or s.p1 in parts_set or s.p2 in parts_set:
-                    self.springs.remove(s)
-                    if isinstance(s, VariableSpring):
-                        if s in self.variable_springs:
-                            self.variable_springs.remove(s)
-                        if s.key is not None and s.key in self.vspring_keys:
-                            lst = self.vspring_keys[s.key]
-                            if s in lst:
-                                lst.remove(s)
-                            if not lst:
-                                del self.vspring_keys[s.key]
-                        self.update_channel(s, None)
-
-        # remove bending springs tied to removed particles or specified directly
-        if parts_set or bends_set:
-            new_bends = []
-            for bs in self.bending_springs:
-                if (
-                    bs not in bends_set
-                    and bs.p1 not in parts_set
-                    and bs.p2 not in parts_set
-                    and bs.p3 not in parts_set
-                ):
-                    new_bends.append(bs)
-                else:
-                    if isinstance(bs, VariableBendingSpring):
-                        if bs in self.variable_bending_springs:
-                            self.variable_bending_springs.remove(bs)
-                        if bs.key is not None and bs.key in self.vbend_keys:
-                            lst = self.vbend_keys[bs.key]
-                            if bs in lst:
-                                lst.remove(bs)
-                            if not lst:
-                                del self.vbend_keys[bs.key]
-                        self.update_channel(bs, None)
-            self.bending_springs[:] = new_bends
-
-        if sensors_set:
-            for s in list(self.sensors):
-                if s in sensors_set:
-                    self.sensors.remove(s)
-
-        # finally drop particles themselves
-        for p in parts_set:
-            if p in self.particles:
-                self.particles.remove(p)
-            if isinstance(p, VariableParticle) and p in self.variable_particles:
-                self.variable_particles.remove(p)
-                if p.key is not None and p.key in self.vparticle_keys:
-                    lst = self.vparticle_keys[p.key]
-                    if p in lst:
-                        lst.remove(p)
-                    if not lst:
-                        del self.vparticle_keys[p.key]
-                self.update_channel(p, None)
+        """Delegate to Scene to remove objects from the simulation."""
+        self.scene.remove_entities(particles, springs, bends, arms, sensors)
 
     def _remove_arm(self, arm: HookArm):
-        """Detach and delete ``arm`` along with its parts."""
-        if arm in self.arms:
-            self.arms.remove(arm)
-        for key, arms in list(self.cycle_keys.items()):
-            if arm in arms:
-                arms.remove(arm)
-                if not arms:
-                    del self.cycle_keys[key]
-        for s in arm.springs:
-            if s in self.springs:
-                self.springs.remove(s)
-        for p in arm.particles:
-            if p in self.particles:
-                self.particles.remove(p)
+        self.scene._remove_arm(arm)
 
     def _remove_bending(self, bend: BendingSpring) -> None:
-        """Remove a single bending spring from the scene."""
-        if bend in self.bending_springs:
-            self.bending_springs.remove(bend)
-        if bend in self.selected_bends:
-            self.selected_bends.remove(bend)
-        if isinstance(bend, VariableBendingSpring):
-            if bend in self.variable_bending_springs:
-                self.variable_bending_springs.remove(bend)
-            if bend.key is not None and bend.key in self.vbend_keys:
-                lst = self.vbend_keys[bend.key]
-                if bend in lst:
-                    lst.remove(bend)
-                if not lst:
-                    del self.vbend_keys[bend.key]
-        self.physics.bending_springs = self.bending_springs
+        self.scene._remove_bending(bend)
 
     def _restore_particle(self, p: Particle, springs: list[Spring]):
-        """Reinsert ``p`` and associated springs."""
-        self.particles.append(p)
-        self.springs.extend(springs)
-        for s in springs:
-            if isinstance(s, VariableSpring):
-                self.variable_springs.append(s)
-                self.register_variable_spring(s)
-        if isinstance(p, VariableParticle):
-            self.variable_particles.append(p)
-            self.register_variable_particle(p)
-        if isinstance(p, SensorParticle):
-            self.sensors.append(p)
-            self.register_sensor(p)
+        self.scene.restore_particle(p, springs)
 
     def _restore_spring(self, s: Spring):
-        """Reinsert ``s`` into the simulation."""
-        self.springs.append(s)
-        if isinstance(s, VariableSpring):
-            self.variable_springs.append(s)
-            self.register_variable_spring(s)
+        self.scene.restore_spring(s)
 
     def _restore_entities(
         self,
@@ -707,23 +589,7 @@ class BuilderApp:
         springs: list[Spring],
         bends: list[BendingSpring] | None = None,
     ) -> None:
-        """Reinsert collections of particles, springs and bends."""
-        self.particles.extend(particles)
-        self.springs.extend(springs)
-        if bends:
-            self.bending_springs.extend(bends)
-            for b in bends:
-                if isinstance(b, VariableBendingSpring):
-                    self.variable_bending_springs.append(b)
-                    self.register_variable_bend(b)
-        for p in particles:
-            if isinstance(p, VariableParticle):
-                self.variable_particles.append(p)
-                self.register_variable_particle(p)
-        for s in springs:
-            if isinstance(s, VariableSpring):
-                self.variable_springs.append(s)
-                self.register_variable_spring(s)
+        self.scene.restore_entities(particles, springs, bends)
 
     # ------------------------------------------------------------------ save/load
     def save_state_dialog(self):

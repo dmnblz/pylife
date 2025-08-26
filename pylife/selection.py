@@ -65,22 +65,8 @@ class SelectionManager:
     def _restore_entities(
         self, particles: list[Particle], springs: list[Spring], bends: list[BendingSpring] | None = None
     ) -> None:
-        self.app.particles.extend(particles)
-        self.app.springs.extend(springs)
-        if bends:
-            self.app.bending_springs.extend(bends)
-            for b in bends:
-                if isinstance(b, VariableBendingSpring):
-                    self.app.variable_bending_springs.append(b)
-                    self.app.register_variable_bend(b)
-        for p in particles:
-            if isinstance(p, VariableParticle):
-                self.app.variable_particles.append(p)
-                self.app.register_variable_particle(p)
-        for s in springs:
-            if isinstance(s, VariableSpring):
-                self.app.variable_springs.append(s)
-                self.app.register_variable_spring(s)
+        # Delegate full restore to the Scene manager
+        self.app.scene.restore_entities(particles, springs, bends)
 
     # copy/paste --------------------------------------------------------
     def copy(self) -> None:
