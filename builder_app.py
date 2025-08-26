@@ -33,6 +33,7 @@ from hook_arm import HookArm
 from pylife.camera import CameraController
 from pylife.history import UndoStack
 from pylife.registry import RegistryManager
+from pylife.selection import SelectionManager
 
 SCREEN_SIZE = (1300, 900)
 FPS = 240
@@ -135,6 +136,9 @@ class BuilderApp:
         self.hover_particle: Particle | None = None
         self.hover_spring: Spring | None = None
         self.hover_bend: BendingSpring | None = None
+
+        # selection manager (delegates selection rectangle logic)
+        self.selection = SelectionManager(self)
 
         # initialise undo/history and mode handlers
         self.history_stack = UndoStack()
@@ -499,309 +503,24 @@ class BuilderApp:
         self.history_stack.undo()
 
     def clear_selection(self) -> None:
-        """Remove selection flags from all currently selected objects."""
-        for p in self.selected_particles:
-            if hasattr(p, "selected"):
-                delattr(p, "selected")
-        for s in self.selected_springs:
-            if hasattr(s, "selected"):
-                delattr(s, "selected")
-        for b in self.selected_bends:
-            if hasattr(b, "selected"):
-                delattr(b, "selected")
-        self.selected_particles.clear()
-        self.selected_springs.clear()
-        self.selected_bends.clear()
+        """Delegate to SelectionManager to clear current selection."""
+        self.selection.clear()
 
     def delete_selection(self) -> None:
-        """Delete all currently selected particles, springs and bends."""
-        if not (self.selected_particles or self.selected_springs or self.selected_bends):
-            return
-        particles = list(self.selected_particles)
-        springs = list(self.selected_springs)
-        bends = list(self.selected_bends)
-        for s in self.springs:
-            if (s.p1 in particles or s.p2 in particles) and s not in springs:
-                springs.append(s)
-        for b in self.bending_springs:
-            if (b.p1 in particles or b.p2 in particles or b.p3 in particles) and b not in bends:
-                bends.append(b)
-        self.remove_entities(particles, springs, bends)
-        self.push_undo(
-            lambda parts=particles, sprs=springs, bds=bends: self._restore_entities(parts, sprs, bds)
-        )
-        self.clear_selection()
+        """Delegate to SelectionManager to delete selected items with undo."""
+        self.selection.delete_selection()
 
     def copy_selection(self) -> None:
-        """Copy selected particles, springs, bends and arms to the clipboard."""
-        if not (self.selected_particles or self.selected_springs or self.selected_bends):
-            return
-        origin_x = min(p.pos.x for p in self.selected_particles)
-        origin_y = min(p.pos.y for p in self.selected_particles)
-        origin = pygame.Vector2(origin_x, origin_y)
-        self.clipboard = {
-            "particles": [],
-            "springs": [],
-            "bends": [],
-            "arms": [],
-        }
-        for p in self.selected_particles:
-            data = {
-                "offset": p.pos - origin,
-                "mass": p.mass,
-                "color": p.color,
-                "radius": p.radius,
-                "tag": p.tag,
-                "drag": p.drag,
-                "fixed": p.fixed,
-                "type": "variable" if isinstance(p, VariableParticle) else "particle",
-            }
-            if isinstance(p, VariableParticle):
-                data.update(
-                    {
-                        "base_drag": p.base_drag,
-                        "alt_drag": p.alt_drag,
-                        "key": p.key,
-                        "mode": p.mode,
-                        "change_speed": p.change_speed,
-                        "active": p.active,
-                    }
-                )
-            self.clipboard["particles"].append(data)
-        index = {p: i for i, p in enumerate(self.selected_particles)}
-        for s in self.selected_springs:
-            data = {
-                "p1": index[s.p1],
-                "p2": index[s.p2],
-                "rest_length": s.rest_length,
-                "stiffness": s.stiffness,
-                "max_force": s.max_force,
-                "invisible": s.invisible,
-                "type": "variable" if isinstance(s, VariableSpring) else "spring",
-            }
-            if isinstance(s, VariableSpring):
-                data.update(
-                    {
-                        "base_rest": s.base_rest_length,
-                        "alt_rest": s.alt_rest_length,
-                        "key": s.key,
-                        "mode": s.mode,
-                        "change_speed": s.change_speed,
-                        "active": s.active,
-                    }
-                )
-            self.clipboard["springs"].append(data)
-        spring_index = {s: i for i, s in enumerate(self.selected_springs)}
-        for b in self.selected_bends:
-            data = {
-                "p1": index[b.p1],
-                "p2": index[b.p2],
-                "p3": index[b.p3],
-                "angle": b.rest_angle,
-                "stiffness": b.stiffness,
-                "type": "variable" if isinstance(b, VariableBendingSpring) else "bend",
-            }
-            if isinstance(b, VariableBendingSpring):
-                data.update(
-                    {
-                        "base_angle": b.base_angle,
-                        "alt_angle": b.alt_angle,
-                        "key": b.key,
-                        "mode": b.mode,
-                        "change_speed": b.change_speed,
-                        "active": b.active,
-                    }
-                )
-            self.clipboard["bends"].append(data)
-        for arm in self.arms:
-            if all(p in index for p in arm.particles) and all(s in spring_index for s in arm.springs):
-                data = {
-                    "particles": [index[p] for p in arm.particles],
-                    "springs": [spring_index[s] for s in arm.springs],
-                    "rest_lengths": arm.rest_lengths,
-                    "max_lengths": arm.max_lengths,
-                    "cycle_speed": arm.cycle_speed,
-                    "color": list(arm.color),
-                    "high_color": list(arm.high_drag_color),
-                    "adhesion": arm.adhesion_mass_factor,
-                    "orig_mass": arm._orig_mass,
-                    "adhesion_drag": arm.adhesion_drag,
-                    "orig_drag": arm._orig_drag,
-                    "cycle_key": arm.cycle_key,
-                }
-                self.clipboard["arms"].append(data)
+        """Delegate to SelectionManager to copy selection to clipboard."""
+        self.selection.copy()
 
     def paste_selection(self, anchor: pygame.Vector2) -> None:
-        """Paste the clipboard with its top-left anchored at *anchor*."""
-        if not self.clipboard["particles"]:
-            return
-        new_particles: list[Particle] = []
-        for pdata in self.clipboard["particles"]:
-            pos = anchor + pdata["offset"]
-            if pdata["type"] == "variable":
-                p = VariableParticle(
-                    pos,
-                    mass=pdata["mass"],
-                    color=pdata["color"],
-                    radius=pdata["radius"],
-                    base_drag=pdata["base_drag"],
-                    alt_drag=pdata["alt_drag"],
-                    key=pdata["key"],
-                    mode=pdata["mode"],
-                    change_speed=pdata["change_speed"],
-                    trail_length=self.environment.trail_length,
-                )
-                p.active = pdata["active"]
-                p.drag = pdata["drag"]
-            else:
-                p = Particle(
-                    pos,
-                    mass=pdata["mass"],
-                    color=pdata["color"],
-                    radius=pdata["radius"],
-                    tag=pdata["tag"],
-                    drag=pdata["drag"],
-                    trail_length=self.environment.trail_length,
-                )
-            p.fixed = pdata["fixed"]
-            new_particles.append(p)
-        index_map = {i: p for i, p in enumerate(new_particles)}
-        new_springs: list[Spring] = []
-        new_bends: list[BendingSpring] = []
-        new_arms: list[HookArm] = []
-        for sdata in self.clipboard["springs"]:
-            p1 = index_map[sdata["p1"]]
-            p2 = index_map[sdata["p2"]]
-            if sdata["type"] == "variable":
-                s = VariableSpring(
-                    p1,
-                    p2,
-                    sdata["base_rest"],
-                    sdata["alt_rest"],
-                    sdata["stiffness"],
-                    key=sdata["key"],
-                    mode=sdata["mode"],
-                    change_speed=sdata["change_speed"],
-                    max_force=sdata["max_force"],
-                    invisible=sdata["invisible"],
-                )
-                s.rest_length = sdata["rest_length"]
-                s.active = sdata["active"]
-            else:
-                s = Spring(
-                    p1,
-                    p2,
-                    sdata["rest_length"],
-                    sdata["stiffness"],
-                    sdata["max_force"],
-                    sdata["invisible"],
-                )
-            new_springs.append(s)
-        for bdata in self.clipboard["bends"]:
-            p1 = index_map[bdata["p1"]]
-            p2 = index_map[bdata["p2"]]
-            p3 = index_map[bdata["p3"]]
-            if bdata.get("type") == "variable":
-                b = VariableBendingSpring(
-                    p1,
-                    p2,
-                    p3,
-                    bdata["base_angle"],
-                    bdata["alt_angle"],
-                    bdata["stiffness"],
-                    key=bdata["key"],
-                    mode=bdata["mode"],
-                    change_speed=bdata["change_speed"],
-                )
-                b.rest_angle = bdata["angle"]
-                b.active = bdata["active"]
-            else:
-                b = BendingSpring(p1, p2, p3, bdata["angle"], bdata["stiffness"])
-            new_bends.append(b)
-        for adata in self.clipboard["arms"]:
-            arm = HookArm.__new__(HookArm)
-            arm.particles = [new_particles[i] for i in adata["particles"]]
-            arm.springs = [new_springs[i] for i in adata["springs"]]
-            arm.color = tuple(adata["color"])
-            arm.high_drag_color = tuple(adata["high_color"])
-            arm.adhesion_mass_factor = adata["adhesion"]
-            arm.adhesion_drag = adata["adhesion_drag"]
-            arm.cycle_speed = adata["cycle_speed"]
-            arm.rest_lengths = adata["rest_lengths"]
-            arm.max_lengths = adata["max_lengths"]
-            arm.tip = arm.particles[-1]
-            arm._orig_mass = adata["orig_mass"]
-            arm._orig_drag = adata["orig_drag"]
-            arm.extend_held = False
-            arm.contract_held = False
-            arm.cycle_held = False
-            arm.cycle_active = False
-            arm.cycle_phase = 0
-            arm.cycle_key = adata.get("cycle_key")
-            if arm.cycle_key is not None:
-                self.cycle_keys.setdefault(arm.cycle_key, []).append(arm)
-            arm._set_high_drag(False)
-            new_arms.append(arm)
-        self.particles.extend(new_particles)
-        self.springs.extend(new_springs)
-        self.bending_springs.extend(new_bends)
-        self.arms.extend(new_arms)
-        for p in new_particles:
-            if isinstance(p, VariableParticle):
-                self.variable_particles.append(p)
-                self.register_variable_particle(p)
-        for s in new_springs:
-            if isinstance(s, VariableSpring):
-                self.variable_springs.append(s)
-                self.register_variable_spring(s)
-        for b in new_bends:
-            if isinstance(b, VariableBendingSpring):
-                self.variable_bending_springs.append(b)
-                self.register_variable_bend(b)
-        self.clear_selection()
-        for p in new_particles:
-            p.selected = True
-            self.selected_particles.append(p)
-        for s in new_springs:
-            s.selected = True
-            self.selected_springs.append(s)
-        for b in new_bends:
-            b.selected = True
-            self.selected_bends.append(b)
-        self.push_undo(
-            lambda parts=new_particles, sprs=new_springs, bends=new_bends, arms=new_arms: self.remove_entities(
-                parts, sprs, bends, arms
-            )
-        )
+        """Delegate to SelectionManager to paste clipboard at anchor."""
+        self.selection.paste(anchor)
 
     def draw_paste_preview(self) -> None:
-        """Render a faint preview of the clipboard at the cursor."""
-        if not self.pasting or not self.clipboard["particles"]:
-            return
-        anchor = self.screen_to_world(pygame.mouse.get_pos())
-        overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
-        col = theme.ACCENT + (80,)
-        for pdata in self.clipboard["particles"]:
-            pos = anchor + pdata["offset"]
-            c = self.world_to_screen(pos)
-            r = int((pdata["radius"] or 5) * self.camera_zoom)
-            pygame.draw.circle(overlay, col, (int(c.x), int(c.y)), r)
-        for sdata in self.clipboard["springs"]:
-            p1 = anchor + self.clipboard["particles"][sdata["p1"]]["offset"]
-            p2 = anchor + self.clipboard["particles"][sdata["p2"]]["offset"]
-            a = self.world_to_screen(p1)
-            b = self.world_to_screen(p2)
-            pygame.draw.line(overlay, col, a, b, 2)
-        for bdata in self.clipboard["bends"]:
-            p1 = anchor + self.clipboard["particles"][bdata["p1"]]["offset"]
-            p2 = anchor + self.clipboard["particles"][bdata["p2"]]["offset"]
-            p3 = anchor + self.clipboard["particles"][bdata["p3"]]["offset"]
-            a = self.world_to_screen(p1)
-            b = self.world_to_screen(p2)
-            c = self.world_to_screen(p3)
-            pygame.draw.line(overlay, col, a, b, 1)
-            pygame.draw.line(overlay, col, b, c, 1)
-        self.screen.blit(overlay, (0, 0))
+        """Delegate to SelectionManager to draw clipboard preview."""
+        self.selection.draw_paste_preview()
 
     def draw_help_overlay(self) -> None:
         """Draw a translucent panel with common key bindings."""
@@ -1403,131 +1122,8 @@ class BuilderApp:
 
     # ------------------------------------------------------------------ mode handlers
     def handle_select_event(self, event: pygame.event.Event):
-        """Handle rectangle selection of particles, springs and bends."""
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if event.pos[0] >= self.screen.get_width() - self.ui.visible_width():
-                return
-            self.selection_start = pygame.Vector2(event.pos)
-            self.selection_rect = pygame.Rect(self.selection_start, (0, 0))
-        elif event.type == pygame.MOUSEMOTION and self.selection_start:
-            end = pygame.Vector2(event.pos)
-            rect = pygame.Rect(self.selection_start, (end.x - self.selection_start.x, end.y - self.selection_start.y))
-            rect.normalize()
-            self.selection_rect = rect
-        elif (
-            event.type == pygame.MOUSEBUTTONUP
-            and event.button == 1
-            and self.selection_rect is not None
-        ):
-            # Determine whether to add to existing selection (Ctrl/Cmd held)
-            mods = pygame.key.get_mods()
-            additive = bool(mods & (pygame.KMOD_CTRL | pygame.KMOD_META))
-            # Small click vs drag rectangle
-            rect_px = self.selection_rect
-            is_click = rect_px.width < 4 and rect_px.height < 4
-            if is_click:
-                # click-pick nearest target under cursor
-                mx, my = int(self.selection_start.x), int(self.selection_start.y)
-                mouse_screen = (mx, my)
-                # thresholds in pixels
-                particle_threshold_px = 30
-                spring_threshold_px = 12
-                # find nearest particle
-                nearest_p = None
-                best_dp = float("inf")
-                for p in self.particles:
-                    ps = self.world_to_screen(p.pos)
-                    dp = ((ps.x - mx) ** 2 + (ps.y - my) ** 2) ** 0.5
-                    if dp < best_dp:
-                        best_dp = dp
-                        nearest_p = p
-                # nearest spring
-                def seg_dist(a_world, b_world):
-                    a = self.world_to_screen(a_world)
-                    b = self.world_to_screen(b_world)
-                    ax, ay = a.x, a.y
-                    bx, by = b.x, b.y
-                    mx_, my_ = float(mx), float(my)
-                    vx, vy = bx - ax, by - ay
-                    seg_len2 = vx * vx + vy * vy
-                    if seg_len2 == 0:
-                        dx, dy = mx_ - ax, my_ - ay
-                        return (dx * dx + dy * dy) ** 0.5
-                    t = ((mx_ - ax) * vx + (my_ - ay) * vy) / seg_len2
-                    t = max(0.0, min(1.0, t))
-                    px, py = ax + t * vx, ay + t * vy
-                    dx, dy = mx_ - px, my_ - py
-                    return (dx * dx + dy * dy) ** 0.5
-                nearest_s = None
-                best_ds = float("inf")
-                for s in self.springs:
-                    ds = seg_dist(s.p1.pos, s.p2.pos)
-                    if ds < best_ds:
-                        best_ds = ds
-                        nearest_s = s
-                # nearest bend (use segment/arc distance helper)
-                nearest_b = None
-                best_db = float("inf")
-                for bs in self.bending_springs:
-                    db = self._screen_bend_distance(bs, mouse_screen)
-                    if db < best_db:
-                        best_db = db
-                        nearest_b = bs
-                # choose by thresholds
-                choice = None
-                if nearest_p is not None and best_dp <= particle_threshold_px:
-                    choice = ("particle", best_dp, nearest_p)
-                if nearest_s is not None and best_ds <= spring_threshold_px and (choice is None or best_ds < choice[1]):
-                    choice = ("spring", best_ds, nearest_s)
-                if nearest_b is not None and best_db <= spring_threshold_px and (choice is None or best_db < choice[1]):
-                    choice = ("bend", best_db, nearest_b)
-                if not additive:
-                    self.clear_selection()
-                if choice is not None:
-                    kind, _, obj = choice
-                    if kind == "particle":
-                        if obj not in self.selected_particles:
-                            self.selected_particles.append(obj)
-                        obj.selected = True
-                    elif kind == "spring":
-                        if obj not in self.selected_springs:
-                            self.selected_springs.append(obj)
-                        obj.selected = True
-                    elif kind == "bend":
-                        if obj not in self.selected_bends:
-                            self.selected_bends.append(obj)
-                        obj.selected = True
-            else:
-                # rectangle selection in world space
-                start = self.screen_to_world(self.selection_rect.topleft)
-                end = self.screen_to_world(self.selection_rect.bottomright)
-                world_rect = pygame.Rect(start, (end.x - start.x, end.y - start.y))
-                world_rect.normalize()
-                if not additive:
-                    self.clear_selection()
-                for p in self.particles:
-                    if world_rect.collidepoint(p.pos.x, p.pos.y):
-                        if p not in self.selected_particles:
-                            self.selected_particles.append(p)
-                        p.selected = True
-                for s in self.springs:
-                    if world_rect.collidepoint(s.p1.pos.x, s.p1.pos.y) and world_rect.collidepoint(
-                        s.p2.pos.x, s.p2.pos.y
-                    ):
-                        if s not in self.selected_springs:
-                            self.selected_springs.append(s)
-                        s.selected = True
-                for b in self.bending_springs:
-                    if (
-                        world_rect.collidepoint(b.p1.pos.x, b.p1.pos.y)
-                        and world_rect.collidepoint(b.p2.pos.x, b.p2.pos.y)
-                        and world_rect.collidepoint(b.p3.pos.x, b.p3.pos.y)
-                    ):
-                        if b not in self.selected_bends:
-                            self.selected_bends.append(b)
-                        b.selected = True
-            self.selection_rect = None
-            self.selection_start = None
+        """Delegate selection interactions to SelectionManager."""
+        self.selection.handle_event(event)
 
     def handle_drag_event(self, event: pygame.event.Event):
         """Handle interactions while in *drag* mode."""
@@ -2125,8 +1721,8 @@ class BuilderApp:
                     2,
                 )
             self.draw_paste_preview()
-            if self.selection_rect:
-                pygame.draw.rect(self.screen, theme.ACCENT, self.selection_rect, width=1)
+            if self.selection.selection_rect:
+                pygame.draw.rect(self.screen, theme.ACCENT, self.selection.selection_rect, width=1)
             if self.mode == "inspect":
                 obj = self.hover_particle or self.hover_spring or self.hover_bend
                 if obj:
