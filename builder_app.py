@@ -115,6 +115,9 @@ class BuilderApp:
         # Use a fixed timestep with substeps for stability across variable framerates
         self.physics.set_fixed_timestep(1.0 / FPS, substeps=2)
         self.renderer = Renderer(self.screen)
+        # Sync additional physics params from environment
+        self.physics.collision_elasticity = self.environment.collision_elasticity
+        self.physics.wall_friction_coeff = self.environment.wall_friction
         self.physics.trails_enabled = self.environment.trails_enabled
         self.renderer.set_trails_enabled(self.environment.trails_enabled)
         self.ui = SidebarUI(self.screen, self)
@@ -163,10 +166,6 @@ class BuilderApp:
         self.mode_handlers: dict[str, Callable[[pygame.event.Event], None]] = {
             "select": self.handle_select_event,
             "drag": self.handle_drag_event,
-            "particle": self.handle_particle_event,
-            "vparticle": self.handle_variable_particle_event,
-            "spring": self.handle_spring_event,
-            "vspring": self.handle_variable_spring_event,
             "delete": self.handle_delete_event,
         }
 
@@ -426,6 +425,7 @@ class BuilderApp:
             "1-0 - switch tools",
             "Ctrl+S - select tool",
             "Ctrl+C / Ctrl+V - copy/paste",
+            "Ctrl+F - fit camera to selection",
             "Delete - delete selection",
             "Right mouse drag - pan camera",
             "Middle mouse drag - rotate camera",
@@ -622,6 +622,7 @@ class BuilderApp:
                 "collisions": self.physics.collisions_enabled,
                 "collision_elasticity": self.physics.collision_elasticity,
                 "collision_bucket_size": self.physics.collision_bucket_size or 0,
+                "wall_friction": self.physics.wall_friction_coeff,
                 "trails_enabled": self.environment.trails_enabled,
                 "trail_length": self.environment.trail_length,
                 "play_area": {
@@ -892,8 +893,12 @@ class BuilderApp:
         self.physics.collisions_enabled = phys.get("collisions", True)
         self.environment.collisions = self.physics.collisions_enabled
         self.physics.collision_elasticity = phys.get("collision_elasticity", 1.0)
+        self.environment.collision_elasticity = self.physics.collision_elasticity
         self.physics.collision_bucket_size = phys.get("collision_bucket_size", 0) or None
         self.environment.collision_bucket_size = self.physics.collision_bucket_size or 0
+        # wall friction (new; default 0.7)
+        self.physics.wall_friction_coeff = phys.get("wall_friction", 0.7)
+        self.environment.wall_friction = self.physics.wall_friction_coeff
         self.physics.trails_enabled = phys.get("trails_enabled", False)
         self.environment.trails_enabled = self.physics.trails_enabled
         self.environment.trail_length = int(phys.get("trail_length", self.environment.trail_length))

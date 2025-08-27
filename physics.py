@@ -81,6 +81,8 @@ class PhysicsEngine:
             else None
         )
         self.trails_enabled: bool = False
+        # Wall friction applied to particles marked near boundaries
+        self.wall_friction_coeff: float = 0.7
         # Updated dynamically by the app when the window resizes
         self._screen_size: tuple[int, int] | None = None
         # Optional world-space playable area used for boundary proximity
@@ -244,8 +246,8 @@ class PhysicsEngine:
         for p in self.particles:
             if getattr(p, "near_boundary", False):
                 v = p.pos - p.prev_pos
-                friction_coeff = 0.7  # adjust as needed
-                v *= friction_coeff
+                friction = max(0.0, min(1.0, float(self.wall_friction_coeff)))
+                v *= friction
                 p.prev_pos = p.pos - v
         if self.trails_enabled:
             for p in self.particles:

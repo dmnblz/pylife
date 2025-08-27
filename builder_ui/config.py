@@ -135,12 +135,15 @@ class EnvironmentParams:
     damping: float = 1.0
     integration_damping: float = 0.98
     collisions: bool = True
+    collision_elasticity: float = 1.0
     collision_bucket_size: float = 0.0
     trails_enabled: bool = False
     trail_length: int = 40
     # Play area size (world-space); left/top are fixed at 0 for now
     play_width: int = 1300
     play_height: int = 900
+    # Wall friction applied near boundaries (0..1)
+    wall_friction: float = 0.7
 
 
 @dataclass

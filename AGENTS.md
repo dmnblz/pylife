@@ -130,6 +130,7 @@ graph TD
 - Inspect: Click an existing particle, spring, or bend to edit properties in place; hovering shows a tooltip with key properties; convert between normal/variable spring/particle types; toggle spring visibility; set `max_force` (0 means unlimited/None).
 - Grid: Toggle overlay and spacing; new placements snap to intersections. `snap_to_grid` leaves aligned coords unchanged.
 - Env: Adjust gravity, repulsion radius/strength, viscous damping, velocity damping, temperature, toggle collisions, and particle trails.
+ - Env: Adjust gravity, repulsion radius/strength, viscous damping, velocity damping, temperature, collision elasticity, wall friction, toggle collisions, and particle trails.
  - Events: Click the "Events" button to open a centered modal. Choose a Trigger (Sensor/Key/Timer) and add ordered blocks: Channel Set, Channel Pulse (duration), Wait (ms), Hold, Release. You can edit or delete existing rules from the same modal. Defaults: placing a sensor creates a rule (Stay → Channel Set) matching current behavior.
 
 ### Undo and deletion
@@ -157,7 +158,7 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
   - `particles` (indices), `springs` (indices into global springs), `rest_lengths`, `max_lengths`, `cycle_speed`, `color`, `high_color`, `adhesion` (mass factor), `orig_mass`, `adhesion_drag`, `orig_drag`, `cycle_key`
 - Sensor particles appear in `particles` with `type: "sensor"` and fields `forward`, `sense_radius`, `half_angle`, `tags`.
   They also include an optional `channel` used to signal variable objects.
-- `physics`: `{ gravity: [gx, gy], repulsion_radius, repulsion_strength, temperature, damping_coeff, integration_damping, collisions, collision_elasticity, collision_bucket_size, trails_enabled, trail_length }`
+- `physics`: `{ gravity: [gx, gy], repulsion_radius, repulsion_strength, temperature, damping_coeff, integration_damping, collisions, collision_elasticity, collision_bucket_size, wall_friction, trails_enabled, trail_length }`
   Now also includes `play_area: { width, height }` controlling the world field size. Older files may omit this; they default to the current window size on load.
   Older save files may omit `trails_enabled` and `trail_length`; they default
   to `false` and `40` on load.

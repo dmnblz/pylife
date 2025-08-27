@@ -96,12 +96,34 @@ class EnvironmentTool(Tool):
             width,
         )
         y += 40
+        self.elasticity_field = SliderField(
+            "Bounce",
+            0,
+            1,
+            lambda: self.app.environment.collision_elasticity,
+            self._set_collision_elasticity,
+            x,
+            y,
+            width,
+        )
+        y += 40
         self.coll_field = SliderField(
             "Collide",
             0,
             1,
             lambda: 1 if self.app.environment.collisions else 0,
             self._set_collisions,
+            x,
+            y,
+            width,
+        )
+        y += 40
+        self.wall_friction_field = SliderField(
+            "Wall Fric",
+            0,
+            1,
+            lambda: self.app.environment.wall_friction,
+            self._set_wall_friction,
             x,
             y,
             width,
@@ -200,11 +222,23 @@ class EnvironmentTool(Tool):
         self.app.environment.temperature = val
         self.app.physics.temperature = val
 
+    def _set_collision_elasticity(self, value: float) -> None:
+        """Adjust collision restitution (0..1)."""
+        val = max(0.0, min(1.0, float(value)))
+        self.app.environment.collision_elasticity = val
+        self.app.physics.collision_elasticity = val
+
     def _set_collisions(self, value: float):
         """Enable or disable particle collisions."""
         enabled = value >= 0.5
         self.app.environment.collisions = enabled
         self.app.physics.collisions_enabled = enabled
+
+    def _set_wall_friction(self, value: float) -> None:
+        """Adjust wall friction near boundaries (0..1)."""
+        val = max(0.0, min(1.0, float(value)))
+        self.app.environment.wall_friction = val
+        self.app.physics.wall_friction_coeff = val
 
     def _set_trails_enabled(self, value: float) -> None:
         """Toggle recording and rendering of particle trails."""
@@ -262,7 +296,9 @@ class EnvironmentTool(Tool):
         self.damp_field.draw(self.sidebar.screen, offset)
         self.vel_damp_field.draw(self.sidebar.screen, offset)
         self.temp_field.draw(self.sidebar.screen, offset)
+        self.elasticity_field.draw(self.sidebar.screen, offset)
         self.coll_field.draw(self.sidebar.screen, offset)
+        self.wall_friction_field.draw(self.sidebar.screen, offset)
         self.trail_toggle_field.draw(self.sidebar.screen, offset)
         self.trail_len_field.draw(self.sidebar.screen, offset)
         self.play_w_field.draw(self.sidebar.screen, offset)
@@ -288,7 +324,11 @@ class EnvironmentTool(Tool):
             return True
         if self.temp_field.handle_event(event, offset):
             return True
+        if self.elasticity_field.handle_event(event, offset):
+            return True
         if self.coll_field.handle_event(event, offset):
+            return True
+        if self.wall_friction_field.handle_event(event, offset):
             return True
         if self.trail_toggle_field.handle_event(event, offset):
             return True
