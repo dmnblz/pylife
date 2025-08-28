@@ -207,10 +207,20 @@ class KeyTrigger:
 
 @dataclass
 class EventRule:
+    """A rule mapping a trigger to one or more actions.
+
+    The ``enabled`` flag allows rules to be toggled without deletion.
+    Disabled rules are skipped by the engine but kept in the list and
+    persisted with the scene.
+    """
+
     trigger: Trigger
     actions: List[Action]
+    enabled: bool = True
 
     def evaluate(self, registry: RegistryManager, engine: "EventEngine") -> None:
+        if not self.enabled:
+            return
         if self.trigger.fired(engine):
             for a in self.actions:
                 a.execute(registry, engine)

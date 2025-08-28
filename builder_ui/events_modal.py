@@ -88,7 +88,13 @@ class EventsModal:
             trigger = TimerTrigger(self.timer_mode, int(self.timer_ms))
         if trigger:
             new_rule = EventRule(trigger, actions)
+            # preserve enabled state when overwriting an existing rule
             if self.editing_index is not None and 0 <= self.editing_index < len(self.app.event_engine.rules):
+                prev = self.app.event_engine.rules[self.editing_index]
+                try:
+                    new_rule.enabled = bool(getattr(prev, "enabled", True))
+                except Exception:
+                    new_rule.enabled = True
                 self.app.event_engine.rules[self.editing_index] = new_rule
             else:
                 self.app.event_engine.add_rule(new_rule)
@@ -326,7 +332,8 @@ class EventsModal:
                     return f"Wait({a.duration_ms}ms)"
                 return a.__class__.__name__
             a_txt = ", ".join(_act_name(a) for a in acts)
-            return f"{trig} -> {a_txt}"
+            prefix = "[disabled] " if not getattr(rule, 'enabled', True) else ""
+            return f"{prefix}{trig} -> {a_txt}"
 
         def _flatten_actions(acts):
             out = []
@@ -390,14 +397,26 @@ class EventsModal:
                             elif self.editing_index > j:
                                 self.editing_index -= 1
                 return _del
+            def _mk_toggle(j=i):
+                def _toggle():
+                    if 0 <= j < len(self.app.event_engine.rules):
+                        r = self.app.event_engine.rules[j]
+                        try:
+                            r.enabled = not bool(getattr(r, 'enabled', True))
+                        except Exception:
+                            r.enabled = True
+                return _toggle
             # position buttons at right
             pr = self.rect
-            bx = pr.width - 220
-            b_edit = ButtonField("Edit", _mk_edit(), bx, row_y, 90)
-            b_del = ButtonField("Delete", _mk_del(), bx + 100, row_y, 100)
+            bx = pr.width - 330
+            label = ("Disable" if getattr(rule, 'enabled', True) else "Enable")
+            b_toggle = ButtonField(label, _mk_toggle(), bx, row_y, 100)
+            b_edit = ButtonField("Edit", _mk_edit(), bx + 110, row_y, 90)
+            b_del = ButtonField("Delete", _mk_del(), bx + 210, row_y, 100)
+            b_toggle.draw(panel, 0, origin=(ox, oy))
             b_edit.draw(panel, 0, origin=(ox, oy))
             b_del.draw(panel, 0, origin=(ox, oy))
-            self._btns.extend([b_edit, b_del])
+            self._btns.extend([b_toggle, b_edit, b_del])
 
         # draw onto screen
         self.app.screen.blit(panel, self._panel_rect())

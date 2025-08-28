@@ -173,7 +173,8 @@ Scenes are serialized to JSON via `builder_io.py`. Loading rebuilds objects and 
      - `{ type: "channel_hold", channel: <int|null> }`
      - `{ type: "channel_release", channel: <int|null> }`
      - `{ type: "wait", duration_ms: <int> }`
-   - `events_version`: integer marker (`1` legacy; `2` when sequences or new action types are present).
+   - Each rule also persists `enabled: <bool>` (defaults to `true` when omitted). Disabled rules remain listed but do not fire.
+   - `events_version`: integer marker (`1` legacy; `2` when sequences or new action types are present). The `enabled` flag is compatible with both versions and defaults to `true` when files are missing it.
 
 ### Example
 

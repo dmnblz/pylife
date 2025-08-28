@@ -692,6 +692,7 @@ class BuilderApp:
                             events.append({
                                 "when": {"type": "sensor", "sensor": idx, "edge": edge},
                                 "then": acts,
+                                "enabled": bool(getattr(rule, "enabled", True)),
                             })
                 elif isinstance(rule, EventRule) and isinstance(rule.trigger, KeyTrigger):
                     edge = rule.trigger.edge
@@ -701,6 +702,7 @@ class BuilderApp:
                         events.append({
                             "when": {"type": "key", "edge": edge, "key": key},
                             "then": acts,
+                            "enabled": bool(getattr(rule, "enabled", True)),
                         })
                 elif isinstance(rule, EventRule) and isinstance(rule.trigger, TimerTrigger):
                     mode = rule.trigger.mode
@@ -710,6 +712,7 @@ class BuilderApp:
                         events.append({
                             "when": {"type": "timer", "mode": mode, "interval_ms": interval},
                             "then": acts,
+                            "enabled": bool(getattr(rule, "enabled", True)),
                         })
             if events:
                 data["events_version"] = 2 if version2 else 1
@@ -962,7 +965,12 @@ class BuilderApp:
                             if actions:
                                 if len(actions) > 1 or any(isinstance(a, DelayAction) for a in actions):
                                     actions = [SequenceAction(actions)]  # type: ignore[list-item]
-                                self.event_engine.add_rule(EventRule(SensorEdgeTrigger(sensor, edge=edge), actions))
+                                rule = EventRule(SensorEdgeTrigger(sensor, edge=edge), actions)
+                                try:
+                                    rule.enabled = bool(ed.get("enabled", True))
+                                except Exception:
+                                    rule.enabled = True
+                                self.event_engine.add_rule(rule)
                     elif when.get("type") == "key":
                         key = int(when.get("key", 0))
                         edge = when.get("edge", "down")
@@ -981,7 +989,12 @@ class BuilderApp:
                         if actions:
                             if len(actions) > 1 or any(isinstance(a, DelayAction) for a in actions):
                                 actions = [SequenceAction(actions)]  # type: ignore[list-item]
-                            self.event_engine.add_rule(EventRule(KeyTrigger(key, edge=edge), actions))
+                            rule = EventRule(KeyTrigger(key, edge=edge), actions)
+                            try:
+                                rule.enabled = bool(ed.get("enabled", True))
+                            except Exception:
+                                rule.enabled = True
+                            self.event_engine.add_rule(rule)
                     elif when.get("type") == "timer":
                         mode = when.get("mode", "every")
                         interval_ms = int(when.get("interval_ms", 1000))
@@ -1000,7 +1013,12 @@ class BuilderApp:
                         if actions:
                             if len(actions) > 1 or any(isinstance(a, DelayAction) for a in actions):
                                 actions = [SequenceAction(actions)]  # type: ignore[list-item]
-                            self.event_engine.add_rule(EventRule(TimerTrigger(mode, interval_ms), actions))
+                            rule = EventRule(TimerTrigger(mode, interval_ms), actions)
+                            try:
+                                rule.enabled = bool(ed.get("enabled", True))
+                            except Exception:
+                                rule.enabled = True
+                            self.event_engine.add_rule(rule)
             else:
                 # Fallback: default behaviour per sensor
                 for s in self.sensors:
