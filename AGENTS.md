@@ -109,6 +109,12 @@ graph TD
   - 1 Drag, 2 Particle, 3 Spring, 4 Bend, 5 Circle, 6 Rod, 7 Arm, 8 Inspect, 9 Grid, 0 Env
   Other controls:
     - Ctrl+S Select tool
+    - Ctrl/Cmd+E toggle Events editor
+    - Ctrl/Cmd+2 Variable particle tool
+    - Ctrl/Cmd+3 Variable spring tool
+    - Ctrl/Cmd+4 Variable bend tool
+    - Ctrl/Cmd+I Inspect tool
+    - Ctrl/Cmd+G Grid tool
     - Ctrl+C copy selection of particles, springs, bends and hook arms
     - Ctrl+V paste selection
     - Space pause/resume

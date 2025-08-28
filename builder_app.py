@@ -309,6 +309,18 @@ class BuilderApp:
         except Exception:
             pass
 
+    def toggle_events_modal(self) -> None:
+        """Toggle visibility of the Events editor modal (open/close)."""
+        try:
+            if getattr(self, "events_modal", None) is None:
+                return
+            if self.events_modal.visible:
+                self.events_modal.close()
+            else:
+                self.events_modal.open()
+        except Exception:
+            pass
+
     def set_grid_size(self, value: float):
         """Set the grid spacing in pixels."""
         self.grid_size = max(5.0, value)
@@ -424,6 +436,12 @@ class BuilderApp:
             "Space - pause/resume",
             "1-0 - switch tools",
             "Ctrl+S - select tool",
+            "Ctrl/Cmd+E - toggle Events editor",
+            "Ctrl/Cmd+2 - variable particle",
+            "Ctrl/Cmd+3 - variable spring",
+            "Ctrl/Cmd+4 - variable bend",
+            "Ctrl/Cmd+I - inspect tool",
+            "Ctrl/Cmd+G - grid tool",
             "Ctrl+C / Ctrl+V - copy/paste",
             "Ctrl+F - fit camera to selection",
             "Delete - delete selection",
@@ -1476,6 +1494,12 @@ class BuilderApp:
 
                 # While Events modal is open, route events to it and block world/UI
                 if getattr(self, "events_modal", None) and self.events_modal.visible:
+                    # Allow global toggle (Ctrl/Cmd+E) even while modal is open
+                    if e.type == pygame.KEYDOWN:
+                        mods = pygame.key.get_mods()
+                        if (mods & (pygame.KMOD_CTRL | pygame.KMOD_META)) and e.key == pygame.K_e:
+                            self.toggle_events_modal()
+                            continue
                     if e.type == pygame.QUIT:
                         running = False
                         continue
@@ -1542,6 +1566,12 @@ class BuilderApp:
                     continue
 
                 elif e.type == pygame.KEYDOWN:
+                    mods = pygame.key.get_mods()
+                    ctrl = mods & (pygame.KMOD_CTRL | pygame.KMOD_META)
+                    # Global toggles first
+                    if ctrl and e.key == pygame.K_e:
+                        self.toggle_events_modal()
+                        continue
                     if e.key in (pygame.K_BACKSPACE, pygame.K_DELETE):
                         if self.selected_particles or self.selected_springs or self.selected_bends:
                             self.delete_selection()
@@ -1560,13 +1590,26 @@ class BuilderApp:
                             pygame.K_9: "grid",
                             pygame.K_0: "env",
                         }
+                        # Modifier-based quick switches
+                        if ctrl:
+                            if e.key == pygame.K_2:
+                                self.set_mode("vparticle")
+                                continue
+                            if e.key == pygame.K_3:
+                                self.set_mode("vspring")
+                                continue
+                            if e.key == pygame.K_4:
+                                self.set_mode("vbend")
+                                continue
+                            if e.key == pygame.K_i:
+                                self.set_mode("inspect")
+                                continue
+                            if e.key == pygame.K_g:
+                                self.set_mode("grid")
+                                continue
                         mode = tool_keys.get(e.key)
-                        mods = pygame.key.get_mods()
-                        ctrl = mods & (pygame.KMOD_CTRL | pygame.KMOD_META)
                         if mode:
                             self.set_mode(mode)
-                        elif e.key == pygame.K_e:
-                            self.open_events_modal()
                         elif ctrl and e.key == pygame.K_s:
                             self.set_mode("select")
                         elif ctrl and e.key == pygame.K_c:
