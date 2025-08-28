@@ -623,6 +623,7 @@ class BuilderApp:
                 "collision_elasticity": self.physics.collision_elasticity,
                 "collision_bucket_size": self.physics.collision_bucket_size or 0,
                 "wall_friction": self.physics.wall_friction_coeff,
+                "time_scale": float(self.environment.time_scale),
                 "trails_enabled": self.environment.trails_enabled,
                 "trail_length": self.environment.trail_length,
                 "play_area": {
@@ -905,6 +906,8 @@ class BuilderApp:
         self.renderer.set_trails_enabled(self.environment.trails_enabled)
         for p in self.particles:
             p.trail = deque(p.trail, maxlen=self.environment.trail_length)
+        # time scale (new; default 1.0)
+        self.environment.time_scale = float(phys.get("time_scale", getattr(self.environment, "time_scale", 1.0)))
 
         # refresh physics engine references so loaded objects are simulated
         self.physics.particles = self.particles
@@ -1416,6 +1419,8 @@ class BuilderApp:
         running = True
         while running:
             dt = self.clock.tick(FPS) / 1000
+            # Global time scaling (0 = stopped, 1 = real-time)
+            scaled_dt = dt * max(0.0, float(self.environment.time_scale))
 
             for e in pygame.event.get():
                 # handle window resize
@@ -1585,17 +1590,17 @@ class BuilderApp:
                 self.selected.prev_pos = self.selected.pos.copy()
 
             if not self.paused:
-                self.physics.update(dt)
+                self.physics.update(scaled_dt)
                 for arm in self.arms:
-                    arm.update(dt)
+                    arm.update(scaled_dt)
                 for s in self.variable_springs:
-                    s.update(dt)
+                    s.update(scaled_dt)
                 for p in self.variable_particles:
-                    p.update(dt)
+                    p.update(scaled_dt)
                 for b in self.variable_bending_springs:
-                    b.update(dt)
+                    b.update(scaled_dt)
             # Evaluate event rules (e.g., sensors, timers, key triggers)
-            self.event_engine.tick(dt)
+            self.event_engine.tick(scaled_dt)
             self._apply_channel_signals()
 
             # keep particles inside the world play area (independent of screen size)

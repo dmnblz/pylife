@@ -130,7 +130,7 @@ graph TD
 - Inspect: Click an existing particle, spring, or bend to edit properties in place; hovering shows a tooltip with key properties; convert between normal/variable spring/particle types; toggle spring visibility; set `max_force` (0 means unlimited/None).
 - Grid: Toggle overlay and spacing; new placements snap to intersections. `snap_to_grid` leaves aligned coords unchanged.
 - Env: Adjust gravity, repulsion radius/strength, viscous damping, velocity damping, temperature, toggle collisions, and particle trails.
- - Env: Adjust gravity, repulsion radius/strength, viscous damping, velocity damping, temperature, collision elasticity, wall friction, toggle collisions, and particle trails.
+ - Env: Adjust gravity, repulsion radius/strength, viscous damping, velocity damping, time scale, temperature, collision elasticity, wall friction, toggle collisions, and particle trails.
  - Events: Click the "Events" button to open a centered modal. Choose a Trigger (Sensor/Key/Timer) and add ordered blocks: Channel Set, Channel Pulse (duration), Wait (ms), Hold, Release. You can edit or delete existing rules from the same modal. Defaults: placing a sensor creates a rule (Stay → Channel Set) matching current behavior.
 
 ### Undo and deletion

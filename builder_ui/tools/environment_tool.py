@@ -85,6 +85,17 @@ class EnvironmentTool(Tool):
             width,
         )
         y += 40
+        self.time_scale_field = SliderField(
+            "Time",
+            0.0,
+            3.0,
+            lambda: self.app.environment.time_scale,
+            self._set_time_scale,
+            x,
+            y,
+            width,
+        )
+        y += 40
         self.temp_field = SliderField(
             "Temp",
             0,
@@ -216,6 +227,10 @@ class EnvironmentTool(Tool):
         self.app.environment.integration_damping = val
         self.app.physics.integration_damping = val
 
+    def _set_time_scale(self, value: float) -> None:
+        """Adjust global simulation time multiplier (0..3)."""
+        self.app.environment.time_scale = max(0.0, min(3.0, float(value)))
+
     def _set_temperature(self, value: float):
         """Set Brownian motion intensity."""
         val = max(0, value)
@@ -295,6 +310,7 @@ class EnvironmentTool(Tool):
         self.rep_str_field.draw(self.sidebar.screen, offset)
         self.damp_field.draw(self.sidebar.screen, offset)
         self.vel_damp_field.draw(self.sidebar.screen, offset)
+        self.time_scale_field.draw(self.sidebar.screen, offset)
         self.temp_field.draw(self.sidebar.screen, offset)
         self.elasticity_field.draw(self.sidebar.screen, offset)
         self.coll_field.draw(self.sidebar.screen, offset)
@@ -321,6 +337,8 @@ class EnvironmentTool(Tool):
         if self.damp_field.handle_event(event, offset):
             return True
         if self.vel_damp_field.handle_event(event, offset):
+            return True
+        if self.time_scale_field.handle_event(event, offset):
             return True
         if self.temp_field.handle_event(event, offset):
             return True

@@ -134,6 +134,8 @@ class EnvironmentParams:
     temperature: float = 0.0
     damping: float = 1.0
     integration_damping: float = 0.98
+    # Global time scale multiplier (0 = stopped, 1 = real-time, >1 = faster)
+    time_scale: float = 1.0
     collisions: bool = True
     collision_elasticity: float = 1.0
     collision_bucket_size: float = 0.0
